@@ -65,15 +65,15 @@ AvaloniaFormGenerator/
 ## 3. 專案開發階段與進度追蹤 (Phased Milestones & Tracking)
 
 ### 🔹 階段 1：環境基建與核心 AST 模型 (`AFG.Core`)
-- [ ] **階段狀態：未開始**
+- [x] **階段狀態：已完成**
 - **任務清單**：
-  - [ ] 1.1 初始化 Git 儲存庫、建立 `.gitignore`、`.gitattributes`、`.editorconfig`
-  - [ ] 1.2 建立 .NET 10 多專案方案結構與全域設定 (`Directory.Build.props`)
-  - [ ] 1.3 定義 UI AST 中介資料結構 (`AstNode`, `PropertyBinding`, `EventMapping`, `ContainerNode`)
-  - [ ] 1.4 實作 AST 操作純函式（節點新增、刪除、移動、階層樹遍歷）
-  - [ ] 1.5 實作 AST JSON 序列化與反序列化（支援 `.afg.json` 專案檔讀寫）
+  - [x] 1.1 初始化 Git 儲存庫、建立 `.gitignore`、`.gitattributes`、`.editorconfig`
+  - [x] 1.2 建立 .NET 10 多專案方案結構與全域設定 (`Directory.Build.props`)
+  - [x] 1.3 定義 UI AST 中介資料結構 (`AstNode`, `PropertyBinding`, `EventMapping`, `ContainerNode`)
+  - [x] 1.4 實作 AST 操作純函式（節點新增、刪除、移動、階層樹遍歷）
+  - [x] 1.5 實作 AST JSON 序列化與反序列化（支援 `.afg.json` 專案檔讀寫）
 - **驗證方式**：
-  - [ ] `AFG.Core.Tests` 撰寫單元測試，測試 AST 增刪改查、階層樹循環引用檢查、防禦性 Null 檢查（100% 通過）
+  - [x] `AFG.Core.Tests` 撰寫單元測試，測試 AST 增刪改查、階層樹循環引用檢查、防禦性 Null 檢查（23/23 項測試 100% 通過）
 
 ---
 
