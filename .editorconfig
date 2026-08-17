@@ -27,6 +27,7 @@ dotnet_style_null_propagation = true:suggestion
 dotnet_style_coalesce_expression = true:suggestion
 csharp_using_directive_placement = outside_namespace:warning
 dotnet_diagnostic.CA1305.severity = none
+dotnet_diagnostic.CA1716.severity = none
 
 [tests/**/*.cs]
 dotnet_diagnostic.CA1707.severity = none

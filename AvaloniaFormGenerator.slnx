@@ -1,7 +1,9 @@
 <Solution>
   <Folder Name="/src/">
     <Project Path="src/AFG.Core/AFG.Core.csproj" />
+    <Project Path="src/AFG.Desktop/AFG.Desktop.csproj" />
     <Project Path="src/AFG.Generators/AFG.Generators.csproj" />
+    <Project Path="src/AFG.Shared/AFG.Shared.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/AFG.Core.Tests/AFG.Core.Tests.csproj" />

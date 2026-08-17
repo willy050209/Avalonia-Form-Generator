@@ -1,0 +1,50 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="using:AFG.Shared.ViewModels"
+             xmlns:models="using:AFG.Shared.Models"
+             mc:Ignorable="d" d:DesignWidth="260" d:DesignHeight="500"
+             x:Class="AFG.Shared.Views.ToolboxView"
+             x:DataType="vm:ToolboxViewModel">
+    
+    <Grid RowDefinitions="Auto, *">
+        <!-- 搜尋列 -->
+        <TextBox Grid.Row="0"
+                 Text="{Binding SearchText, Mode=TwoWay}"
+                 PlaceholderText="🔍 搜尋控制項..."
+                 Margin="8,8,8,6" />
+
+        <!-- 工具箱清單 -->
+        <ListBox Grid.Row="1"
+                 ItemsSource="{Binding FilteredItems}"
+                 SelectedItem="{Binding SelectedItem, Mode=TwoWay}"
+                 Background="Transparent"
+                 Margin="4,0,4,4">
+            <ListBox.ItemTemplate>
+                <DataTemplate x:DataType="models:ToolboxItem">
+                    <Border Padding="8,6"
+                            CornerRadius="4"
+                            Background="#27272A"
+                            Margin="0,2">
+                        <Grid ColumnDefinitions="Auto, *">
+                            <TextBlock Grid.Column="0"
+                                       Text="{Binding IconGlyph}"
+                                       FontSize="16"
+                                       VerticalAlignment="Center"
+                                       Margin="0,0,8,0" />
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                <TextBlock Text="{Binding DisplayName}"
+                                           FontWeight="SemiBold"
+                                           FontSize="13" />
+                                <TextBlock Text="{Binding Category}"
+                                           FontSize="10"
+                                           Foreground="#A1A1AA" />
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+                </DataTemplate>
+            </ListBox.ItemTemplate>
+        </ListBox>
+    </Grid>
+</UserControl>
