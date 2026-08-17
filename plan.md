@@ -78,14 +78,14 @@ AvaloniaFormGenerator/
 ---
 
 ### 🔹 階段 2：程式碼生成引擎與 Roslyn 診斷 (`AFG.Generators`)
-- [ ] **階段狀態：未開始**
+- [x] **階段狀態：已完成**
 - **任務清單**：
-  - [ ] 2.1 實作 C# Markup View 生成器（遞迴遍歷 AST 產出 Fluent 鏈式調用程式碼）
-  - [ ] 2.2 實作 ViewModel 生成器（產生符合 `CommunityToolkit.Mvvm` 規範之 partial class）
-  - [ ] 2.3 整合 Roslyn 程式碼格式化工具 (`CSharpSyntaxTree`, `Formatter`)
-  - [ ] 2.4 實作 Roslyn 記憶體編譯診斷服務（驗證產生的 C# 程式碼是否能順利編譯通過）
+  - [x] 2.1 實作 C# Markup View 生成器（遞迴遍歷 AST 產出 Fluent 鏈式調用程式碼）
+  - [x] 2.2 實作 ViewModel 生成器（產生符合 `CommunityToolkit.Mvvm` 規範之 partial class）
+  - [x] 2.3 整合 Roslyn 程式碼格式化工具 (`CSharpSyntaxTree`, `Formatter`)
+  - [x] 2.4 實作 Roslyn 記憶體編譯診斷服務（驗證產生的 C# 程式碼是否能順利編譯通過）
 - **驗證方式**：
-  - [ ] `AFG.Generators.Tests`：針對各種表單情境（包含 Grid、StackPanel、雙向綁定、Command 映射）進行產出測試，並由 Roslyn 進行 In-Memory Compilation 驗證無編譯錯誤
+  - [x] `AFG.Generators.Tests`：針對各種表單情境（包含 Grid、StackPanel、雙向綁定、Command 映射）進行產出測試，並由 Roslyn 進行 In-Memory Compilation 驗證無編譯錯誤（9/9 項測試 100% 通過，全方案共 32 項測試通過）
 
 ---
 
