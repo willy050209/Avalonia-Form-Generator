@@ -1,0 +1,16 @@
+// filepath: tests/AFG.Generators.Tests/GlobalUsings.cs
+global using System;
+global using System.Collections.Immutable;
+global using System.Linq;
+global using System.Threading.Tasks;
+global using AFG.Core.Enums;
+global using AFG.Core.Models.Ast;
+global using AFG.Core.Models.Common;
+global using AFG.Generators;
+global using AFG.Generators.CSharpMarkup;
+global using AFG.Generators.Models;
+global using AFG.Generators.Mvvm;
+global using AFG.Generators.Roslyn;
+global using FluentAssertions;
+global using Microsoft.CodeAnalysis;
+global using Xunit;
