@@ -1,0 +1,11 @@
+// filepath: tests/AFG.Core.Tests/GlobalUsings.cs
+global using System;
+global using System.Collections.Immutable;
+global using System.Linq;
+global using AFG.Core.Enums;
+global using AFG.Core.Models.Ast;
+global using AFG.Core.Models.Common;
+global using AFG.Core.Serialization;
+global using AFG.Core.Validation;
+global using FluentAssertions;
+global using Xunit;

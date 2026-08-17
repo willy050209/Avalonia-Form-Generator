@@ -1,0 +1,77 @@
+// filepath: src/AFG.Core/Models/Ast/FormDocument.cs
+namespace AFG.Core.Models.Ast;
+
+/// <summary>
+/// 表示整份表單設計的中介根文件模型。
+/// </summary>
+public sealed record FormDocument
+{
+    /// <summary>
+    /// 文件規格版本。
+    /// </summary>
+    public string SchemaVersion { get; init; } = "1.0";
+
+    /// <summary>
+    /// 產生的 C# 類別命名空間。
+    /// </summary>
+    public string RootNamespace { get; init; } = "GeneratedApp.Views";
+
+    /// <summary>
+    /// View 類別名稱（例如 LoginFormView）。
+    /// </summary>
+    public string ViewClassName { get; init; } = "MainFormView";
+
+    /// <summary>
+    /// ViewModel 類別名稱（例如 LoginFormViewModel）。
+    /// </summary>
+    public string ViewModelClassName { get; init; } = "MainFormViewModel";
+
+    /// <summary>
+    /// 視窗或表單標題。
+    /// </summary>
+    public string Title { get; init; } = "Avalonia Form";
+
+    /// <summary>
+    /// 預設設計畫布寬度。
+    /// </summary>
+    public double CanvasWidth { get; init; } = 800;
+
+    /// <summary>
+    /// 預設設計畫布高度。
+    /// </summary>
+    public double CanvasHeight { get; init; } = 600;
+
+    /// <summary>
+    /// 根佈局節點（通常為 Grid 或 Canvas）。
+    /// </summary>
+    public AstNode RootNode { get; init; } = new()
+    {
+        Name = "RootCanvas",
+        Type = ControlType.Canvas,
+        HorizontalAlignment = HorizontalAlignment.Stretch,
+        VerticalAlignment = VerticalAlignment.Stretch
+    };
+
+    /// <summary>
+    /// 建立預設空表單文件。
+    /// </summary>
+    public static FormDocument CreateDefault(string viewName = "MainFormView")
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(viewName);
+
+        var viewModelName = viewName.EndsWith("View", StringComparison.Ordinal)
+            ? $"{viewName}Model"
+            : $"{viewName}ViewModel";
+
+        return new FormDocument
+        {
+            ViewClassName = viewName,
+            ViewModelClassName = viewModelName,
+            RootNode = new AstNode
+            {
+                Name = "RootCanvas",
+                Type = ControlType.Canvas
+            }
+        };
+    }
+}

@@ -1,0 +1,12 @@
+// filepath: src/AFG.Core/GlobalUsings.cs
+global using System;
+global using System.Collections.Generic;
+global using System.Collections.Immutable;
+global using System.Linq;
+global using System.Text.Json;
+global using System.Text.Json.Serialization;
+global using AFG.Core.Enums;
+global using AFG.Core.Models.Ast;
+global using AFG.Core.Models.Common;
+global using AFG.Core.Serialization;
+global using AFG.Core.Validation;
