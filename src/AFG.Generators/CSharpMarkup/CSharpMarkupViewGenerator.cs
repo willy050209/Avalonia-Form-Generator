@@ -186,15 +186,33 @@ public sealed class CSharpMarkupViewGenerator : ICodeGenerator
             sb.AppendLine($"{innerIndent}.Orientation(Orientation.{node.Orientation.Value})");
         }
 
-        // 4. 控制項專屬外觀與內容
-        if (!string.IsNullOrEmpty(node.Text))
+        // 4. 控制項專屬外觀與內容（依型別智慧判定 Content vs Text）
+        if (IsContentControl(node.Type))
         {
-            sb.AppendLine($"{innerIndent}.Text(\"{EscapeString(node.Text)}\")");
+            var textOrContent = !string.IsNullOrEmpty(node.Content) ? node.Content : node.Text;
+            if (!string.IsNullOrEmpty(textOrContent))
+            {
+                sb.AppendLine($"{innerIndent}.Content(\"{EscapeString(textOrContent)}\")");
+            }
         }
-
-        if (!string.IsNullOrEmpty(node.Content))
+        else if (IsTextControl(node.Type))
         {
-            sb.AppendLine($"{innerIndent}.Content(\"{EscapeString(node.Content)}\")");
+            var textOrContent = !string.IsNullOrEmpty(node.Text) ? node.Text : node.Content;
+            if (!string.IsNullOrEmpty(textOrContent))
+            {
+                sb.AppendLine($"{innerIndent}.Text(\"{EscapeString(textOrContent)}\")");
+            }
+        }
+        else
+        {
+            if (!string.IsNullOrEmpty(node.Content))
+            {
+                sb.AppendLine($"{innerIndent}.Content(\"{EscapeString(node.Content)}\")");
+            }
+            if (!string.IsNullOrEmpty(node.Text))
+            {
+                sb.AppendLine($"{innerIndent}.Text(\"{EscapeString(node.Text)}\")");
+            }
         }
 
         if (!string.IsNullOrEmpty(node.Header))
@@ -256,6 +274,18 @@ public sealed class CSharpMarkupViewGenerator : ICodeGenerator
 
         return sb.ToString().TrimEnd();
     }
+
+    private static bool IsContentControl(ControlType type) => type switch
+    {
+        ControlType.Button or ControlType.CheckBox or ControlType.RadioButton or ControlType.Border => true,
+        _ => false
+    };
+
+    private static bool IsTextControl(ControlType type) => type switch
+    {
+        ControlType.TextBlock or ControlType.TextBox => true,
+        _ => false
+    };
 
     private static string FormatThickness(ThicknessModel thickness) =>
         $"{thickness.Left.ToString(CultureInfo.InvariantCulture)}, {thickness.Top.ToString(CultureInfo.InvariantCulture)}, {thickness.Right.ToString(CultureInfo.InvariantCulture)}, {thickness.Bottom.ToString(CultureInfo.InvariantCulture)}";

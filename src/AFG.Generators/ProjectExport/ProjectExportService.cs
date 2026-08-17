@@ -74,6 +74,7 @@ public sealed class ProjectExportService(FormCodeGenerator? codeGenerator = null
             <ImplicitUsings>enable</ImplicitUsings>
             <LangVersion>latest</LangVersion>
             <RootNamespace>{document.RootNamespace}</RootNamespace>
+            <NoWarn>$(NoWarn);NU1903</NoWarn>
           </PropertyGroup>
 
           <ItemGroup>

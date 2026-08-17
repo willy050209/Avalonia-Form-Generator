@@ -79,24 +79,95 @@ public static class AvaloniaMarkupExtensionsSource
             return panel;
         }
 
-        // 4. 控制項專屬內容與字級
-        public static T Content<T>(this T control, object content) where T : ContentControl { control.Content = content; return control; }
-        public static T Header<T>(this T control, object header) where T : HeaderedContentControl { control.Header = header; return control; }
-        public static T Padding<T>(this T control, Thickness padding) where T : TemplatedControl { control.Padding = padding; return control; }
-        public static Border Padding(this Border border, Thickness padding) { border.Padding = padding; return border; }
-
-        public static TextBlock Text(this TextBlock tb, string text) { tb.Text = text; return tb; }
-        public static TextBlock Text(this TextBlock tb, string path, BindingMode mode = BindingMode.Default)
+        // 4. 控制項內容、文字與標題（泛型支援，避免類型轉換衝突）
+        public static T Content<T>(this T control, object? content) where T : Control
         {
-            tb.Bind(TextBlock.TextProperty, new Binding(path) { Mode = mode });
-            return tb;
+            if (control is ContentControl cc)
+            {
+                cc.Content = content;
+            }
+            else if (control is TextBlock tb)
+            {
+                tb.Text = content?.ToString();
+            }
+            else if (control is TextBox txt)
+            {
+                txt.Text = content?.ToString();
+            }
+            return control;
         }
 
-        public static TextBox Text(this TextBox tb, string text) { tb.Text = text; return tb; }
-        public static TextBox Text(this TextBox tb, string path, BindingMode mode = BindingMode.TwoWay)
+        public static T Content<T>(this T control, string path, BindingMode mode = BindingMode.Default) where T : Control
         {
-            tb.Bind(TextBox.TextProperty, new Binding(path) { Mode = mode });
-            return tb;
+            if (control is ContentControl cc)
+            {
+                cc.Bind(ContentControl.ContentProperty, new Binding(path) { Mode = mode });
+            }
+            else if (control is TextBlock tb)
+            {
+                tb.Bind(TextBlock.TextProperty, new Binding(path) { Mode = mode });
+            }
+            else if (control is TextBox txt)
+            {
+                txt.Bind(TextBox.TextProperty, new Binding(path) { Mode = mode });
+            }
+            return control;
+        }
+
+        public static T Text<T>(this T control, string? text) where T : Control
+        {
+            if (control is TextBlock tb)
+            {
+                tb.Text = text;
+            }
+            else if (control is TextBox txt)
+            {
+                txt.Text = text;
+            }
+            else if (control is ContentControl cc)
+            {
+                cc.Content = text;
+            }
+            return control;
+        }
+
+        public static T Text<T>(this T control, string path, BindingMode mode = BindingMode.Default) where T : Control
+        {
+            if (control is TextBlock tb)
+            {
+                tb.Bind(TextBlock.TextProperty, new Binding(path) { Mode = mode });
+            }
+            else if (control is TextBox txt)
+            {
+                txt.Bind(TextBox.TextProperty, new Binding(path) { Mode = mode });
+            }
+            else if (control is ContentControl cc)
+            {
+                cc.Bind(ContentControl.ContentProperty, new Binding(path) { Mode = mode });
+            }
+            return control;
+        }
+
+        public static T Header<T>(this T control, object? header) where T : Control
+        {
+            if (control is HeaderedContentControl hcc)
+            {
+                hcc.Header = header;
+            }
+            return control;
+        }
+
+        public static T Padding<T>(this T control, Thickness padding) where T : Control
+        {
+            if (control is TemplatedControl tc)
+            {
+                tc.Padding = padding;
+            }
+            else if (control is Border b)
+            {
+                b.Padding = padding;
+            }
+            return control;
         }
 
         public static TextBox Watermark(this TextBox tb, string watermark) { tb.Watermark = watermark; return tb; }
@@ -112,17 +183,22 @@ public static class AvaloniaMarkupExtensionsSource
         public static RangeBase Value(this RangeBase rb, double value) { rb.Value = value; return rb; }
         public static RangeBase Value(this RangeBase rb, string path, BindingMode mode = BindingMode.TwoWay)
         {
-            tbBindValue(rb, path, mode);
+            rb.Bind(RangeBase.ValueProperty, new Binding(path) { Mode = mode });
             return rb;
         }
 
-        private static void tbBindValue(RangeBase rb, string path, BindingMode mode)
+        public static T FontSize<T>(this T control, double size) where T : Control
         {
-            rb.Bind(RangeBase.ValueProperty, new Binding(path) { Mode = mode });
+            if (control is TemplatedControl tc)
+            {
+                tc.FontSize = size;
+            }
+            else if (control is TextBlock tb)
+            {
+                tb.FontSize = size;
+            }
+            return control;
         }
-
-        public static T FontSize<T>(this T control, double size) where T : TemplatedControl { control.FontSize = size; return control; }
-        public static TextBlock FontSize(this TextBlock tb, double size) { tb.FontSize = size; return tb; }
 
         public static Button Command(this Button btn, string path)
         {
