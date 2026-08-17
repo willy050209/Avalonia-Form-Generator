@@ -5,7 +5,7 @@
              xmlns:vm="using:AFG.Shared.ViewModels"
              xmlns:views="using:AFG.Shared.Views"
              xmlns:controls="using:AFG.Shared.Controls"
-             mc:Ignorable="d" d:DesignWidth="1200" d:DesignHeight="750"
+             mc:Ignorable="d" d:DesignWidth="1280" d:DesignHeight="800"
              x:Class="AFG.Shared.Views.MainView"
              x:DataType="vm:MainViewModel">
 
@@ -35,6 +35,12 @@
                         <StackPanel Orientation="Horizontal" Spacing="4">
                             <TextBlock Text="💾" />
                             <TextBlock Text="儲存" />
+                        </StackPanel>
+                    </Button>
+                    <Button Command="{Binding ExportFullProjectCommand}" ToolTip.Tip="匯出完整 Avalonia 專案原始碼">
+                        <StackPanel Orientation="Horizontal" Spacing="4">
+                            <TextBlock Text="🚀" />
+                            <TextBlock Text="匯出整包專案" />
                         </StackPanel>
                     </Button>
                 </StackPanel>
@@ -80,7 +86,7 @@
         </Border>
 
         <!-- 中間主工作區 -->
-        <Grid Grid.Row="1" ColumnDefinitions="260, 4, *, 4, 300">
+        <Grid Grid.Row="1" ColumnDefinitions="260, 4, *, 4, 320">
             <!-- 左側邊欄：工具箱與 DOM 樹 -->
             <Border Grid.Column="0" Background="#18181B" BorderBrush="#27272A" BorderThickness="0,0,1,0">
                 <TabControl>
@@ -146,33 +152,9 @@
 
             <GridSplitter Grid.Column="3" Background="#27272A" ResizeDirection="Columns" />
 
-            <!-- 右側邊欄：屬性快速資訊 (階段三為預覽/摘要面板，階段四將擴充完整 Inspector) -->
-            <Border Grid.Column="4" Background="#18181B" BorderBrush="#27272A" BorderThickness="1,0,0,0" Padding="12">
-                <StackPanel Spacing="12">
-                    <TextBlock Text="🔍 控制項屬性摘要" FontWeight="Bold" FontSize="14" />
-                    
-                    <Border Background="#27272A" CornerRadius="6" Padding="10">
-                        <StackPanel Spacing="6">
-                            <TextBlock Text="選取節點資訊" FontWeight="SemiBold" FontSize="12" Foreground="#A1A1AA" />
-                            <TextBlock Text="{Binding Canvas.SelectedNode.Name, StringFormat='名稱: {0}'}" />
-                            <TextBlock Text="{Binding Canvas.SelectedNode.Type, StringFormat='型別: {0}'}" />
-                            <TextBlock Text="{Binding Canvas.SelectedNode.CanvasLeft, StringFormat='X (Left): {0:F1}'}" />
-                            <TextBlock Text="{Binding Canvas.SelectedNode.CanvasTop, StringFormat='Y (Top): {0:F1}'}" />
-                            <TextBlock Text="{Binding Canvas.SelectedNode.Width, StringFormat='寬度 (Width): {0:F1}'}" />
-                            <TextBlock Text="{Binding Canvas.SelectedNode.Height, StringFormat='高度 (Height): {0:F1}'}" />
-                        </StackPanel>
-                    </Border>
-
-                    <Border Background="#27272A" CornerRadius="6" Padding="10">
-                        <StackPanel Spacing="6">
-                            <TextBlock Text="畫布設定" FontWeight="SemiBold" FontSize="12" Foreground="#A1A1AA" />
-                            <TextBlock Text="{Binding Canvas.Document.ViewClassName, StringFormat='View: {0}'}" />
-                            <TextBlock Text="{Binding Canvas.Document.ViewModelClassName, StringFormat='ViewModel: {0}'}" />
-                            <TextBlock Text="{Binding Canvas.Document.CanvasWidth, StringFormat='畫布寬度: {0} px'}" />
-                            <TextBlock Text="{Binding Canvas.Document.CanvasHeight, StringFormat='畫布高度: {0} px'}" />
-                        </StackPanel>
-                    </Border>
-                </StackPanel>
+            <!-- 右側邊欄：完整屬性與事件檢查器 (Inspector) -->
+            <Border Grid.Column="4" Background="#18181B" BorderBrush="#27272A" BorderThickness="1,0,0,0">
+                <views:InspectorView DataContext="{Binding Inspector}" />
             </Border>
         </Grid>
 
@@ -183,12 +165,17 @@
                 BorderThickness="0,1,0,0"
                 Padding="12,4">
             <Grid ColumnDefinitions="Auto, *, Auto">
-                <TextBlock Grid.Column="0"
-                           Text="{Binding Canvas.SelectedNode.Id, StringFormat='目前選取: {0}'}"
-                           FontSize="11"
-                           Foreground="#71717A" />
+                <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="12">
+                    <TextBlock Text="{Binding Canvas.SelectedNode.Id, StringFormat='選取節點: {0}'}"
+                               FontSize="11"
+                               Foreground="#71717A" />
+                    <TextBlock Text="{Binding ValidationErrorCount, StringFormat='⚠️ 語法問題: {0}'}"
+                               FontSize="11"
+                               Foreground="{Binding ValidationErrorCount, Converter={x:Null}}" />
+                </StackPanel>
+
                 <TextBlock Grid.Column="2"
-                           Text="Avalonia Form Generator (AFG) - C# Markup Mode"
+                           Text="Avalonia Form Generator (AFG) - Pure C# Declarative UI Engine (.NET 10)"
                            FontSize="11"
                            Foreground="#71717A" />
             </Grid>

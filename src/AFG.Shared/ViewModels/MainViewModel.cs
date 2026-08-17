@@ -1,8 +1,10 @@
 // filepath: src/AFG.Shared/ViewModels/MainViewModel.cs
+using AFG.Generators.ProjectExport;
+
 namespace AFG.Shared.ViewModels;
 
 /// <summary>
-/// 主介面協調 ViewModel，整合工具箱、畫布、視覺樹、程式碼生成與儲存檔案操作。
+/// 主介面協調 ViewModel，整合工具箱、畫布、視覺樹、屬性檢查器、程式碼生成與專案匯出操作。
 /// </summary>
 public sealed partial class MainViewModel : ObservableObject
 {
@@ -10,10 +12,12 @@ public sealed partial class MainViewModel : ObservableObject
     private readonly IClipboardService? _clipboardService;
     private readonly INotificationService? _notificationService;
     private readonly FormCodeGenerator _codeGenerator = new();
+    private readonly ProjectExportService _exportService = new();
 
     public CanvasViewModel Canvas { get; }
     public ToolboxViewModel Toolbox { get; }
     public VisualTreeViewModel VisualTree { get; }
+    public InspectorViewModel Inspector { get; }
 
     [ObservableProperty]
     private string _generatedViewCode = string.Empty;
@@ -23,6 +27,9 @@ public sealed partial class MainViewModel : ObservableObject
 
     [ObservableProperty]
     private int _selectedTabIndex;
+
+    [ObservableProperty]
+    private int _validationErrorCount;
 
     public MainViewModel(
         IFileDialogService? fileDialogService = null,
@@ -36,13 +43,15 @@ public sealed partial class MainViewModel : ObservableObject
         Canvas = new CanvasViewModel();
         Toolbox = new ToolboxViewModel();
         VisualTree = new VisualTreeViewModel();
+        Inspector = new InspectorViewModel();
 
         // 綁定事件連動
         Canvas.DocumentChanged += OnDocumentChanged;
         Canvas.SelectionChanged += OnCanvasSelectionChanged;
         VisualTree.SelectionChanged += OnVisualTreeSelectionChanged;
+        Inspector.NodeUpdated += OnInspectorNodeUpdated;
 
-        // 初始化視覺樹
+        // 初始化
         VisualTree.RebuildFromDocument(Canvas.Document);
         GeneratePreviewCode();
     }
@@ -51,16 +60,29 @@ public sealed partial class MainViewModel : ObservableObject
     {
         VisualTree.RebuildFromDocument(doc);
         GeneratePreviewCode();
+        ValidateWholeDocument(doc);
     }
 
     private void OnCanvasSelectionChanged(AstNode? node)
     {
         VisualTree.SyncSelection(node?.Id);
+        Inspector.LoadNode(node);
     }
 
     private void OnVisualTreeSelectionChanged(string? nodeId)
     {
         Canvas.SelectNode(nodeId);
+    }
+
+    private void OnInspectorNodeUpdated(AstNode node)
+    {
+        Canvas.UpdateNodeProperties(node);
+    }
+
+    private void ValidateWholeDocument(FormDocument doc)
+    {
+        var validation = AstValidator.ValidateDocument(doc);
+        ValidationErrorCount = validation.Errors.Count;
     }
 
     [RelayCommand]
@@ -113,6 +135,25 @@ public sealed partial class MainViewModel : ObservableObject
         catch (Exception ex)
         {
             _notificationService?.Show("儲存失敗", ex.Message, isError: true);
+        }
+    }
+
+    [RelayCommand]
+    private async Task ExportFullProjectAsync()
+    {
+        if (_fileDialogService is null) return;
+
+        var folder = await _fileDialogService.OpenFolderDialogAsync("選擇專案匯出資料夾");
+        if (string.IsNullOrEmpty(folder)) return;
+
+        try
+        {
+            await _exportService.ExportToFolderAsync(Canvas.Document, folder);
+            _notificationService?.Show("匯出成功", $"已成功將完整 Avalonia 專案匯出至 {folder}");
+        }
+        catch (Exception ex)
+        {
+            _notificationService?.Show("匯出失敗", ex.Message, isError: true);
         }
     }
 

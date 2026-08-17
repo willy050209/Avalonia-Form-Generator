@@ -1,0 +1,266 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="using:AFG.Shared.ViewModels"
+             xmlns:views="using:AFG.Shared.Views"
+             mc:Ignorable="d" d:DesignWidth="320" d:DesignHeight="700"
+             x:Class="AFG.Shared.Views.InspectorView"
+             x:DataType="vm:InspectorViewModel">
+
+    <Grid>
+        <!-- 未選取控制項時的提示 -->
+        <Border IsVisible="{Binding !HasSelectedNode}"
+                VerticalAlignment="Center"
+                HorizontalAlignment="Center"
+                Margin="16">
+            <StackPanel Spacing="10" HorizontalAlignment="Center">
+                <TextBlock Text="👆" FontSize="32" HorizontalAlignment="Center" />
+                <TextBlock Text="未選取控制項" FontWeight="Bold" FontSize="14" HorizontalAlignment="Center" />
+                <TextBlock Text="請在畫布或 DOM 樹中點選控制項以檢視與設定屬性。"
+                           Foreground="#71717A"
+                           TextWrapping="Wrap"
+                           TextAlignment="Center"
+                           FontSize="12" />
+            </StackPanel>
+        </Border>
+
+        <!-- 選取控制項時的屬性編輯器 -->
+        <Grid IsVisible="{Binding HasSelectedNode}" RowDefinitions="Auto, *">
+            <!-- 頂部選取節點識別資訊 -->
+            <Border Grid.Row="0"
+                    Background="#27272A"
+                    CornerRadius="6"
+                    Padding="10,8"
+                    Margin="8,8,8,4">
+                <Grid ColumnDefinitions="*, Auto">
+                    <StackPanel Grid.Column="0">
+                        <TextBlock Text="{Binding ControlType}" FontWeight="Bold" FontSize="14" Foreground="#38BDF8" />
+                        <TextBlock Text="{Binding NodeId, StringFormat='ID: {0}'}" FontSize="10" Foreground="#A1A1AA" />
+                    </StackPanel>
+                    <!-- 驗證警示徽章 -->
+                    <Border Grid.Column="1"
+                            IsVisible="{Binding ValidationErrors.Count}"
+                            Background="#DC2626"
+                            CornerRadius="10"
+                            Padding="6,2">
+                        <TextBlock Text="{Binding ValidationErrors.Count, StringFormat='⚠️ {0}'}"
+                                   FontSize="11"
+                                   FontWeight="Bold"
+                                   Foreground="White" />
+                    </Border>
+                </Grid>
+            </Border>
+
+            <!-- 屬性分頁 -->
+            <TabControl Grid.Row="1" Margin="4,0,4,4">
+                <!-- 分頁 1: 外觀與文字 -->
+                <TabItem Header="🎨 外觀">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                        <StackPanel Spacing="10" Margin="6">
+                            <StackPanel Spacing="4">
+                                <TextBlock Text="控制項名稱 (x:Name)" FontSize="11" Foreground="#A1A1AA" />
+                                <TextBox Text="{Binding NodeName, Mode=TwoWay}" />
+                            </StackPanel>
+
+                            <StackPanel Spacing="4">
+                                <TextBlock Text="內容 / 標籤 (Content)" FontSize="11" Foreground="#A1A1AA" />
+                                <TextBox Text="{Binding Content, Mode=TwoWay}" />
+                            </StackPanel>
+
+                            <StackPanel Spacing="4">
+                                <TextBlock Text="文字 (Text)" FontSize="11" Foreground="#A1A1AA" />
+                                <TextBox Text="{Binding Text, Mode=TwoWay}" />
+                            </StackPanel>
+
+                            <StackPanel Spacing="4">
+                                <TextBlock Text="提示文字 (Watermark)" FontSize="11" Foreground="#A1A1AA" />
+                                <TextBox Text="{Binding Watermark, Mode=TwoWay}" />
+                            </StackPanel>
+
+                            <Grid ColumnDefinitions="*, *" Margin="0,4">
+                                <CheckBox Grid.Column="0" Content="啟用 (IsEnabled)" IsChecked="{Binding IsEnabled, Mode=TwoWay}" />
+                                <CheckBox Grid.Column="1" Content="可見 (IsVisible)" IsChecked="{Binding IsVisible, Mode=TwoWay}" />
+                            </Grid>
+
+                            <StackPanel Spacing="4">
+                                <TextBlock Text="{Binding Opacity, StringFormat='不透明度: {0:P0}'}" FontSize="11" Foreground="#A1A1AA" />
+                                <Slider Minimum="0" Maximum="1" Value="{Binding Opacity, Mode=TwoWay}" />
+                            </StackPanel>
+                        </StackPanel>
+                    </ScrollViewer>
+                </TabItem>
+
+                <!-- 分頁 2: 尺寸與排版 -->
+                <TabItem Header="📐 排版">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                        <StackPanel Spacing="10" Margin="6">
+                            <!-- 尺寸 -->
+                            <Grid ColumnDefinitions="*, *" Margin="0,2">
+                                <StackPanel Grid.Column="0" Margin="0,0,4,0" Spacing="4">
+                                    <TextBlock Text="寬度 (Width)" FontSize="11" Foreground="#A1A1AA" />
+                                    <NumericUpDown Value="{Binding Width, Mode=TwoWay}" Minimum="0" Maximum="4000" />
+                                </StackPanel>
+                                <StackPanel Grid.Column="1" Margin="4,0,0,0" Spacing="4">
+                                    <TextBlock Text="高度 (Height)" FontSize="11" Foreground="#A1A1AA" />
+                                    <NumericUpDown Value="{Binding Height, Mode=TwoWay}" Minimum="0" Maximum="4000" />
+                                </StackPanel>
+                            </Grid>
+
+                            <!-- Canvas 座標 -->
+                            <Grid ColumnDefinitions="*, *" Margin="0,2">
+                                <StackPanel Grid.Column="0" Margin="0,0,4,0" Spacing="4">
+                                    <TextBlock Text="座標 X (Left)" FontSize="11" Foreground="#A1A1AA" />
+                                    <NumericUpDown Value="{Binding CanvasLeft, Mode=TwoWay}" Minimum="0" Maximum="4000" />
+                                </StackPanel>
+                                <StackPanel Grid.Column="1" Margin="4,0,0,0" Spacing="4">
+                                    <TextBlock Text="座標 Y (Top)" FontSize="11" Foreground="#A1A1AA" />
+                                    <NumericUpDown Value="{Binding CanvasTop, Mode=TwoWay}" Minimum="0" Maximum="4000" />
+                                </StackPanel>
+                            </Grid>
+
+                            <!-- Grid 網格設定 -->
+                            <Grid ColumnDefinitions="*, *" Margin="0,2">
+                                <StackPanel Grid.Column="0" Margin="0,0,4,0" Spacing="4">
+                                    <TextBlock Text="Grid 列 (Row)" FontSize="11" Foreground="#A1A1AA" />
+                                    <NumericUpDown Value="{Binding GridRow, Mode=TwoWay}" Minimum="0" Maximum="100" />
+                                </StackPanel>
+                                <StackPanel Grid.Column="1" Margin="4,0,0,0" Spacing="4">
+                                    <TextBlock Text="Grid 欄 (Column)" FontSize="11" Foreground="#A1A1AA" />
+                                    <NumericUpDown Value="{Binding GridColumn, Mode=TwoWay}" Minimum="0" Maximum="100" />
+                                </StackPanel>
+                            </Grid>
+
+                            <!-- 對齊方式 -->
+                            <StackPanel Spacing="4">
+                                <TextBlock Text="水平對齊 (HorizontalAlignment)" FontSize="11" Foreground="#A1A1AA" />
+                                <ComboBox ItemsSource="{Binding HorizontalAlignmentOptions}"
+                                          SelectedItem="{Binding HorizontalAlignment, Mode=TwoWay}"
+                                          HorizontalAlignment="Stretch" />
+                            </StackPanel>
+
+                            <StackPanel Spacing="4">
+                                <TextBlock Text="垂直對齊 (VerticalAlignment)" FontSize="11" Foreground="#A1A1AA" />
+                                <ComboBox ItemsSource="{Binding VerticalAlignmentOptions}"
+                                          SelectedItem="{Binding VerticalAlignment, Mode=TwoWay}"
+                                          HorizontalAlignment="Stretch" />
+                            </StackPanel>
+
+                            <!-- Margin 外距 -->
+                            <StackPanel Spacing="4">
+                                <TextBlock Text="外距 Margin (左, 上, 右, 下)" FontSize="11" Foreground="#A1A1AA" />
+                                <Grid ColumnDefinitions="*,*,*,*" Margin="0,2">
+                                    <NumericUpDown Grid.Column="0" Value="{Binding MarginLeft, Mode=TwoWay}" Margin="0,0,2,0" />
+                                    <NumericUpDown Grid.Column="1" Value="{Binding MarginTop, Mode=TwoWay}" Margin="2,0,2,0" />
+                                    <NumericUpDown Grid.Column="2" Value="{Binding MarginRight, Mode=TwoWay}" Margin="2,0,2,0" />
+                                    <NumericUpDown Grid.Column="3" Value="{Binding MarginBottom, Mode=TwoWay}" Margin="2,0,0,0" />
+                                </Grid>
+                            </StackPanel>
+                        </StackPanel>
+                    </ScrollViewer>
+                </TabItem>
+
+                <!-- 分頁 3: MVVM 資料綁定 (Binding Builder) -->
+                <TabItem Header="🔗 綁定">
+                    <Grid RowDefinitions="Auto, *">
+                        <Button Grid.Row="0"
+                                Command="{Binding AddBindingCommand}"
+                                Margin="4,6,4,6"
+                                HorizontalAlignment="Stretch">
+                            <StackPanel Orientation="Horizontal" Spacing="4" HorizontalAlignment="Center">
+                                <TextBlock Text="➕" />
+                                <TextBlock Text="新增資料綁定" />
+                            </StackPanel>
+                        </Button>
+
+                        <ScrollViewer Grid.Row="1">
+                            <ItemsControl ItemsSource="{Binding Bindings}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate x:DataType="vm:BindingItemViewModel">
+                                        <Border Background="#27272A" CornerRadius="6" Padding="8" Margin="0,3">
+                                            <StackPanel Spacing="6">
+                                                <Grid ColumnDefinitions="*, Auto">
+                                                    <TextBlock Grid.Column="0" Text="資料綁定" FontWeight="SemiBold" FontSize="12" Foreground="#38BDF8" />
+                                                    <Button Grid.Column="1"
+                                                            Content="❌"
+                                                            Padding="4,2"
+                                                            FontSize="10"
+                                                            Command="{Binding $parent[views:InspectorView].((vm:InspectorViewModel)DataContext).RemoveBindingCommand}"
+                                                            CommandParameter="{Binding}" />
+                                                </Grid>
+
+                                                <StackPanel Spacing="2">
+                                                    <TextBlock Text="View 屬性" FontSize="10" Foreground="#A1A1AA" />
+                                                    <TextBox Text="{Binding TargetProperty, Mode=TwoWay}" />
+                                                </StackPanel>
+
+                                                <StackPanel Spacing="2">
+                                                    <TextBlock Text="ViewModel 屬性名稱" FontSize="10" Foreground="#A1A1AA" />
+                                                    <TextBox Text="{Binding ViewModelProperty, Mode=TwoWay}" />
+                                                </StackPanel>
+
+                                                <StackPanel Spacing="2">
+                                                    <TextBlock Text="綁定模式 (Mode)" FontSize="10" Foreground="#A1A1AA" />
+                                                    <ComboBox ItemsSource="{Binding $parent[views:InspectorView].((vm:InspectorViewModel)DataContext).BindingModeOptions}"
+                                                              SelectedItem="{Binding Mode, Mode=TwoWay}"
+                                                              HorizontalAlignment="Stretch" />
+                                                </StackPanel>
+                                            </StackPanel>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </ScrollViewer>
+                    </Grid>
+                </TabItem>
+
+                <!-- 分頁 4: 事件轉命令 (Event-to-Command) -->
+                <TabItem Header="⚡ 事件">
+                    <Grid RowDefinitions="Auto, *">
+                        <Button Grid.Row="0"
+                                Command="{Binding AddEventCommand}"
+                                Margin="4,6,4,6"
+                                HorizontalAlignment="Stretch">
+                            <StackPanel Orientation="Horizontal" Spacing="4" HorizontalAlignment="Center">
+                                <TextBlock Text="➕" />
+                                <TextBlock Text="新增事件命令" />
+                            </StackPanel>
+                        </Button>
+
+                        <ScrollViewer Grid.Row="1">
+                            <ItemsControl ItemsSource="{Binding Events}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate x:DataType="vm:EventItemViewModel">
+                                        <Border Background="#27272A" CornerRadius="6" Padding="8" Margin="0,3">
+                                            <StackPanel Spacing="6">
+                                                <Grid ColumnDefinitions="*, Auto">
+                                                    <TextBlock Grid.Column="0" Text="事件命令映射" FontWeight="SemiBold" FontSize="12" Foreground="#F59E0B" />
+                                                    <Button Grid.Column="1"
+                                                            Content="❌"
+                                                            Padding="4,2"
+                                                            FontSize="10"
+                                                            Command="{Binding $parent[views:InspectorView].((vm:InspectorViewModel)DataContext).RemoveEventCommand}"
+                                                            CommandParameter="{Binding}" />
+                                                </Grid>
+
+                                                <StackPanel Spacing="2">
+                                                    <TextBlock Text="事件名稱 (如 Click, Tapped)" FontSize="10" Foreground="#A1A1AA" />
+                                                    <TextBox Text="{Binding EventName, Mode=TwoWay}" />
+                                                </StackPanel>
+
+                                                <StackPanel Spacing="2">
+                                                    <TextBlock Text="ViewModel Command 名稱" FontSize="10" Foreground="#A1A1AA" />
+                                                    <TextBox Text="{Binding CommandProperty, Mode=TwoWay}" />
+                                                </StackPanel>
+                                            </StackPanel>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </ScrollViewer>
+                    </Grid>
+                </TabItem>
+            </TabControl>
+        </Grid>
+    </Grid>
+</UserControl>
