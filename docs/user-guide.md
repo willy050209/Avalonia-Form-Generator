@@ -78,4 +78,4 @@
 ### 2.6 即時預覽與專案匯出
 - **單檔代碼複製**：在中央底部代碼預覽區可直接檢視 Roslyn 格式化後的 C# 代碼，點選工具列的 **「📋 複製 View C#」** 或 **「📋 複製 ViewModel C#」** 即可將代碼貼入現有專案。
 - **專案檔儲存/開啟**：點選 **「💾 儲存」** 將當前畫布狀態儲存為 `.afg.json` 檔案；後續可透過 **「📂 開啟」** 重新載入。
-- **一鍵匯出整包專案**：點選 **「🚀 匯出整包專案」** 並選擇目標資料夾，系統會自動生成包含 `.csproj`, `Program.cs`, `App.axaml`, `View.cs`, `ViewModel.cs` 的獨立可執行專案！
+- **一鍵匯出整包專案**：點選 **「🚀 匯出整包專案」** 並選擇目標資料夾，系統會自動生成包含 Visual Studio 現代化方案檔 (`.slnx`)、專案檔 (`.csproj`)、`Program.cs`、`App.axaml`、`View.cs`、`ViewModel.cs`、`.editorconfig` 與 `.gitignore` 的獨立專案，可直接以 Visual Studio 2022/2026 或 `dotnet build` 開啟編譯！

@@ -41,7 +41,7 @@ graph LR
    - **宣告式 C# UI 輸出**：採用鏈式方法調用 (Fluent Method Chaining) 遞迴生成現代 C# View。
    - **強型別 ViewModel**：基於 `CommunityToolkit.Mvvm`，自動生成帶有 `[ObservableProperty]` 與 `[RelayCommand]` 的 Partial Class。
    - **Roslyn 格式化與記憶體編譯診斷**：使用 Roslyn 語法樹標準化縮排，並在記憶體中編譯檢查，即時提供語法警告。
-   - **整包專案匯出 (`ProjectExportService`)**：一鍵匯出完整獨立可編譯執行的 Avalonia .NET 10 模組專案。
+   - **整包專案匯出 (`ProjectExportService`)**：一鍵匯出符合 **Visual Studio 2022/2026 現代化方案格式 (包含 `.slnx`, `.csproj`, `.editorconfig`, `.gitignore`)** 的獨立可編譯 Avalonia .NET 10 專案。
 
 4. **專案檔保存與載入 (`.afg.json`)**
    - 完整支援將設計中介語意樹序列化為 JSON 檔，方便團隊協同與二次編輯。

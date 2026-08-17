@@ -4,14 +4,14 @@ using AFG.Generators.ProjectExport;
 namespace AFG.Generators.Tests;
 
 /// <summary>
-/// 驗證 ProjectExportService 模組與專案匯出功能。
+/// 驗證 ProjectExportService 模組與 Visual Studio 方案 (.slnx) 匯出功能。
 /// </summary>
 public sealed class ProjectExportServiceTests
 {
     private readonly ProjectExportService _exportService = new();
 
     [Fact]
-    public void GenerateFullProject_ShouldGenerateCompleteProjectFiles()
+    public void GenerateFullProject_ShouldGenerateCompleteVisualStudioFiles_IncludingSlnx()
     {
         // Arrange
         var doc = new FormDocument
@@ -40,12 +40,23 @@ public sealed class ProjectExportServiceTests
 
         // Assert
         files.Should().NotBeNull();
+        
+        // 驗證 Visual Studio .slnx 方案檔
+        var slnx = files.FirstOrDefault(f => f.FileName == "OrderFormApp.slnx");
+        slnx.Should().NotBeNull();
+        slnx!.FileType.Should().Be(SourceFileType.SolutionFile);
+        slnx.Content.Should().Contain("<Solution>");
+        slnx.Content.Should().Contain("<Project Path=\"OrderFormApp.csproj\" />");
+
+        // 驗證 .csproj、進入點與樣式檔
         files.Should().Contain(f => f.FileName == "OrderFormApp.csproj");
         files.Should().Contain(f => f.FileName == "Program.cs");
         files.Should().Contain(f => f.FileName == "App.axaml");
         files.Should().Contain(f => f.FileName == "App.axaml.cs");
         files.Should().Contain(f => f.FileName == "OrderFormView.cs");
         files.Should().Contain(f => f.FileName == "OrderFormViewModel.cs");
+        files.Should().Contain(f => f.FileName == ".gitignore");
+        files.Should().Contain(f => f.FileName == ".editorconfig");
 
         // 檢查 C# 語法正確性
         foreach (var csFile in files.Where(f => f.FileName.EndsWith(".cs", StringComparison.Ordinal)))
