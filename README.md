@@ -190,13 +190,28 @@ public partial class LoginFormViewModel : ObservableObject
 
 ---
 
-## 📚 延伸說明文件 (Documentation)
+## 📁 匯出的 Visual Studio 方案結構 (Exported Solution Structure)
 
-請參閱 `docs/` 目錄下的詳細技術說明：
-- [系統架構與資料流規格書](file:///D:/P/CS/Avalonia%20Form%20Generator/docs/architecture.md)
-- [視覺化設計器操作手冊](file:///D:/P/CS/Avalonia%20Form%20Generator/docs/user-guide.md)
-- [C# Declarative Markup 生成語法規範](file:///D:/P/CS/Avalonia%20Form%20Generator/docs/csharp-markup-spec.md)
-- [UI AST Schema 規格與資料模型](file:///D:/P/CS/Avalonia%20Form%20Generator/docs/ast-schema.md)
+匯出後的專案遵循 Visual Studio 方案慣例，將專案原始碼收納於 `src/{ProjectName}/` 子目錄中，並附帶 `AvaloniaMarkupExtensions.cs` 確保純 C# Declarative UI 鏈式方法直接編譯：
+
+```text
+{ProjectName}/
+├── {ProjectName}.slnx                      # Visual Studio 現代化方案檔 (XML 格式)
+├── .editorconfig                           # Visual Studio 格式化規則
+├── .gitignore                              # Visual Studio 忽略清單
+└── src/
+    └── {ProjectName}/
+        ├── {ProjectName}.csproj            # .NET 10 專案檔 (含 Avalonia & CommunityToolkit.Mvvm)
+        ├── Program.cs                      # 應用程式 STA 進入點
+        ├── App.axaml                       # Avalonia 主 Application
+        ├── App.axaml.cs                    # 啟動視窗生命週期設定
+        ├── Markup/
+        │   └── AvaloniaMarkupExtensions.cs # C# Declarative UI Fluent 擴充方法 (Width, Height, Children 等)
+        ├── Views/
+        │   └── {ViewClassName}.cs          # 宣告式純 C# Markup View
+        └── ViewModels/
+            └── {ViewModelClassName}.cs     # CommunityToolkit.Mvvm 強型別 ViewModel
+```
 
 ---
 
