@@ -5,14 +5,14 @@ using AFG.Generators.ProjectExport;
 namespace AFG.Generators.Tests;
 
 /// <summary>
-/// 驗證 ProjectExportService 模組與 Visual Studio 方案 (.slnx) 及子資料夾結構匯出功能，並確保匯出專案即可直接透過 dotnet build 編譯。
+/// 驗證 ProjectExportService 模組與 Visual Studio 方案 (.slnx) 及純 C# 分層結構匯出功能，並確保匯出專案即可直接透過 dotnet build 編譯。
 /// </summary>
 public sealed class ProjectExportServiceTests
 {
     private readonly ProjectExportService _exportService = new();
 
     [Fact]
-    public void GenerateFullProject_ShouldGenerateCompleteVisualStudioFiles_WithSubfolderStructureAndMarkupExtensions()
+    public void GenerateFullProject_ShouldGenerateCompleteVisualStudioFiles_WithPureCSharpStructure()
     {
         // Arrange
         var doc = new FormDocument
@@ -47,25 +47,29 @@ public sealed class ProjectExportServiceTests
         slnx.Should().NotBeNull();
         slnx!.FileType.Should().Be(SourceFileType.SolutionFile);
         slnx.Content.Should().Contain("<Solution>");
-        slnx.Content.Should().Contain("<Project Path=\"src/OrderFormApp/OrderFormApp.csproj\" />");
+        slnx.Content.Should().Contain("<Project Path=\"OrderFormApp/OrderFormApp.csproj\" />");
 
         files.Should().Contain(f => f.FileName == ".gitignore");
         files.Should().Contain(f => f.FileName == ".editorconfig");
 
-        // 2. src/OrderFormApp/ 子資料夾專案檔案
-        var projPath = Path.Combine("src", "OrderFormApp", "OrderFormApp.csproj");
-        var programPath = Path.Combine("src", "OrderFormApp", "Program.cs");
-        var appAxamlPath = Path.Combine("src", "OrderFormApp", "App.axaml");
-        var appCsPath = Path.Combine("src", "OrderFormApp", "App.axaml.cs");
-        var markupExtPath = Path.Combine("src", "OrderFormApp", "Markup", "AvaloniaMarkupExtensions.cs");
-        var viewPath = Path.Combine("src", "OrderFormApp", "Views", "OrderFormView.cs");
-        var vmPath = Path.Combine("src", "OrderFormApp", "ViewModels", "OrderFormViewModel.cs");
+        // 2. OrderFormApp/ 專案目錄結構檔案
+        var projPath = Path.Combine("OrderFormApp", "OrderFormApp.csproj");
+        var appCsPath = Path.Combine("OrderFormApp", "App.cs");
+        var configPath = Path.Combine("OrderFormApp", "Config.cs");
+        var globalUsingsPath = Path.Combine("OrderFormApp", "GlobalUsings.cs");
+        var programPath = Path.Combine("OrderFormApp", "Program.cs");
+        var markupExtPath = Path.Combine("OrderFormApp", "Markup", "AvaloniaMarkupExtensions.cs");
+        var servicePath = Path.Combine("OrderFormApp", "Services", "GreetingService.cs");
+        var viewPath = Path.Combine("OrderFormApp", "Views", "OrderFormView.cs");
+        var vmPath = Path.Combine("OrderFormApp", "ViewModels", "OrderFormViewModel.cs");
 
         files.Should().Contain(f => f.FileName == projPath);
-        files.Should().Contain(f => f.FileName == programPath);
-        files.Should().Contain(f => f.FileName == appAxamlPath);
         files.Should().Contain(f => f.FileName == appCsPath);
+        files.Should().Contain(f => f.FileName == configPath);
+        files.Should().Contain(f => f.FileName == globalUsingsPath);
+        files.Should().Contain(f => f.FileName == programPath);
         files.Should().Contain(f => f.FileName == markupExtPath);
+        files.Should().Contain(f => f.FileName == servicePath);
         files.Should().Contain(f => f.FileName == viewPath);
         files.Should().Contain(f => f.FileName == vmPath);
 
@@ -94,10 +98,15 @@ public sealed class ProjectExportServiceTests
             File.Exists(Path.Combine(tempFolder, "MainFormApp.slnx")).Should().BeTrue();
             File.Exists(Path.Combine(tempFolder, ".gitignore")).Should().BeTrue();
             File.Exists(Path.Combine(tempFolder, ".editorconfig")).Should().BeTrue();
-            File.Exists(Path.Combine(tempFolder, "src", "MainFormApp", "MainFormApp.csproj")).Should().BeTrue();
-            File.Exists(Path.Combine(tempFolder, "src", "MainFormApp", "Markup", "AvaloniaMarkupExtensions.cs")).Should().BeTrue();
-            File.Exists(Path.Combine(tempFolder, "src", "MainFormApp", "Views", "MainFormView.cs")).Should().BeTrue();
-            File.Exists(Path.Combine(tempFolder, "src", "MainFormApp", "ViewModels", "MainFormViewModel.cs")).Should().BeTrue();
+            File.Exists(Path.Combine(tempFolder, "MainFormApp", "MainFormApp.csproj")).Should().BeTrue();
+            File.Exists(Path.Combine(tempFolder, "MainFormApp", "App.cs")).Should().BeTrue();
+            File.Exists(Path.Combine(tempFolder, "MainFormApp", "Config.cs")).Should().BeTrue();
+            File.Exists(Path.Combine(tempFolder, "MainFormApp", "GlobalUsings.cs")).Should().BeTrue();
+            File.Exists(Path.Combine(tempFolder, "MainFormApp", "Program.cs")).Should().BeTrue();
+            File.Exists(Path.Combine(tempFolder, "MainFormApp", "Markup", "AvaloniaMarkupExtensions.cs")).Should().BeTrue();
+            File.Exists(Path.Combine(tempFolder, "MainFormApp", "Services", "GreetingService.cs")).Should().BeTrue();
+            File.Exists(Path.Combine(tempFolder, "MainFormApp", "Views", "MainFormView.cs")).Should().BeTrue();
+            File.Exists(Path.Combine(tempFolder, "MainFormApp", "ViewModels", "MainFormViewModel.cs")).Should().BeTrue();
         }
         finally
         {
@@ -178,7 +187,7 @@ public sealed class ProjectExportServiceTests
             // Act: 匯出完整方案
             await _exportService.ExportToFolderAsync(doc, tempFolder);
 
-            var csprojPath = Path.Combine(tempFolder, "src", "CustomerFormApp", "CustomerFormApp.csproj");
+            var csprojPath = Path.Combine(tempFolder, "CustomerFormApp", "CustomerFormApp.csproj");
             File.Exists(csprojPath).Should().BeTrue("專案檔應存在於匯出目錄");
 
             // 執行 dotnet build 驗證可編譯性

@@ -192,25 +192,27 @@ public partial class LoginFormViewModel : ObservableObject
 
 ## 📁 匯出的 Visual Studio 方案結構 (Exported Solution Structure)
 
-匯出後的專案遵循 Visual Studio 方案慣例，將專案原始碼收納於 `src/{ProjectName}/` 子目錄中，並附帶 `AvaloniaMarkupExtensions.cs` 確保純 C# Declarative UI 鏈式方法直接編譯：
+匯出後的專案遵循 Visual Studio 2022+ 現代化解決方案慣例與純 C# 宣告式架構（無 AXAML 依賴）：
 
 ```text
 {ProjectName}/
-├── {ProjectName}.slnx                      # Visual Studio 現代化方案檔 (XML 格式)
-├── .editorconfig                           # Visual Studio 格式化規則
-├── .gitignore                              # Visual Studio 忽略清單
-└── src/
-    └── {ProjectName}/
-        ├── {ProjectName}.csproj            # .NET 10 專案檔 (含 Avalonia & CommunityToolkit.Mvvm)
-        ├── Program.cs                      # 應用程式 STA 進入點
-        ├── App.axaml                       # Avalonia 主 Application
-        ├── App.axaml.cs                    # 啟動視窗生命週期設定
-        ├── Markup/
-        │   └── AvaloniaMarkupExtensions.cs # C# Declarative UI Fluent 擴充方法 (Width, Height, Children 等)
-        ├── Views/
-        │   └── {ViewClassName}.cs          # 宣告式純 C# Markup View
-        └── ViewModels/
-            └── {ViewModelClassName}.cs     # CommunityToolkit.Mvvm 強型別 ViewModel
+├── {ProjectName}.slnx                      # Visual Studio 2022+ 現代化方案檔
+├── .editorconfig                           # Visual Studio 程式碼格式化標準
+├── .gitignore                              # Visual Studio 專案忽略清單
+└── {ProjectName}/                          # 專案根目錄 (同名子資料夾)
+    ├── {ProjectName}.csproj                # .NET 10 專案檔 (含 Avalonia & CommunityToolkit.Mvvm)
+    ├── App.cs                              # 應用程式初始化與跨平台 UI 生命週期配置 (純 C#)
+    ├── Config.cs                           # 全域靜態組態配置（視窗大小、標題、版本等）
+    ├── GlobalUsings.cs                     # 共享專案全域引用配置
+    ├── Program.cs                          # 桌面端程式載入點
+    ├── Markup/
+    │   └── AvaloniaMarkupExtensions.cs     # C# Declarative UI Fluent 擴充方法 (Width, Height, Children 等)
+    ├── Services/
+    │   └── GreetingService.cs              # 服務層 / Model 實例
+    ├── ViewModels/
+    │   └── {ViewModelClassName}.cs         # 檢視模型層 (CommunityToolkit.Mvvm)
+    └── Views/
+        └── {ViewClassName}.cs              # 檢視層 (純 C# Markup 宣告式元件)
 ```
 
 ---
