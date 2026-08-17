@@ -1,5 +1,6 @@
 // filepath: tests/AFG.Generators.Tests/ProjectExportServiceTests.cs
 using System.Diagnostics;
+using AFG.Core.Serialization;
 using AFG.Generators.ProjectExport;
 
 namespace AFG.Generators.Tests;
@@ -223,6 +224,78 @@ public sealed class ProjectExportServiceTests
                 {
                     // 忽略清理時由鎖定引起之例外
                 }
+            }
+        }
+    }
+
+    /// <summary>
+    /// 驗證使用者真實 MainFormView.afg.json (包含 Button, TextBox, TextBlock 及 IsEnabled 綁定) 匯出後可 0 錯誤編譯。
+    /// </summary>
+    [Fact]
+    public async Task ExportedProject_FromMainFormViewWithIsEnabledBinding_ShouldCompileSuccessfully()
+    {
+        var tempFolder = Path.Combine(Path.GetTempPath(), "AFG_UserJsonTest_" + Guid.NewGuid().ToString("N"));
+        var userJsonPath = @"D:\Downloads\AFG\MainFormView.afg.json";
+
+        FormDocument doc;
+        if (File.Exists(userJsonPath))
+        {
+            var json = await File.ReadAllTextAsync(userJsonPath);
+            doc = AfgSerializer.DeserializeDocument(json);
+        }
+        else
+        {
+            // 回退模擬結構
+            doc = new FormDocument
+            {
+                ViewClassName = "MainFormView",
+                ViewModelClassName = "MainFormViewModel",
+                Title = "Avalonia Form",
+                RootNode = new AstNode
+                {
+                    Id = "root",
+                    Type = ControlType.Canvas,
+                    Children = [
+                        new AstNode { Id = "btn1", Type = ControlType.Button, Text = "計算", Content = "Button", Events = [new EventMappingDefinition { EventName = "Click", CommandProperty = "Button_1Command" }] },
+                        new AstNode { Id = "txt1", Type = ControlType.TextBox, Watermark = "請輸入數字", Bindings = [new BindingDefinition { TargetProperty = "Text", ViewModelProperty = "TextBox_d2d5Property" }] },
+                        new AstNode { Id = "tb1", Type = ControlType.TextBlock, Text = "答案" },
+                        new AstNode { Id = "tb2", Type = ControlType.TextBlock, Bindings = [new BindingDefinition { TargetProperty = "IsEnabled", ViewModelProperty = "TextBlock_c1Property" }] }
+                    ]
+                }
+            };
+        }
+
+        try
+        {
+            await _exportService.ExportToFolderAsync(doc, tempFolder);
+            var csprojPath = Path.Combine(tempFolder, "MainFormApp", "MainFormApp.csproj");
+
+            var psi = new ProcessStartInfo
+            {
+                FileName = "dotnet",
+                Arguments = $"build \"{csprojPath}\" -c Release",
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            };
+
+            using var process = Process.Start(psi);
+            var stdout = await process!.StandardOutput.ReadToEndAsync();
+            var stderr = await process.StandardError.ReadToEndAsync();
+            await process.WaitForExitAsync();
+
+            process.ExitCode.Should().Be(0, $"MainFormView.afg.json 匯出專案應成功編譯。\n標準輸出:\n{stdout}\n錯誤輸出:\n{stderr}");
+        }
+        finally
+        {
+            if (Directory.Exists(tempFolder))
+            {
+                try
+                {
+                    Directory.Delete(tempFolder, recursive: true);
+                }
+                catch { }
             }
         }
     }
