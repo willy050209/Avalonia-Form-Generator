@@ -90,15 +90,15 @@ AvaloniaFormGenerator/
 ---
 
 ### 🔹 階段 3：視覺化設計畫布與 Adorner 裝飾器系統 (`AFG.Shared`)
-- [ ] **階段狀態：未開始**
+- [x] **階段狀態：已完成**
 - **任務清單**：
-  - [ ] 3.1 實作設計畫布（支援自由畫布 Canvas 與流式佈局容器 Grid / StackPanel / DockPanel）
-  - [ ] 3.2 實作控制項工具箱（Toolbox）與拖曳放置（Drag & Drop）機制
-  - [ ] 3.3 實作選取裝飾器（Selection Adorner）：8 點縮放、尺寸調整、即時外距/內距調整
-  - [ ] 3.4 實作吸附對齊演算法（Snap to Grid、邊界與中心輔助線）
-  - [ ] 3.5 實作 Visual Tree Explorer（視覺化節點樹狀導航與拖曳層級調整）
+  - [x] 3.1 實作設計畫布（支援自由畫布 Canvas 與流式佈局容器 Grid / StackPanel / DockPanel）
+  - [x] 3.2 實作控制項工具箱（Toolbox）與拖曳放置（Drag & Drop）機制
+  - [x] 3.3 實作選取裝飾器（Selection Adorner）：8 點縮放、尺寸調整、即時外距/內距調整
+  - [x] 3.4 實作吸附對齊演算法（Snap to Grid、邊界與中心輔助線）
+  - [x] 3.5 實作 Visual Tree Explorer（視覺化節點樹狀導航與拖曳層級調整）
 - **驗證方式**：
-  - [ ] 執行桌面端 App，手動拖曳測試控制項定位、縮放、容器嵌套以及對齊輔助線吸附行為
+  - [x] 執行桌面端 App 與 SnappingEngine 單元測試，驗證控制項定位、縮放、容器嵌套以及對齊輔助線吸附行為（全方案共 39 項測試 100% 通過）
 
 ---
 
