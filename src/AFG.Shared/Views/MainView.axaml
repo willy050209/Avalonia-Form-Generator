@@ -12,13 +12,6 @@
              x:DataType="vm:MainViewModel">
 
     <UserControl.KeyBindings>
-        <KeyBinding Gesture="Ctrl+Z" Command="{Binding UndoCommand}" />
-        <KeyBinding Gesture="Ctrl+Y" Command="{Binding RedoCommand}" />
-        <KeyBinding Gesture="Ctrl+Shift+Z" Command="{Binding RedoCommand}" />
-        <KeyBinding Gesture="Delete" Command="{Binding DeleteSelectedNodeCommand}" />
-        <KeyBinding Gesture="Back" Command="{Binding DeleteSelectedNodeCommand}" />
-        <KeyBinding Gesture="Ctrl+C" Command="{Binding CopyNodesCommand}" />
-        <KeyBinding Gesture="Ctrl+V" Command="{Binding PasteNodesCommand}" />
         <KeyBinding Gesture="Ctrl+S" Command="{Binding SaveDocumentCommand}" />
         <KeyBinding Gesture="Ctrl+N" Command="{Binding NewDocumentCommand}" />
         <KeyBinding Gesture="Ctrl+O" Command="{Binding OpenDocumentCommand}" />
@@ -183,7 +176,7 @@
                         Height="220"
                         IsVisible="{Binding IsCodePanelVisible}"
                         Background="#18181B">
-                    <TabControl>
+                    <TabControl SelectionChanged="OnTabSelectionChanged">
                         <TabItem Header="View (C# Markup)">
                             <ae:TextEditor x:Name="ViewCodeEditor"
                                            IsReadOnly="True"

@@ -260,9 +260,10 @@ public sealed class CSharpMarkupViewGenerator : ICodeGenerator
             sb.AppendLine($"{innerIndent}.Foreground(Brush.Parse(\"{EscapeString(node.Foreground)}\"))");
         }
 
-        // 5. MVVM 綁定配置 (一律傳遞明確的 BindingMode 列舉參數，確保不與常數字串擴充方法衝突)
+        // 5. MVVM 綁定配置 (一律傳遞明確的 BindingMode 列舉參數，並標準化 ViewModel 屬性名稱為 PascalCase)
         foreach (var binding in node.Bindings)
         {
+            var normalizedProp = Mvvm.MvvmViewModelGenerator.NormalizePropertyName(binding.ViewModelProperty);
             var modeName = binding.Mode switch
             {
                 BindingMode.TwoWay => "BindingMode.TwoWay",
@@ -275,18 +276,19 @@ public sealed class CSharpMarkupViewGenerator : ICodeGenerator
             };
 
             var bindingCall = useCompiledBindings
-                ? $".{binding.TargetProperty}(({viewModelClassName} vm) => vm.{binding.ViewModelProperty}, {modeName})"
-                : $".{binding.TargetProperty}(nameof({viewModelClassName}.{binding.ViewModelProperty}), {modeName})";
+                ? $".{binding.TargetProperty}(({viewModelClassName} vm) => vm.{normalizedProp}, {modeName})"
+                : $".{binding.TargetProperty}(nameof({viewModelClassName}.{normalizedProp}), {modeName})";
 
             sb.AppendLine($"{innerIndent}{bindingCall}");
         }
 
-        // 6. 事件映射至命令
+        // 6. 事件映射至命令 (標準化 Command 名稱為 PascalCase)
         foreach (var evt in node.Events)
         {
+            var normalizedCmd = Mvvm.MvvmViewModelGenerator.NormalizeCommandName(evt.CommandProperty);
             var cmdCall = useCompiledBindings
-                ? $".Command(({viewModelClassName} vm) => vm.{evt.CommandProperty})"
-                : $".Command(nameof({viewModelClassName}.{evt.CommandProperty}))";
+                ? $".Command(({viewModelClassName} vm) => vm.{normalizedCmd})"
+                : $".Command(nameof({viewModelClassName}.{normalizedCmd}))";
 
             sb.AppendLine($"{innerIndent}{cmdCall}");
         }

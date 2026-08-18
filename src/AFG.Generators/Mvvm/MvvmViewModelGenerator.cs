@@ -18,7 +18,7 @@ public sealed class MvvmViewModelGenerator : ICodeGenerator
 
         var allNodes = AstTreeOperations.Flatten(document.RootNode);
 
-        // 收集所有唯一的 ViewModel 屬性與指定/推斷型別及初始值
+        // 收集所有唯一的 ViewModel 屬性與指定/推斷型別及初始值 (統一標準化為 PascalCase)
         var properties = new Dictionary<string, (string Type, string? InitialValue)>(StringComparer.Ordinal);
         foreach (var node in allNodes)
         {
@@ -29,19 +29,20 @@ public sealed class MvvmViewModelGenerator : ICodeGenerator
                     continue;
                 }
 
-                if (!properties.ContainsKey(binding.ViewModelProperty))
+                var propName = NormalizePropertyName(binding.ViewModelProperty);
+                if (!properties.ContainsKey(propName))
                 {
                     var propType = !string.IsNullOrWhiteSpace(binding.CustomDataType)
                         ? binding.CustomDataType.Trim()
                         : InferPropertyType(binding.TargetProperty, node.Type);
 
                     var initialVal = ExtractInitialValue(node, binding.TargetProperty, propType);
-                    properties[binding.ViewModelProperty] = (propType, initialVal);
+                    properties[propName] = (propType, initialVal);
                 }
             }
         }
 
-        // 收集所有唯一的 Command 命令名稱與非同步標記
+        // 收集所有唯一的 Command 命令名稱與非同步標記 (統一標準化為 PascalCase + Command)
         var commands = new Dictionary<string, bool>(StringComparer.Ordinal);
         foreach (var node in allNodes)
         {
@@ -49,9 +50,10 @@ public sealed class MvvmViewModelGenerator : ICodeGenerator
             {
                 if (!string.IsNullOrWhiteSpace(evt.CommandProperty))
                 {
-                    if (!commands.ContainsKey(evt.CommandProperty))
+                    var cmdName = NormalizeCommandName(evt.CommandProperty);
+                    if (!commands.ContainsKey(cmdName))
                     {
-                        commands[evt.CommandProperty] = evt.IsAsync;
+                        commands[cmdName] = evt.IsAsync;
                     }
                 }
             }
@@ -244,4 +246,22 @@ public sealed class MvvmViewModelGenerator : ICodeGenerator
 
     private static string EscapeString(string input) =>
         input.Replace("\\", "\\\\", StringComparison.Ordinal).Replace("\"", "\\\"", StringComparison.Ordinal);
+
+    public static string NormalizePropertyName(string name)
+    {
+        if (string.IsNullOrWhiteSpace(name)) return "Value";
+        name = name.Trim();
+        return char.ToUpperInvariant(name[0]) + name[1..];
+    }
+
+    public static string NormalizeCommandName(string name)
+    {
+        if (string.IsNullOrWhiteSpace(name)) return "ExecuteCommand";
+        name = name.Trim();
+        var raw = name.EndsWith("Command", StringComparison.OrdinalIgnoreCase)
+            ? name[..^"Command".Length]
+            : name;
+        if (string.IsNullOrWhiteSpace(raw)) raw = "Execute";
+        return char.ToUpperInvariant(raw[0]) + raw[1..] + "Command";
+    }
 }

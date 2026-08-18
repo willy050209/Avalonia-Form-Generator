@@ -133,4 +133,58 @@ public sealed class FormCodeGeneratorTests
         RoslynCompilerService.CheckSyntaxDiagnostics(viewFile.Content).Should().BeEmpty();
         RoslynCompilerService.CheckSyntaxDiagnostics(vmFile.Content).Should().BeEmpty();
     }
+
+    [Fact]
+    public void GenerateAll_WithLowercasePropertyNameAndCommand_ShouldNormalizeToPascalCaseAndMatch()
+    {
+        // Arrange
+        var doc = new FormDocument
+        {
+            ViewClassName = "CaseFormView",
+            ViewModelClassName = "CaseFormViewModel",
+            RootNode = new AstNode
+            {
+                Id = "root",
+                Type = ControlType.Canvas,
+                Children = [
+                    new AstNode
+                    {
+                        Id = "tb_name",
+                        Type = ControlType.TextBox,
+                        Text = "Test User",
+                        Bindings = [
+                            new BindingDefinition { TargetProperty = "Text", ViewModelProperty = "userName", Mode = BindingMode.TwoWay }
+                        ]
+                    },
+                    new AstNode
+                    {
+                        Id = "btn_submit",
+                        Type = ControlType.Button,
+                        Events = [
+                            new EventMappingDefinition { EventName = "Click", CommandProperty = "submit" }
+                        ]
+                    }
+                ]
+            }
+        };
+
+        // Act
+        var result = _generator.GenerateAll(doc);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        var viewFile = result.Files.First(f => f.FileType == SourceFileType.View);
+        var vmFile = result.Files.First(f => f.FileType == SourceFileType.ViewModel);
+
+        // 驗證 View 產生的代碼使用標準化 PascalCase
+        viewFile.Content.Should().Contain(".Text(nameof(CaseFormViewModel.UserName), BindingMode.TwoWay)");
+        viewFile.Content.Should().Contain(".Command(nameof(CaseFormViewModel.SubmitCommand))");
+
+        // 驗證 ViewModel 產生的欄位與方法亦使用標準化名稱
+        vmFile.Content.Should().Contain("private string _userName = \"Test User\";");
+        vmFile.Content.Should().Contain("private async Task SubmitAsync()");
+
+        RoslynCompilerService.CheckSyntaxDiagnostics(viewFile.Content).Should().BeEmpty();
+        RoslynCompilerService.CheckSyntaxDiagnostics(vmFile.Content).Should().BeEmpty();
+    }
 }

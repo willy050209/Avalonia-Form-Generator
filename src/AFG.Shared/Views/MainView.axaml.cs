@@ -2,6 +2,7 @@
 using System;
 using System.ComponentModel;
 using Avalonia.Controls;
+using Avalonia.Interactivity;
 using AvaloniaEdit;
 using AvaloniaEdit.TextMate;
 using TextMateSharp.Grammars;
@@ -11,6 +12,7 @@ namespace AFG.Shared.Views;
 
 public partial class MainView : UserControl
 {
+    private readonly RegistryOptions _registryOptions = new(ThemeName.DarkPlus);
     private TextMate.Installation? _viewTextMate;
     private TextMate.Installation? _vmTextMate;
 
@@ -18,32 +20,28 @@ public partial class MainView : UserControl
     {
         InitializeComponent();
 
-        var viewEditor = this.FindControl<TextEditor>("ViewCodeEditor");
-        var vmEditor = this.FindControl<TextEditor>("VmCodeEditor");
+        Loaded += (_, _) => RefreshAllEditors();
+        AttachedToVisualTree += (_, _) => RefreshAllEditors();
 
-        var registryOptions = new RegistryOptions(ThemeName.DarkPlus);
-        if (viewEditor is not null)
+        DataContextChanged += (_, _) =>
         {
-            _viewTextMate = viewEditor.InstallTextMate(registryOptions);
-            _viewTextMate.SetGrammar(registryOptions.GetScopeByLanguageId("csharp"));
-        }
+            if (DataContext is MainViewModel vm)
+            {
+                vm.PropertyChanged -= OnViewModelPropertyChanged;
+                vm.PropertyChanged += OnViewModelPropertyChanged;
+                RefreshAllEditors();
+            }
+        };
 
-        if (vmEditor is not null)
+        if (DataContext is MainViewModel initialVm)
         {
-            _vmTextMate = vmEditor.InstallTextMate(registryOptions);
-            _vmTextMate.SetGrammar(registryOptions.GetScopeByLanguageId("csharp"));
+            initialVm.PropertyChanged += OnViewModelPropertyChanged;
         }
-
-        DataContextChanged += OnDataContextChanged;
     }
 
-    private void OnDataContextChanged(object? sender, EventArgs e)
+    private void OnTabSelectionChanged(object? sender, SelectionChangedEventArgs e)
     {
-        if (DataContext is MainViewModel vm)
-        {
-            vm.PropertyChanged += OnViewModelPropertyChanged;
-            UpdateEditorText(vm);
-        }
+        RefreshAllEditors();
     }
 
     private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
@@ -53,24 +51,43 @@ public partial class MainView : UserControl
             if (e.PropertyName == nameof(MainViewModel.GeneratedViewCode) ||
                 e.PropertyName == nameof(MainViewModel.GeneratedVmCode))
             {
-                UpdateEditorText(vm);
+                RefreshAllEditors();
             }
         }
     }
 
-    private void UpdateEditorText(MainViewModel vm)
+    private void RefreshAllEditors()
     {
+        if (DataContext is not MainViewModel vm) return;
+
         var viewEditor = this.FindControl<TextEditor>("ViewCodeEditor");
         var vmEditor = this.FindControl<TextEditor>("VmCodeEditor");
 
-        if (viewEditor is not null && viewEditor.Text != vm.GeneratedViewCode)
+        EnsureEditor(viewEditor, ref _viewTextMate, vm.GeneratedViewCode);
+        EnsureEditor(vmEditor, ref _vmTextMate, vm.GeneratedVmCode);
+    }
+
+    private void EnsureEditor(TextEditor? editor, ref TextMate.Installation? textMate, string? content)
+    {
+        if (editor is null) return;
+
+        if (textMate is null)
         {
-            viewEditor.Text = vm.GeneratedViewCode ?? string.Empty;
+            try
+            {
+                textMate = editor.InstallTextMate(_registryOptions);
+                textMate.SetGrammar(_registryOptions.GetScopeByLanguageId("csharp"));
+            }
+            catch
+            {
+                // 忽略 TextMate 重複安裝異常
+            }
         }
 
-        if (vmEditor is not null && vmEditor.Text != vm.GeneratedVmCode)
+        var targetText = content ?? string.Empty;
+        if (editor.Text != targetText)
         {
-            vmEditor.Text = vm.GeneratedVmCode ?? string.Empty;
+            editor.Text = targetText;
         }
     }
 }
