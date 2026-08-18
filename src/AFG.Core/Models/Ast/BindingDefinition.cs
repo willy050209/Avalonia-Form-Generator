@@ -7,6 +7,7 @@ namespace AFG.Core.Models.Ast;
 /// <param name="TargetProperty">View 端控制項屬性名稱（例如 Text, IsEnabled, SelectedItem）。</param>
 /// <param name="ViewModelProperty">ViewModel 端的屬性名稱（例如 Username, IsBusy）。</param>
 /// <param name="Mode">綁定模式（預設、單向、雙向等）。</param>
+/// <param name="CustomDataType">自訂 C# 資料型別（例如 int, decimal, ObservableCollection&lt;T&gt; 等，若為 null 則自動推斷）。</param>
 /// <param name="Converter">轉換器型別名稱或標籤（可為 null）。</param>
 /// <param name="StringFormat">字串格式化規則（例如 "{0:C}"）。</param>
 /// <param name="FallbackValue">綁定失敗時的預設值。</param>
@@ -14,11 +15,26 @@ public sealed record BindingDefinition(
     string TargetProperty,
     string ViewModelProperty,
     BindingMode Mode = BindingMode.Default,
+    string? CustomDataType = null,
     string? Converter = null,
     string? StringFormat = null,
     string? FallbackValue = null)
 {
     public BindingDefinition() : this(string.Empty, string.Empty) { }
+}
+
+/// <summary>
+/// 表示注入至 ViewModel 的服務相依性定義。
+/// </summary>
+/// <param name="InterfaceName">服務介面名稱（例如 IGreetingService, IOrderService）。</param>
+/// <param name="ImplementationName">服務實作類別名稱（例如 GreetingService, OrderService）。</param>
+/// <param name="Lifetime">生命週期（Singleton / Transient / Scoped）。</param>
+public sealed record ServiceDependencyDefinition(
+    string InterfaceName,
+    string? ImplementationName = null,
+    string Lifetime = "Singleton")
+{
+    public ServiceDependencyDefinition() : this(string.Empty) { }
 }
 
 /// <summary>

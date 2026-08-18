@@ -161,6 +161,42 @@ public sealed partial class MainViewModel : ObservableObject
     }
 
     [RelayCommand]
+    private void Undo() => Canvas.Undo();
+
+    [RelayCommand]
+    private void Redo() => Canvas.Redo();
+
+    [RelayCommand]
+    private void CopyNodes() => Canvas.CopySelectedNodes();
+
+    [RelayCommand]
+    private void PasteNodes() => Canvas.PasteNodes();
+
+    [RelayCommand]
+    private void AlignLeft() => Canvas.AlignSelectedNodes(NodeAlignmentType.AlignLeft);
+
+    [RelayCommand]
+    private void AlignCenter() => Canvas.AlignSelectedNodes(NodeAlignmentType.AlignHorizontalCenter);
+
+    [RelayCommand]
+    private void AlignRight() => Canvas.AlignSelectedNodes(NodeAlignmentType.AlignRight);
+
+    [RelayCommand]
+    private void AlignTop() => Canvas.AlignSelectedNodes(NodeAlignmentType.AlignTop);
+
+    [RelayCommand]
+    private void AlignMiddle() => Canvas.AlignSelectedNodes(NodeAlignmentType.AlignVerticalCenter);
+
+    [RelayCommand]
+    private void AlignBottom() => Canvas.AlignSelectedNodes(NodeAlignmentType.AlignBottom);
+
+    [RelayCommand]
+    private void DistributeHorizontal() => Canvas.DistributeSelectedNodes(horizontal: true);
+
+    [RelayCommand]
+    private void DistributeVertical() => Canvas.DistributeSelectedNodes(horizontal: false);
+
+    [RelayCommand]
     private void AddSelectedToolboxItem()
     {
         if (Toolbox.SelectedItem is not null)
@@ -172,7 +208,7 @@ public sealed partial class MainViewModel : ObservableObject
     [RelayCommand]
     private void DeleteSelectedNode()
     {
-        Canvas.DeleteSelectedNode();
+        Canvas.DeleteSelectedNodes();
     }
 
     [RelayCommand]

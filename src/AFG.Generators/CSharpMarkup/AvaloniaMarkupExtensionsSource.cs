@@ -57,6 +57,21 @@ public static class AvaloniaMarkupExtensionsSource
             return control;
         }
 
+        public static T Background<T>(this T control, IBrush brush) where T : Control
+        {
+            if (control is TemplatedControl tc) tc.Background = brush;
+            else if (control is Panel p) p.Background = brush;
+            else if (control is Border b) b.Background = brush;
+            return control;
+        }
+
+        public static T Foreground<T>(this T control, IBrush brush) where T : Control
+        {
+            if (control is TemplatedControl tc) tc.Foreground = brush;
+            else if (control is TextBlock tb) tb.Foreground = brush;
+            return control;
+        }
+
         public static T IsEnabled<T>(this T control, bool value) where T : Control { control.IsEnabled = value; return control; }
         public static T IsEnabled<T>(this T control, string path, BindingMode mode = BindingMode.Default) where T : Control
         {

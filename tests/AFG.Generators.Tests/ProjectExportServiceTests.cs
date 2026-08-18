@@ -21,6 +21,7 @@ public sealed class ProjectExportServiceTests
             ViewClassName = "OrderFormView",
             ViewModelClassName = "OrderFormViewModel",
             Title = "訂單管理系統",
+            InjectedServices = [new ServiceDependencyDefinition { InterfaceName = "IGreetingService", ImplementationName = "GreetingService" }],
             RootNode = new AstNode
             {
                 Id = "root",
@@ -122,7 +123,10 @@ public sealed class ProjectExportServiceTests
     {
         // Arrange
         var tempFolder = Path.Combine(Path.GetTempPath(), "AFG_TestExport_" + Guid.NewGuid().ToString("N"));
-        var doc = FormDocument.CreateDefault();
+        var doc = FormDocument.CreateDefault() with
+        {
+            InjectedServices = [new ServiceDependencyDefinition { InterfaceName = "IGreetingService", ImplementationName = "GreetingService" }]
+        };
 
         try
         {

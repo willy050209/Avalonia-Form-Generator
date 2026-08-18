@@ -52,3 +52,16 @@ public enum GridUnitType
     Pixel,
     Star
 }
+
+/// <summary>
+/// 多節點批次對齊動作類型。
+/// </summary>
+public enum NodeAlignmentType
+{
+    AlignLeft,
+    AlignHorizontalCenter,
+    AlignRight,
+    AlignTop,
+    AlignVerticalCenter,
+    AlignBottom
+}

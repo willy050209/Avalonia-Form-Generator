@@ -1,8 +1,12 @@
 // filepath: src/AFG.Shared/ViewModels/CanvasViewModel.cs
+using System.Collections.Generic;
+using AFG.Core.Enums;
+using AFG.Shared.History;
+
 namespace AFG.Shared.ViewModels;
 
 /// <summary>
-/// 管理視覺設計畫布狀態、選取節點、拖曳變更與對齊輔助線的 ViewModel。
+/// 管理視覺設計畫布狀態、多選節點、歷史堆疊 (Undo/Redo)、批次對齊與對齊輔助線的 ViewModel。
 /// </summary>
 public sealed partial class CanvasViewModel : ObservableObject
 {
@@ -33,6 +37,12 @@ public sealed partial class CanvasViewModel : ObservableObject
     [ObservableProperty]
     private bool _includeLicense = true;
 
+    public HistoryManager History { get; } = new();
+
+    public ObservableCollection<string> SelectedNodeIds { get; } = [];
+
+    private readonly List<AstNode> _clipboard = [];
+
     public IReadOnlyList<CanvasPreset> AvailablePresets { get; } = CanvasPreset.Presets;
 
     [ObservableProperty]
@@ -45,6 +55,7 @@ public sealed partial class CanvasViewModel : ObservableObject
             CanvasWidth = value.Width;
             CanvasHeight = value.Height;
 
+            PushHistory();
             Document = Document with
             {
                 CanvasWidth = value.Width,
@@ -58,6 +69,7 @@ public sealed partial class CanvasViewModel : ObservableObject
     {
         if (Math.Abs(Document.CanvasWidth - value) > 0.1)
         {
+            PushHistory();
             Document = Document with { CanvasWidth = value };
             MatchOrSetCustomPreset();
             DocumentChanged?.Invoke(Document);
@@ -68,6 +80,7 @@ public sealed partial class CanvasViewModel : ObservableObject
     {
         if (Math.Abs(Document.CanvasHeight - value) > 0.1)
         {
+            PushHistory();
             Document = Document with { CanvasHeight = value };
             MatchOrSetCustomPreset();
             DocumentChanged?.Invoke(Document);
@@ -93,37 +106,127 @@ public sealed partial class CanvasViewModel : ObservableObject
         MatchOrSetCustomPreset();
     }
 
+    public void PushHistory()
+    {
+        History.PushSnapshot(Document);
+    }
+
+    public void Undo()
+    {
+        var previous = History.Undo(Document);
+        if (previous is not null)
+        {
+            Document = previous;
+            CanvasWidth = previous.CanvasWidth;
+            CanvasHeight = previous.CanvasHeight;
+            MatchOrSetCustomPreset();
+            ValidateSelection();
+            DocumentChanged?.Invoke(Document);
+            SelectionChanged?.Invoke(SelectedNode);
+        }
+    }
+
+    public void Redo()
+    {
+        var next = History.Redo(Document);
+        if (next is not null)
+        {
+            Document = next;
+            CanvasWidth = next.CanvasWidth;
+            CanvasHeight = next.CanvasHeight;
+            MatchOrSetCustomPreset();
+            ValidateSelection();
+            DocumentChanged?.Invoke(Document);
+            SelectionChanged?.Invoke(SelectedNode);
+        }
+    }
+
     public void LoadDocument(FormDocument doc)
     {
         ArgumentNullException.ThrowIfNull(doc);
+        History.Clear();
         Document = doc;
         CanvasWidth = doc.CanvasWidth;
         CanvasHeight = doc.CanvasHeight;
         MatchOrSetCustomPreset();
+        SelectedNodeIds.Clear();
         SelectedNode = null;
         ActiveGuideLines.Clear();
         DocumentChanged?.Invoke(Document);
         SelectionChanged?.Invoke(null);
     }
 
-    public void SelectNode(string? nodeId)
+    public void SelectNode(string? nodeId, bool isToggle = false)
     {
         if (string.IsNullOrEmpty(nodeId))
         {
-            SelectedNode = null;
+            if (!isToggle)
+            {
+                SelectedNodeIds.Clear();
+                SelectedNode = null;
+            }
         }
         else
         {
-            SelectedNode = AstTreeOperations.FindNodeById(Document.RootNode, nodeId);
+            if (isToggle)
+            {
+                if (!SelectedNodeIds.Remove(nodeId))
+                {
+                    SelectedNodeIds.Add(nodeId);
+                }
+            }
+            else
+            {
+                SelectedNodeIds.Clear();
+                SelectedNodeIds.Add(nodeId);
+            }
+
+            var primaryId = SelectedNodeIds.LastOrDefault();
+            SelectedNode = primaryId is not null ? AstTreeOperations.FindNodeById(Document.RootNode, primaryId) : null;
         }
 
         ActiveGuideLines.Clear();
         SelectionChanged?.Invoke(SelectedNode);
     }
 
+    public void SelectNodes(IEnumerable<string> nodeIds)
+    {
+        ArgumentNullException.ThrowIfNull(nodeIds);
+        SelectedNodeIds.Clear();
+        foreach (var id in nodeIds)
+        {
+            if (!string.IsNullOrEmpty(id) && AstTreeOperations.FindNodeById(Document.RootNode, id) is not null)
+            {
+                SelectedNodeIds.Add(id);
+            }
+        }
+
+        var primaryId = SelectedNodeIds.LastOrDefault();
+        SelectedNode = primaryId is not null ? AstTreeOperations.FindNodeById(Document.RootNode, primaryId) : null;
+        ActiveGuideLines.Clear();
+        SelectionChanged?.Invoke(SelectedNode);
+    }
+
+    private void ValidateSelection()
+    {
+        var validIds = SelectedNodeIds
+            .Where(id => AstTreeOperations.FindNodeById(Document.RootNode, id) is not null)
+            .ToList();
+
+        SelectedNodeIds.Clear();
+        foreach (var id in validIds)
+        {
+            SelectedNodeIds.Add(id);
+        }
+
+        var primaryId = SelectedNodeIds.LastOrDefault();
+        SelectedNode = primaryId is not null ? AstTreeOperations.FindNodeById(Document.RootNode, primaryId) : null;
+    }
+
     public void AddControlFromToolbox(ToolboxItem item, double? left = null, double? top = null, string? targetParentId = null)
     {
         ArgumentNullException.ThrowIfNull(item);
+        PushHistory();
 
         var parentId = targetParentId ?? Document.RootNode.Id;
         var parentNode = AstTreeOperations.FindNodeById(Document.RootNode, parentId) ?? Document.RootNode;
@@ -137,6 +240,9 @@ public sealed partial class CanvasViewModel : ObservableObject
             defaultTop = SnappingEngine.SnapToGrid(defaultTop, GridSize);
         }
 
+        var (clampedLeft, clampedTop) = AstTreeOperations.ClampCoordinates(
+            defaultLeft, defaultTop, item.DefaultWidth, item.DefaultHeight, Document.CanvasWidth, Document.CanvasHeight);
+
         var newNode = new AstNode
         {
             Name = $"{item.DisplayName}_{Guid.NewGuid():N}"[..12],
@@ -145,13 +251,13 @@ public sealed partial class CanvasViewModel : ObservableObject
             Height = item.DefaultHeight,
             Content = item.DefaultContent,
             Text = item.DefaultContent,
-            CanvasLeft = parentNode.Type == ControlType.Canvas ? defaultLeft : null,
-            CanvasTop = parentNode.Type == ControlType.Canvas ? defaultTop : null
+            CanvasLeft = parentNode.Type == ControlType.Canvas ? clampedLeft : null,
+            CanvasTop = parentNode.Type == ControlType.Canvas ? clampedTop : null
         };
 
         var newRoot = AstTreeOperations.AddChild(Document.RootNode, parentId, newNode);
         Document = Document with { RootNode = newRoot };
-        SelectedNode = newNode;
+        SelectNode(newNode.Id);
 
         DocumentChanged?.Invoke(Document);
         SelectionChanged?.Invoke(SelectedNode);
@@ -184,10 +290,13 @@ public sealed partial class CanvasViewModel : ObservableObject
             ActiveGuideLines.Add(guide);
         }
 
+        var (clampedLeft, clampedTop) = AstTreeOperations.ClampCoordinates(
+            snapResult.Left, snapResult.Top, node.Width ?? 100, node.Height ?? 30, Document.CanvasWidth, Document.CanvasHeight);
+
         var updatedNode = node with
         {
-            CanvasLeft = snapResult.Left,
-            CanvasTop = snapResult.Top
+            CanvasLeft = clampedLeft,
+            CanvasTop = clampedTop
         };
 
         var newRoot = AstTreeOperations.UpdateNode(Document.RootNode, updatedNode);
@@ -208,12 +317,21 @@ public sealed partial class CanvasViewModel : ObservableObject
             return;
         }
 
+        var (clampedLeft, clampedTop) = (newLeft, newTop);
+        if (newLeft.HasValue && newTop.HasValue)
+        {
+            var clamped = AstTreeOperations.ClampCoordinates(
+                newLeft.Value, newTop.Value, newWidth, newHeight, Document.CanvasWidth, Document.CanvasHeight);
+            clampedLeft = clamped.Left;
+            clampedTop = clamped.Top;
+        }
+
         var updatedNode = node with
         {
             Width = Math.Max(20, SnapToGrid ? SnappingEngine.SnapToGrid(newWidth, GridSize) : newWidth),
             Height = Math.Max(15, SnapToGrid ? SnappingEngine.SnapToGrid(newHeight, GridSize) : newHeight),
-            CanvasLeft = newLeft.HasValue ? (SnapToGrid ? SnappingEngine.SnapToGrid(newLeft.Value, GridSize) : newLeft.Value) : node.CanvasLeft,
-            CanvasTop = newTop.HasValue ? (SnapToGrid ? SnappingEngine.SnapToGrid(newTop.Value, GridSize) : newTop.Value) : node.CanvasTop
+            CanvasLeft = clampedLeft.HasValue ? (SnapToGrid ? SnappingEngine.SnapToGrid(clampedLeft.Value, GridSize) : clampedLeft.Value) : node.CanvasLeft,
+            CanvasTop = clampedTop.HasValue ? (SnapToGrid ? SnappingEngine.SnapToGrid(clampedTop.Value, GridSize) : clampedTop.Value) : node.CanvasTop
         };
 
         var newRoot = AstTreeOperations.UpdateNode(Document.RootNode, updatedNode);
@@ -224,9 +342,90 @@ public sealed partial class CanvasViewModel : ObservableObject
         SelectionChanged?.Invoke(SelectedNode);
     }
 
+    public void NudgeSelectedNodes(double deltaX, double deltaY)
+    {
+        if (SelectedNodeIds.Count == 0) return;
+        PushHistory();
+
+        var currentRoot = Document.RootNode;
+        foreach (var id in SelectedNodeIds)
+        {
+            var node = AstTreeOperations.FindNodeById(currentRoot, id);
+            if (node is not null && node.Id != currentRoot.Id && node.CanvasLeft.HasValue && node.CanvasTop.HasValue)
+            {
+                var newX = Math.Max(0, node.CanvasLeft.Value + deltaX);
+                var newY = Math.Max(0, node.CanvasTop.Value + deltaY);
+                currentRoot = AstTreeOperations.UpdateNode(currentRoot, node with { CanvasLeft = newX, CanvasTop = newY });
+            }
+        }
+
+        Document = Document with { RootNode = currentRoot };
+        ValidateSelection();
+        DocumentChanged?.Invoke(Document);
+        SelectionChanged?.Invoke(SelectedNode);
+    }
+
+    public void AlignSelectedNodes(NodeAlignmentType alignment)
+    {
+        if (SelectedNodeIds.Count < 2) return;
+        PushHistory();
+
+        var newRoot = AstTreeOperations.AlignNodes(Document.RootNode, SelectedNodeIds.ToList(), alignment);
+        Document = Document with { RootNode = newRoot };
+        ValidateSelection();
+        DocumentChanged?.Invoke(Document);
+        SelectionChanged?.Invoke(SelectedNode);
+    }
+
+    public void DistributeSelectedNodes(bool horizontal)
+    {
+        if (SelectedNodeIds.Count < 3) return;
+        PushHistory();
+
+        var newRoot = AstTreeOperations.DistributeNodes(Document.RootNode, SelectedNodeIds.ToList(), horizontal);
+        Document = Document with { RootNode = newRoot };
+        ValidateSelection();
+        DocumentChanged?.Invoke(Document);
+        SelectionChanged?.Invoke(SelectedNode);
+    }
+
+    public void CopySelectedNodes()
+    {
+        _clipboard.Clear();
+        foreach (var id in SelectedNodeIds)
+        {
+            var node = AstTreeOperations.FindNodeById(Document.RootNode, id);
+            if (node is not null && node.Id != Document.RootNode.Id)
+            {
+                _clipboard.Add(node);
+            }
+        }
+    }
+
+    public void PasteNodes()
+    {
+        if (_clipboard.Count == 0) return;
+        PushHistory();
+
+        var newIds = new List<string>();
+        var currentRoot = Document.RootNode;
+
+        foreach (var originalNode in _clipboard)
+        {
+            var cloned = AstTreeOperations.CloneSubtree(originalNode, offset: 24);
+            currentRoot = AstTreeOperations.AddChild(currentRoot, Document.RootNode.Id, cloned);
+            newIds.Add(cloned.Id);
+        }
+
+        Document = Document with { RootNode = currentRoot };
+        SelectNodes(newIds);
+        DocumentChanged?.Invoke(Document);
+    }
+
     public void UpdateNodeProperties(AstNode updatedNode)
     {
         ArgumentNullException.ThrowIfNull(updatedNode);
+        PushHistory();
 
         var newRoot = AstTreeOperations.UpdateNode(Document.RootNode, updatedNode);
         Document = Document with { RootNode = newRoot };
@@ -236,16 +435,31 @@ public sealed partial class CanvasViewModel : ObservableObject
         SelectionChanged?.Invoke(SelectedNode);
     }
 
-    public void DeleteSelectedNode()
+    public void DeleteSelectedNode() => DeleteSelectedNodes();
+
+    public void DeleteSelectedNodes()
     {
-        if (SelectedNode is null || SelectedNode.Id == Document.RootNode.Id)
+        if (SelectedNodeIds.Count == 0)
         {
             return;
         }
 
-        var targetId = SelectedNode.Id;
-        var newRoot = AstTreeOperations.RemoveChild(Document.RootNode, targetId);
-        Document = Document with { RootNode = newRoot };
+        PushHistory();
+        var currentRoot = Document.RootNode;
+        foreach (var id in SelectedNodeIds.ToList())
+        {
+            if (id != Document.RootNode.Id)
+            {
+                try
+                {
+                    currentRoot = AstTreeOperations.RemoveChild(currentRoot, id);
+                }
+                catch { }
+            }
+        }
+
+        Document = Document with { RootNode = currentRoot };
+        SelectedNodeIds.Clear();
         SelectedNode = null;
         ActiveGuideLines.Clear();
 

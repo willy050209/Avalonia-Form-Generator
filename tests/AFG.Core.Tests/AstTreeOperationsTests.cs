@@ -168,4 +168,74 @@ public sealed class AstTreeOperationsTests
         var act = () => AstTreeOperations.MoveChild(root, "parent_container", "child_container");
         act.Should().Throw<InvalidOperationException>();
     }
+
+    [Fact]
+    public void CloneSubtree_ShouldCreateNewIds_AndMaintainHierarchy()
+    {
+        // Arrange
+        var child = new AstNode { Id = "child1", Name = "SubBtn", Type = ControlType.Button };
+        var parent = new AstNode { Id = "parent1", Name = "MyPanel", Type = ControlType.StackPanel, CanvasLeft = 50, CanvasTop = 60, Children = [child] };
+
+        // Act
+        var cloned = AstTreeOperations.CloneSubtree(parent, offset: 20);
+
+        // Assert
+        cloned.Id.Should().NotBe("parent1");
+        cloned.CanvasLeft.Should().Be(70);
+        cloned.CanvasTop.Should().Be(80);
+        cloned.Children.Should().HaveCount(1);
+        cloned.Children[0].Id.Should().NotBe("child1");
+    }
+
+    [Fact]
+    public void AlignNodes_Left_ShouldAlignAllTargetNodesToMinLeft()
+    {
+        // Arrange
+        var btn1 = new AstNode { Id = "1", CanvasLeft = 100, CanvasTop = 50, Width = 80, Height = 30 };
+        var btn2 = new AstNode { Id = "2", CanvasLeft = 150, CanvasTop = 100, Width = 80, Height = 30 };
+        var root = new AstNode { Id = "root", Type = ControlType.Canvas, Children = [btn1, btn2] };
+
+        // Act
+        var result = AstTreeOperations.AlignNodes(root, ["1", "2"], NodeAlignmentType.AlignLeft);
+
+        // Assert
+        var n1 = AstTreeOperations.FindNodeById(result, "1");
+        var n2 = AstTreeOperations.FindNodeById(result, "2");
+        n1!.CanvasLeft.Should().Be(100);
+        n2!.CanvasLeft.Should().Be(100);
+    }
+
+    [Fact]
+    public void DistributeNodes_Horizontal_ShouldSpaceNodesEvenly()
+    {
+        // Arrange
+        var btn1 = new AstNode { Id = "1", CanvasLeft = 0, Width = 100 };
+        var btn2 = new AstNode { Id = "2", CanvasLeft = 50, Width = 100 };
+        var btn3 = new AstNode { Id = "3", CanvasLeft = 400, Width = 100 };
+        var root = new AstNode { Id = "root", Type = ControlType.Canvas, Children = [btn1, btn2, btn3] };
+
+        // Act
+        var result = AstTreeOperations.DistributeNodes(root, ["1", "2", "3"], horizontal: true);
+
+        // Assert
+        var n1 = AstTreeOperations.FindNodeById(result, "1");
+        var n2 = AstTreeOperations.FindNodeById(result, "2");
+        var n3 = AstTreeOperations.FindNodeById(result, "3");
+
+        n1!.CanvasLeft.Should().Be(0);
+        n2!.CanvasLeft.Should().Be(200);
+        n3!.CanvasLeft.Should().Be(400);
+    }
+
+    [Fact]
+    public void ClampCoordinates_ShouldPreventNegativeOrOutOfCanvasCoordinates()
+    {
+        var (cLeft1, cTop1) = AstTreeOperations.ClampCoordinates(-50, -20, 100, 30, 800, 600);
+        cLeft1.Should().Be(0);
+        cTop1.Should().Be(0);
+
+        var (cLeft2, cTop2) = AstTreeOperations.ClampCoordinates(900, 700, 100, 30, 800, 600);
+        cLeft2.Should().Be(790);
+        cTop2.Should().Be(590);
+    }
 }

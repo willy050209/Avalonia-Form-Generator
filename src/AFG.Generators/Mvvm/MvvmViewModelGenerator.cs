@@ -1,8 +1,14 @@
 // filepath: src/AFG.Generators/Mvvm/MvvmViewModelGenerator.cs
+using System.Collections.Generic;
+using System.Text;
+using AFG.Core.Enums;
+using AFG.Core.Models.Ast;
+using AFG.Generators.Abstractions;
+
 namespace AFG.Generators.Mvvm;
 
 /// <summary>
-/// 掃描 UI AST 中的資料綁定與事件命令，生成符合 CommunityToolkit.Mvvm 規範並整合相依性注入 (DI) 與同步/非同步 Command 的 ViewModel 原始碼。
+/// 掃描 UI AST 中的資料綁定與事件命令，生成符合 CommunityToolkit.Mvvm 規範並動態整合自訂型別、自訂 DI 服務與同步/非同步 Command 的 ViewModel 原始碼。
 /// </summary>
 public sealed class MvvmViewModelGenerator : ICodeGenerator
 {
@@ -12,7 +18,7 @@ public sealed class MvvmViewModelGenerator : ICodeGenerator
 
         var allNodes = AstTreeOperations.Flatten(document.RootNode);
 
-        // 收集所有唯一的 ViewModel 屬性與推斷型別
+        // 收集所有唯一的 ViewModel 屬性與指定/推斷型別
         var properties = new Dictionary<string, string>(StringComparer.Ordinal);
         foreach (var node in allNodes)
         {
@@ -25,8 +31,11 @@ public sealed class MvvmViewModelGenerator : ICodeGenerator
 
                 if (!properties.ContainsKey(binding.ViewModelProperty))
                 {
-                    var inferredType = InferPropertyType(binding.TargetProperty, node.Type);
-                    properties[binding.ViewModelProperty] = inferredType;
+                    var propType = !string.IsNullOrWhiteSpace(binding.CustomDataType)
+                        ? binding.CustomDataType.Trim()
+                        : InferPropertyType(binding.TargetProperty, node.Type);
+
+                    properties[binding.ViewModelProperty] = propType;
                 }
             }
         }
@@ -52,26 +61,51 @@ public sealed class MvvmViewModelGenerator : ICodeGenerator
         sb.AppendLine("#nullable enable");
         sb.AppendLine();
         sb.AppendLine("using System;");
+        sb.AppendLine("using System.Collections.Generic;");
+        sb.AppendLine("using System.Collections.ObjectModel;");
         sb.AppendLine("using System.Threading.Tasks;");
         sb.AppendLine("using CommunityToolkit.Mvvm.ComponentModel;");
         sb.AppendLine("using CommunityToolkit.Mvvm.Input;");
-        sb.AppendLine($"using {document.RootNamespace}.Services;");
+
+        var services = document.InjectedServices ?? [];
+        if (services.Count > 0)
+        {
+            sb.AppendLine($"using {document.RootNamespace}.Services;");
+        }
+
         sb.AppendLine();
         sb.AppendLine($"namespace {document.RootNamespace};");
         sb.AppendLine();
         sb.AppendLine($"public partial class {document.ViewModelClassName} : ObservableObject");
         sb.AppendLine("{");
-        sb.AppendLine("    private readonly IGreetingService? _greetingService;");
-        sb.AppendLine();
-        sb.AppendLine($"    public {document.ViewModelClassName}()");
-        sb.AppendLine("    {");
-        sb.AppendLine("    }");
-        sb.AppendLine();
-        sb.AppendLine($"    public {document.ViewModelClassName}(IGreetingService greetingService)");
-        sb.AppendLine("    {");
-        sb.AppendLine("        _greetingService = greetingService;");
-        sb.AppendLine("    }");
-        sb.AppendLine();
+
+        // 服務欄位與建構子注入
+        if (services.Count > 0)
+        {
+            foreach (var svc in services)
+            {
+                var fieldName = ToPrivateFieldName(svc.InterfaceName.StartsWith('I') ? svc.InterfaceName[1..] : svc.InterfaceName);
+                sb.AppendLine($"    private readonly {svc.InterfaceName}? {fieldName};");
+            }
+            sb.AppendLine();
+
+            sb.AppendLine($"    public {document.ViewModelClassName}()");
+            sb.AppendLine("    {");
+            sb.AppendLine("    }");
+            sb.AppendLine();
+
+            var ctorParams = string.Join(", ", services.Select(s => $"{s.InterfaceName} {ToCamelCase(s.InterfaceName.StartsWith('I') ? s.InterfaceName[1..] : s.InterfaceName)}"));
+            sb.AppendLine($"    public {document.ViewModelClassName}({ctorParams})");
+            sb.AppendLine("    {");
+            foreach (var svc in services)
+            {
+                var fieldName = ToPrivateFieldName(svc.InterfaceName.StartsWith('I') ? svc.InterfaceName[1..] : svc.InterfaceName);
+                var paramName = ToCamelCase(svc.InterfaceName.StartsWith('I') ? svc.InterfaceName[1..] : svc.InterfaceName);
+                sb.AppendLine($"        {fieldName} = {paramName};");
+            }
+            sb.AppendLine("    }");
+            sb.AppendLine();
+        }
 
         // 輸出屬性
         if (properties.Count > 0)
@@ -142,22 +176,30 @@ public sealed class MvvmViewModelGenerator : ICodeGenerator
         return $"_{char.ToLowerInvariant(propertyName[0])}{propertyName[1..]}";
     }
 
+    private static string ToCamelCase(string name)
+    {
+        if (string.IsNullOrEmpty(name)) return "service";
+        return $"{char.ToLowerInvariant(name[0])}{name[1..]}";
+    }
+
     private static string InferPropertyType(string targetProperty, ControlType controlType) => targetProperty switch
     {
         "IsChecked" or "IsEnabled" or "IsVisible" or "CanSubmit" => "bool",
         "Value" or "Minimum" or "Maximum" or "Progress" => "double",
         "SelectedIndex" or "Count" => "int",
-        "ItemsSource" => "System.Collections.IEnumerable",
-        "SelectedItem" => "object?",
+        "ItemsSource" => "ObservableCollection<string>",
+        "SelectedItem" => "string?",
         _ => "string"
     };
 
-    private static string GetDefaultValueExpression(string typeName) => typeName switch
+    private static string GetDefaultValueExpression(string typeName)
     {
-        "string" => " = string.Empty",
-        "bool" => string.Empty,
-        "double" => string.Empty,
-        "int" => string.Empty,
-        _ => string.Empty
-    };
+        if (typeName == "string") return " = string.Empty";
+        if (typeName.StartsWith("ObservableCollection", StringComparison.Ordinal) ||
+            typeName.StartsWith("List<", StringComparison.Ordinal))
+        {
+            return " = []";
+        }
+        return string.Empty;
+    }
 }

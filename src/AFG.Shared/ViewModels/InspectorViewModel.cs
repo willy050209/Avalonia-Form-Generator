@@ -94,6 +94,12 @@ public sealed partial class InspectorViewModel : ObservableObject
     private double? _fontSize;
 
     [ObservableProperty]
+    private string? _background;
+
+    [ObservableProperty]
+    private string? _foreground;
+
+    [ObservableProperty]
     private bool? _isChecked;
 
     [ObservableProperty]
@@ -123,6 +129,8 @@ public sealed partial class InspectorViewModel : ObservableObject
             NodeId = string.Empty;
             ControlType = string.Empty;
             NodeName = string.Empty;
+            Background = null;
+            Foreground = null;
             Bindings.Clear();
             Events.Clear();
             ValidationErrors.Clear();
@@ -156,6 +164,8 @@ public sealed partial class InspectorViewModel : ObservableObject
         IsEnabled = node.IsEnabled;
         IsVisible = node.IsVisible;
         FontSize = node.FontSize;
+        Background = node.Background;
+        Foreground = node.Foreground;
         IsChecked = node.IsChecked;
         Value = node.Value;
 
@@ -258,6 +268,8 @@ public sealed partial class InspectorViewModel : ObservableObject
             IsEnabled = IsEnabled,
             IsVisible = IsVisible,
             FontSize = FontSize,
+            Background = string.IsNullOrWhiteSpace(Background) ? null : Background.Trim(),
+            Foreground = string.IsNullOrWhiteSpace(Foreground) ? null : Foreground.Trim(),
             IsChecked = IsChecked,
             Value = Value,
             Bindings = Bindings.Select(b => b.ToDefinition()).ToImmutableList(),
@@ -304,6 +316,8 @@ public sealed partial class InspectorViewModel : ObservableObject
     partial void OnIsEnabledChanged(bool value) => ApplyChanges();
     partial void OnIsVisibleChanged(bool value) => ApplyChanges();
     partial void OnFontSizeChanged(double? value) => ApplyChanges();
+    partial void OnBackgroundChanged(string? value) => ApplyChanges();
+    partial void OnForegroundChanged(string? value) => ApplyChanges();
     partial void OnIsCheckedChanged(bool? value) => ApplyChanges();
     partial void OnValueChanged(double? value) => ApplyChanges();
 }

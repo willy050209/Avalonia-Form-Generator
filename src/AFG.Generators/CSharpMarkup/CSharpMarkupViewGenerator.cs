@@ -240,6 +240,16 @@ public sealed class CSharpMarkupViewGenerator : ICodeGenerator
             sb.AppendLine($"{innerIndent}.FontSize({node.FontSize.Value.ToString(CultureInfo.InvariantCulture)})");
         }
 
+        if (!string.IsNullOrWhiteSpace(node.Background))
+        {
+            sb.AppendLine($"{innerIndent}.Background(Brush.Parse(\"{EscapeString(node.Background)}\"))");
+        }
+
+        if (!string.IsNullOrWhiteSpace(node.Foreground))
+        {
+            sb.AppendLine($"{innerIndent}.Foreground(Brush.Parse(\"{EscapeString(node.Foreground)}\"))");
+        }
+
         // 5. MVVM 綁定配置
         foreach (var binding in node.Bindings)
         {

@@ -42,6 +42,16 @@ public sealed record FormDocument
     public double CanvasHeight { get; init; } = 600;
 
     /// <summary>
+    /// 是否在此表單啟用相依性注入架構配置。
+    /// </summary>
+    public bool EnableDependencyInjection { get; init; } = true;
+
+    /// <summary>
+    /// 注入至此 ViewModel 的自訂服務相依性清單（為空時產出乾淨無參數 ViewModel）。
+    /// </summary>
+    public ImmutableList<ServiceDependencyDefinition> InjectedServices { get; init; } = [];
+
+    /// <summary>
     /// 根佈局節點（通常為 Grid 或 Canvas）。
     /// </summary>
     public AstNode RootNode { get; init; } = new()

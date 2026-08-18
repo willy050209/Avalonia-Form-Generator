@@ -274,4 +274,203 @@ public static class AstTreeOperations
         // 再加入至新位置
         return AddChild(removedTree, newParentId, nodeToMove, newIndex);
     }
+
+    /// <summary>
+    /// 深度複製節點及其所有子樹節點，並重新產生唯一的 Id 與名稱。
+    /// </summary>
+    /// <param name="node">欲複製的原始節點。</param>
+    /// <param name="offset">位移增量（可選，用於貼上時避免完全重疊）。</param>
+    /// <returns>複製後的新節點樹。</returns>
+    public static AstNode CloneSubtree(AstNode node, double offset = 20.0)
+    {
+        ArgumentNullException.ThrowIfNull(node);
+
+        var newId = Guid.NewGuid().ToString("N");
+        var newName = string.IsNullOrWhiteSpace(node.Name) ? $"Control_{newId[..6]}" : $"{node.Name}_Copy";
+
+        var clonedChildren = node.Children
+            .Select(child => CloneSubtree(child, offset: 0))
+            .ToImmutableList();
+
+        return node with
+        {
+            Id = newId,
+            Name = newName,
+            CanvasLeft = node.CanvasLeft.HasValue ? Math.Max(0, node.CanvasLeft.Value + offset) : null,
+            CanvasTop = node.CanvasTop.HasValue ? Math.Max(0, node.CanvasTop.Value + offset) : null,
+            Children = clonedChildren
+        };
+    }
+
+    /// <summary>
+    /// 批次對齊多個指定節點（僅作用於具備絕對座標之節點）。
+    /// </summary>
+    public static AstNode AlignNodes(AstNode root, IReadOnlyList<string> nodeIds, NodeAlignmentType alignment)
+    {
+        ArgumentNullException.ThrowIfNull(root);
+        ArgumentNullException.ThrowIfNull(nodeIds);
+
+        if (nodeIds.Count < 2)
+        {
+            return root;
+        }
+
+        var targetNodes = nodeIds
+            .Select(id => FindNodeById(root, id))
+            .Where(n => n is not null && n.Id != root.Id)
+            .Select(n => n!)
+            .ToList();
+
+        if (targetNodes.Count < 2)
+        {
+            return root;
+        }
+
+        var currentRoot = root;
+
+        switch (alignment)
+        {
+            case NodeAlignmentType.AlignLeft:
+                var minLeft = targetNodes.Min(n => n.CanvasLeft ?? 0);
+                foreach (var node in targetNodes)
+                {
+                    currentRoot = UpdateNode(currentRoot, node with { CanvasLeft = minLeft });
+                }
+                break;
+
+            case NodeAlignmentType.AlignHorizontalCenter:
+                var minL = targetNodes.Min(n => n.CanvasLeft ?? 0);
+                var maxR = targetNodes.Max(n => (n.CanvasLeft ?? 0) + (n.Width ?? 100));
+                var centerH = (minL + maxR) / 2.0;
+                foreach (var node in targetNodes)
+                {
+                    var w = node.Width ?? 100;
+                    currentRoot = UpdateNode(currentRoot, node with { CanvasLeft = centerH - (w / 2.0) });
+                }
+                break;
+
+            case NodeAlignmentType.AlignRight:
+                var maxRight = targetNodes.Max(n => (n.CanvasLeft ?? 0) + (n.Width ?? 100));
+                foreach (var node in targetNodes)
+                {
+                    var w = node.Width ?? 100;
+                    currentRoot = UpdateNode(currentRoot, node with { CanvasLeft = maxRight - w });
+                }
+                break;
+
+            case NodeAlignmentType.AlignTop:
+                var minTop = targetNodes.Min(n => n.CanvasTop ?? 0);
+                foreach (var node in targetNodes)
+                {
+                    currentRoot = UpdateNode(currentRoot, node with { CanvasTop = minTop });
+                }
+                break;
+
+            case NodeAlignmentType.AlignVerticalCenter:
+                var minT = targetNodes.Min(n => n.CanvasTop ?? 0);
+                var maxB = targetNodes.Max(n => (n.CanvasTop ?? 0) + (n.Height ?? 30));
+                var centerV = (minT + maxB) / 2.0;
+                foreach (var node in targetNodes)
+                {
+                    var h = node.Height ?? 30;
+                    currentRoot = UpdateNode(currentRoot, node with { CanvasTop = centerV - (h / 2.0) });
+                }
+                break;
+
+            case NodeAlignmentType.AlignBottom:
+                var maxBottom = targetNodes.Max(n => (n.CanvasTop ?? 0) + (n.Height ?? 30));
+                foreach (var node in targetNodes)
+                {
+                    var h = node.Height ?? 30;
+                    currentRoot = UpdateNode(currentRoot, node with { CanvasTop = maxBottom - h });
+                }
+                break;
+        }
+
+        return currentRoot;
+    }
+
+    /// <summary>
+    /// 等間距分佈多個指定節點（水平或垂直）。
+    /// </summary>
+    public static AstNode DistributeNodes(AstNode root, IReadOnlyList<string> nodeIds, bool horizontal)
+    {
+        ArgumentNullException.ThrowIfNull(root);
+        ArgumentNullException.ThrowIfNull(nodeIds);
+
+        if (nodeIds.Count < 3)
+        {
+            return root;
+        }
+
+        var targetNodes = nodeIds
+            .Select(id => FindNodeById(root, id))
+            .Where(n => n is not null && n.Id != root.Id)
+            .Select(n => n!)
+            .ToList();
+
+        if (targetNodes.Count < 3)
+        {
+            return root;
+        }
+
+        var currentRoot = root;
+
+        if (horizontal)
+        {
+            var sorted = targetNodes.OrderBy(n => n.CanvasLeft ?? 0).ToList();
+            var first = sorted[0];
+            var last = sorted[^1];
+
+            var totalWidth = sorted.Sum(n => n.Width ?? 100);
+            var totalSpan = ((last.CanvasLeft ?? 0) + (last.Width ?? 100)) - (first.CanvasLeft ?? 0);
+            var availableSpace = totalSpan - totalWidth;
+            var gap = availableSpace / (sorted.Count - 1);
+
+            var currentLeft = first.CanvasLeft ?? 0;
+            for (var i = 0; i < sorted.Count; i++)
+            {
+                var n = sorted[i];
+                if (i > 0)
+                {
+                    currentRoot = UpdateNode(currentRoot, n with { CanvasLeft = currentLeft });
+                }
+                currentLeft += (n.Width ?? 100) + gap;
+            }
+        }
+        else
+        {
+            var sorted = targetNodes.OrderBy(n => n.CanvasTop ?? 0).ToList();
+            var first = sorted[0];
+            var last = sorted[^1];
+
+            var totalHeight = sorted.Sum(n => n.Height ?? 30);
+            var totalSpan = ((last.CanvasTop ?? 0) + (last.Height ?? 30)) - (first.CanvasTop ?? 0);
+            var availableSpace = totalSpan - totalHeight;
+            var gap = availableSpace / (sorted.Count - 1);
+
+            var currentTop = first.CanvasTop ?? 0;
+            for (var i = 0; i < sorted.Count; i++)
+            {
+                var n = sorted[i];
+                if (i > 0)
+                {
+                    currentRoot = UpdateNode(currentRoot, n with { CanvasTop = currentTop });
+                }
+                currentTop += (n.Height ?? 30) + gap;
+            }
+        }
+
+        return currentRoot;
+    }
+
+    /// <summary>
+    /// 將節點坐標箝位至畫布範圍內，防止拖曳至負數或超出邊界過多。
+    /// </summary>
+    public static (double Left, double Top) ClampCoordinates(double left, double top, double width, double height, double canvasWidth, double canvasHeight)
+    {
+        var clampedLeft = Math.Clamp(left, 0, Math.Max(0, canvasWidth - 10));
+        var clampedTop = Math.Clamp(top, 0, Math.Max(0, canvasHeight - 10));
+        return (clampedLeft, clampedTop);
+    }
 }

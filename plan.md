@@ -9,42 +9,42 @@
 
 專案遵循 **模式 A（多專案跨平台與分層架構）** 與 **SRP 單一職責原則**，將核心 AST 模型、Roslyn 程式碼生成引擎、視覺化設計器 UI、展示層與平台進入點完全解耦。
 
-```
+```text
 AvaloniaFormGenerator/
 ├── src/
-│   ├── AFG.Core/                         # [核心核心層] UI AST 中介模型、驗證器、序列化合約（純 C#，無 UI 依賴）
-│   │   ├── Models/Ast/                   # UI 節點定義 (ComponentNode, LayoutNode, BindingDefinition, EventMapping)
+│   ├── AFG.Core/                         # [核心層] UI AST 中介模型、驗證器、序列化合約（純 C#，無 UI 依賴）
+│   │   ├── Models/Ast/                   # UI 節點定義 (AstNode, BindingDefinition, EventMapping, FormDocument)
 │   │   ├── Enums/                        # 控制項類型、佈局模式、對齊等列舉
 │   │   ├── Validation/                   # AST 語法與防禦性驗證器 (Fail-Fast)
-│   │   └── GlobalUsings.cs
+│   │   └── Serialization/                # AfgSerializer (.afg.json 專案檔讀寫與容錯)
 │   │
 │   ├── AFG.Generators/                   # [程式碼生成引擎] Roslyn 格式化、C# Markup 生成器、ViewModel 生成器
 │   │   ├── Abstractions/                 # ICodeGenerator, IRoslynCompilerService 介面
-│   │   ├── CSharpMarkup/                 # Fluent C# Markup (View) 鏈式代碼生成器
-│   │   ├── Mvvm/                         # CommunityToolkit.Mvvm (ViewModel) 生成器
-│   │   ├── Roslyn/                       # Roslyn 記憶體編譯、語法樹格式化與即時診斷服務
-│   │   └── GlobalUsings.cs
+│   │   ├── CSharpMarkup/                 # Fluent C# Markup (View) 鏈式代碼生成器 (支援 Lambda/Compiled Binding)
+│   │   ├── Mvvm/                         # CommunityToolkit.Mvvm (ViewModel) 生成器 (支援動態 DI 與自訂型別)
+│   │   ├── ProjectExport/                # 跨平台多專案方案 (.slnx, .Shared, .Desktop, .Android) 匯出服務
+│   │   └── Roslyn/                       # Roslyn 記憶體編譯、語法樹格式化與即時診斷服務
 │   │
 │   ├── AFG.Shared/                       # [跨平台共用 UI] 視覺化畫布、工具箱、屬性檢查器、Adorner 系統
-│   │   ├── Controls/                     # 自訂設計畫布 (DesignCanvas)、裝飾器 (Adorners)、輔助對齊線
+│   │   ├── Controls/                     # 自訂設計畫布 (DesignCanvas - 支援遞迴容器渲染、Zoom/Pan 矩陣、多選橡皮筋)
+│   │   ├── History/                      # Undo/Redo 歷史堆疊管理器 (Memento 模式)
 │   │   ├── Views/                        # 主視窗、畫布視圖、屬性檢查器、代碼預覽視圖
-│   │   ├── ViewModels/                   # MainViewModel, CanvasViewModel, InspectorViewModel, CodePreviewViewModel
-│   │   ├── Services/                     # 剪貼簿、檔案對話框、熱重載通知介面定義 (IFileDialogService, etc.)
-│   │   └── GlobalUsings.cs
+│   │   ├── ViewModels/                   # MainViewModel, CanvasViewModel, InspectorViewModel
+│   │   └── Services/                     # 剪貼簿、檔案對話框、熱重載通知介面定義 (IFileDialogService, etc.)
 │   │
 │   └── AFG.Desktop/                      # [桌面端進入點] Windows / macOS / Linux 桌面執行環境
-│       ├── Services/                     # 桌面端 IFileDialogService, IClipboardService 實作
-│       ├── Program.cs                    # 應用程式進入點 (ClassicDesktopStyleLifetime)
-│       └── GlobalUsings.cs
+│       ├── Services/                     # 桌面端 IFileDialogService, DesktopClipboardService 實作
+│       └── Program.cs                    # 應用程式進入點 (ClassicDesktopStyleLifetime)
 │
 ├── tests/
 │   ├── AFG.Core.Tests/                   # AST 模型、節點階層操作、驗證器之單元測試 (xUnit)
 │   └── AFG.Generators.Tests/             # C# Markup 轉譯、ViewModel 生成、Roslyn 格式化與記憶體編譯測試 (xUnit)
 │
+├── .github/workflows/                    # GitHub Actions 跨平台 CI/CD 工作流 (Ubuntu, Windows, macOS)
 ├── .editorconfig                         # 統一 C# 14 / .NET 10 編碼風格與 UTF-8 BOM 規則
 ├── .gitattributes                        # Git 換行與檔案屬性控管
 ├── .gitignore                            # .NET 10 / Visual Studio / JetBrains 忽略檔
-└── AvaloniaFormGenerator.sln             # 方案主檔
+└── AvaloniaFormGenerator.slnx            # 方案主檔
 ```
 
 ---
@@ -54,95 +54,106 @@ AvaloniaFormGenerator/
 | 模組領域 | 選用技術 / 函式庫 | 規範與用途說明 |
 | :--- | :--- | :--- |
 | **目標運行時** | `.NET 10` / `C# 14` | 全面啟用 `<Nullable>enable</Nullable>`、Primary Constructors、集合表達式 `[]`、File-scoped namespaces |
-| **UI 基礎框架** | `Avalonia 11.x+` | 跨平台渲染底層、佈局引擎與視覺樹 |
-| **C# Markup 規範** | `Avalonia.Markup.Declarative` / Fluent Extension Builder | 生成純 C# Declarative UI View，支援雙向資料綁定與強型別 Lambda |
-| **MVVM 架構** | `CommunityToolkit.Mvvm (8.x+)` | 產出 `[ObservableProperty]` 與 `[RelayCommand]`，ViewModel 零 UI 依賴 |
+| **UI 基礎框架** | `Avalonia 11.2.5+ / 12.x` | 跨平台渲染底層、佈局引擎與視覺樹，集中版本號常數管理 |
+| **C# Markup 規範** | Fluent Extension Builder / Declarative UI | 生成純 C# Declarative UI View，支援雙向資料綁定與強型別 Lambda 綁定模式 |
+| **MVVM 架構** | `CommunityToolkit.Mvvm (8.x+)` | 產出 `[ObservableProperty]` 與 `[RelayCommand]`，支援同步與非同步命令及動態 DI 注入 |
+| **相依性注入** | `Microsoft.Extensions.DependencyInjection` | 匯出專案內建標準服務容器生命週期配置 |
 | **代碼分析與生成** | `Microsoft.CodeAnalysis.CSharp` (Roslyn) | 代碼格式化、AST 轉譯、背景記憶體編譯診斷（即時綁定語法檢查） |
-| **測試框架** | `xUnit` + `FluentAssertions` + `Moq` | 針對所有純函式與生成引擎進行邊界測試與防禦性測試 |
+| **測試框架** | `xUnit` + `FluentAssertions` | 針對所有純函式與生成引擎進行邊界測試與防禦性測試 |
+| **CI / CD** | GitHub Actions | 多作業系統矩陣 (Ubuntu, Windows, macOS) 自動化建置與測試 |
 
 ---
 
 ## 3. 專案開發階段與進度追蹤 (Phased Milestones & Tracking)
 
-### 🔹 階段 1：環境基建與核心 AST 模型 (`AFG.Core`)
+### 🔹 階段 1 至 階段 5：基礎建設與第一期功能 (已完成)
+- [x] **階段 1：環境基建與核心 AST 模型 (`AFG.Core`)**
+- [x] **階段 2：程式碼生成引擎與 Roslyn 診斷 (`AFG.Generators`)**
+- [x] **階段 3：視覺化設計畫布與 Adorner 裝飾器系統 (`AFG.Shared`)**
+- [x] **階段 4：屬性與事件檢查器 (`AFG.Shared`)**
+- [x] **階段 5：即時代碼預覽、匯出與端到端整合 (`ProjectExportService`)**
+- [x] **增強項目：相依性注入 (DI)、自訂解析度、同步/非同步命令與 MIT 授權**
+
+---
+
+### 🔹 階段 6：視覺化畫布與互動體驗重大升級 (Canvas & UX Core Overhaul)
 - [x] **階段狀態：已完成**
+- **目標**：解決畫布無法嵌套容器、缺乏復原重做、無法多選/對齊、縮放座標偏移與缺乏快捷鍵之核心 UX 缺陷。
 - **任務清單**：
-  - [x] 1.1 初始化 Git 儲存庫、建立 `.gitignore`、`.gitattributes`、`.editorconfig`
-  - [x] 1.2 建立 .NET 10 多專案方案結構與全域設定 (`Directory.Build.props`)
-  - [x] 1.3 定義 UI AST 中介資料結構 (`AstNode`, `PropertyBinding`, `EventMapping`, `ContainerNode`)
-  - [x] 1.4 實作 AST 操作純函式（節點新增、刪除、移動、階層樹遍歷）
-  - [x] 1.5 實作 AST JSON 序列化與反序列化（支援 `.afg.json` 專案檔讀寫）
+  - [x] 6.1 **巢狀容器遞迴渲染**：重構 `DesignCanvas.cs` 中的 `CreateControlFromNode` 與 `RebuildElements`，當節點為容器（`IsContainer == true` 或 Grid/StackPanel/Canvas）時，遞迴建立子節點控制項並正確加入父容器的 Children 集合。
+  - [x] 6.2 **復原 / 重做 (Undo / Redo) 歷史堆疊**：
+    - 引入基於不可變 `FormDocument` 的 `HistoryManager`（Memento 模式），維護 `UndoStack` 與 `RedoStack`。
+    - 在控制項移動結束、尺寸縮放完成、屬性修改、節點增刪時發布快照。
+    - 支援快捷鍵 `Ctrl + Z`（復原）與 `Ctrl + Y` / `Ctrl + Shift + Z`（重做），並在頂部工具列提供對應按鈕。
+  - [x] 6.3 **多選支援與對齊工具列**：
+    - 將選取狀態升級為多節點支援 (`SelectedNodeIds`)，支援 `Ctrl + 左鍵` 多選與畫布橡皮筋選取框（Rubberband Selection Box）。
+    - 新增對齊與分佈工具列：靠左對齊、水平居中、靠右對齊、靠頂對齊、垂直居中、靠底對齊、水平均勻分佈、垂直均勻分佈。
+  - [x] 6.4 **畫布縮放平移與座標矩陣修正**：
+    - 整合 `ZoomLevel` 與平移（Pan），外層支援 `Ctrl + 滑鼠滾輪` 縮放與 `滑鼠中鍵 / 空白鍵 + 拖曳` 平移。
+    - 修正滑鼠點擊與 8 點手柄縮放計算，套用逆變換矩陣（Inverse Matrix Transform）確保任何縮放比率下零座標偏移。
+  - [x] 6.5 **鍵盤快捷鍵與微調 (Nudge & Hotkeys)**：
+    - 方向鍵微調（上下左右鍵移動 1px；`Shift + 方向鍵` 移動 8px/10px 網格）。
+    - `Delete` / `Backspace` 鍵刪除選取控制項。
+    - `Ctrl + C`（複製）、`Ctrl + V`（貼上）節點與 AST 複製純函式。
+  - [x] 6.6 **畫布邊界與負數座標防禦機制**：防止控制項被拖出負數座標或超出畫布邊界過多。
 - **驗證方式**：
-  - [x] `AFG.Core.Tests` 撰寫單元測試，測試 AST 增刪改查、階層樹循環引用檢查、防禦性 Null 檢查（23/23 項測試 100% 通過）
+  - 撰寫單元測試驗證 `HistoryManager` 堆疊操作、`AstTreeOperations` 批次對齊與多選複製純函式；手動操作畫布驗證巢狀容器渲染、快捷鍵與縮放座標精準度。
 
 ---
 
-### 🔹 階段 2：程式碼生成引擎與 Roslyn 診斷 (`AFG.Generators`)
+### 🔹 階段 7：屬性檢查器、MVVM 綁定機制與視覺化強化 (Inspector & MVVM Enhancement)
 - [x] **階段狀態：已完成**
+- **目標**：解耦寫死的服務注入、支援自訂 ViewModel 資料型別、提供視覺化調色盤。
 - **任務清單**：
-  - [x] 2.1 實作 C# Markup View 生成器（遞迴遍歷 AST 產出 Fluent 鏈式調用程式碼）
-  - [x] 2.2 實作 ViewModel 生成器（產生符合 `CommunityToolkit.Mvvm` 規範之 partial class）
-  - [x] 2.3 整合 Roslyn 程式碼格式化工具 (`CSharpSyntaxTree`, `Formatter`)
-  - [x] 2.4 實作 Roslyn 記憶體編譯診斷服務（驗證產生的 C# 程式碼是否能順利編譯通過）
+  - [x] 7.1 **解耦寫死之 DI 服務注入**：
+    - 移除 ViewModel 與 `App.cs` 中強制的 `IGreetingService` 依賴。
+    - 在 FormDocument 或 Inspector 中提供「相依性注入配置」清單，讓使用者自由勾選是否啟用 DI，並可自訂注入的服務介面名稱（例如 `IOrderService`, `IAuthService`）；預設產出乾淨無參數 ViewModel。
+  - [x] 7.2 **自訂 ViewModel 資料型別**：
+    - 在屬性檢查器的「資料綁定」分頁中，允許使用者手動輸入或下拉選擇自訂 C# 型別（如 `int`, `decimal`, `DateTime?`, `ObservableCollection<T>`, `List<string>` 等），覆寫自動推斷機制。
+  - [x] 7.3 **視覺化調色盤與筆刷設定 (Color Picker)**：
+    - 在外觀屬性中整合視覺化顏色選擇器與十六進制色碼（`#RRGGBB` / `#AARRGGBB`）輸入框，支援 Background 與 Foreground 顏色自訂。
 - **驗證方式**：
-  - [x] `AFG.Generators.Tests`：針對各種表單情境（包含 Grid、StackPanel、雙向綁定、Command 映射）進行產出測試，並由 Roslyn 進行 In-Memory Compilation 驗證無編譯錯誤（9/9 項測試 100% 通過，全方案共 32 項測試通過）
+  - 測試 ViewModel 生成器產出自訂型別與自訂 DI 服務；透過 Roslyn 編譯器驗證自訂型別 ViewModel 之語法正確性。
 
 ---
 
-### 🔹 階段 3：視覺化設計畫布與 Adorner 裝飾器系統 (`AFG.Shared`)
-- [x] **階段狀態：已完成**
+### 🔹 階段 8：程式碼生成引擎現代化與工具箱擴充 (Code Generation & Components)
+- [ ] **階段狀態：待執行**
+- **目標**：統一套件依賴版本、支援強型別 Lambda 綁定模式、擴充不可視與硬體控制項。
 - **任務清單**：
-  - [x] 3.1 實作設計畫布（支援自由畫布 Canvas 與流式佈局容器 Grid / StackPanel / DockPanel）
-  - [x] 3.2 實作控制項工具箱（Toolbox）與拖曳放置（Drag & Drop）機制
-  - [x] 3.3 實作選取裝飾器（Selection Adorner）：8 點縮放、尺寸調整、即時外距/內距調整
-  - [x] 3.4 實作吸附對齊演算法（Snap to Grid、邊界與中心輔助線）
-  - [x] 3.5 實作 Visual Tree Explorer（視覺化節點樹狀導航與拖曳層級調整）
+  - [ ] 8.1 **統一套件版本管理**：
+    - 在全域常數或配置檔中統一管理 Avalonia 與 CommunityToolkit.Mvvm 之版本號，消除專案與匯出模板間的版本衝突。
+  - [ ] 8.2 **C# Markup 強型別 Lambda 綁定支援**：
+    - 擴充 View 生成器，支援切換輸出為強型別 Compiled Binding / Lambda 語法（例如 `.Text(vm => vm.Username)` 或 `.Bind(TextBox.TextProperty, ...)`）。
+  - [ ] 8.3 **擴充工具箱控制項 (不可視元件與 COM 元件)**：
+    - 新增不可視邏輯元件：`DispatcherTimer` (計時器)、`BackgroundWorker` (背景任務)。
+    - 新增現代硬體與通訊元件模型：`BluetoothClient` (藍牙元件)、`SerialPortService` (序列埠通訊)。
 - **驗證方式**：
-  - [x] 執行桌面端 App 與 SnappingEngine 單元測試，驗證控制項定位、縮放、容器嵌套以及對齊輔助線吸附行為（全方案共 39 項測試 100% 通過）
+  - 撰寫單元測試驗證不可視元件之 AST 序列化與 C# 程式碼生成，確保匯出專案可編譯。
 
 ---
 
-### 🔹 階段 4：屬性與事件檢查器 (`AFG.Shared`)
-- [x] **階段狀態：已完成**
+### 🔹 階段 9：多表單導航、可摺疊工作區排版、例外容錯與 CI/CD (Multi-Form, UI Polish & CI/CD)
+- [ ] **階段狀態：待執行**
+- **目標**：支援多表單架構、最佳化工作區佈局（可摺疊面板）、完善例外提示，並建立 GitHub Actions 跨平台 CI/CD。
 - **任務清單**：
-  - [x] 4.1 實作屬性檢查器（Property Inspector），動態反映當前選取節點之外觀、佈局與文字屬性
-  - [x] 4.2 實作 Binding Builder：視覺化配置屬性與 ViewModel 欄位之雙向綁定
-  - [x] 4.3 實作 Event-to-Command Mapping：將 Click / SelectionChanged 等事件映射為 RelayCommand
-  - [x] 4.4 連動 Inspector 與 AST 狀態變更（變更即時反映在畫布與中介樹上）
+  - [ ] 9.1 **多表單 (Multi-Form / Multi-View Navigation) 支援**：
+    - 專案模型升級為支援多個表單（`ObservableCollection<FormDocument>`）。
+    - 支援分頁切換編輯不同 View，並在匯出專案時自動建立跨 View 導航服務（NavigationService）。
+  - [ ] 9.2 **畫面排版重構（可摺疊/可隱藏面板）**：
+    - 將工具箱、元件樹、屬性檢查器、程式碼預覽區域加入展開/摺疊 (Expander/Toggle) 按鈕，最大化畫布可用空間。
+    - 將全域配置與輔助設定統一收納至頂部工具列或側邊抽屜。
+  - [ ] 9.3 **例外與容錯處理 (Defensive & Friendly Errors)**：
+    - 當使用者載入損毀、不完整或版本不相容的 `.afg.json` 時，彈出友善詳細的錯誤對話框，防止程式崩潰。
+  - [ ] 9.4 **GitHub Actions 跨平台 CI/CD 建置**：
+    - 建立 `.github/workflows/ci.yml`，針對 `ubuntu-latest`, `windows-latest`, `macos-latest` 執行 `dotnet build` 與 `dotnet test`。
 - **驗證方式**：
-  - [x] 點選畫布上的按鈕或文字框，修改屬性並驗證畫布即時更新，且對應 AST 節點同步更新（單元測試通過）
+  - 匯出多表單方案並以 `dotnet build` 驗證導航機制；測試損毀 JSON 檔案之防禦攔截；驗證 GitHub Actions 本地語法檢查。
 
 ---
 
-### 🔹 階段 5：即時代碼預覽、匯出與端到端整合
-- [x] **階段狀態：已完成**
-- **任務清單**：
-  - [x] 5.1 實作即時代碼預覽分頁（支援 C# 語法高亮與格式化）
-  - [x] 5.2 實作單檔複製與整包 Avalonia 模組專案導出功能（包含 View.cs, ViewModel.cs, 專案檔或組件註冊）
-  - [x] 5.3 整合即時錯誤警示：若綁定屬性名稱不合法，在 Inspector 與預覽區給予即時標記
-- **驗證方式**：
-  - [x] 設計一個完整的 CRUD 表單（包含 DataGrid, TextBox, DatePicker, Button），由 ProjectExportService 驗證完整專案導出並由 Roslyn 檢查 0 語法錯誤（全方案共 42 項測試 100% 通過）
+## 4. 驗證標準與品質指標
 
----
-
-## 4. Git 環境與協同規範
-
-1. **版本控制初始化**：
-   - 預設分支：`main`
-   - 換行與編碼控管：透過 `.gitattributes` 強制所有 `*.cs`, `*.axaml`, `*.props` 檔案統一使用 UTF-8 (含 BOM) 與 LF/CRLF 規範。
-2. **Commit 訊息規範 (Conventional Commits)**：
-   - `feat: <description>`：新增功能（如 AST 節點、C# Markup 生成器）
-   - `fix: <description>`：修復 Bug
-   - `test: <description>`：新增或修改單元測試
-   - `refactor: <description>`：架構重構（無行為變更）
-   - `chore: <description>`：環境或依賴套件配置
-
----
-
-## 5. 設計確認與待決策項目 (Decisions Log)
-
-- [ ] **Q1. C# Markup 語法擴充偏好**：
-  - 選項 A: 採用社群標準 `Avalonia.Markup.Declarative` 套件
-  - 選項 B: 內建輕量化 Fluent Extension 生成模板（零外部擴充依賴）
-- [ ] **Q2. 目標執行平台**：先以 Desktop (Windows / macOS / Linux) 為核心設計器宿主
-- [ ] **Q3. 專案儲存格式**：支援導出 C# 程式碼與儲存/載入 `.afg.json` 中介檔
+1. **單元測試覆蓋率**：所有純函式、AST 操作、歷史堆疊、生成器與序列化演算法 100% 覆蓋。
+2. **零警告與零錯誤**：`dotnet build` 與 `dotnet test` 保持 0 Error, 0 Warning。
+3. **實體跨平台編譯保障**：匯出之專案在 Windows / macOS / Linux 平台均可一鍵執行 `dotnet run` 成功啟動。

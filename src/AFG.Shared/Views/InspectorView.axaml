@@ -82,6 +82,17 @@
                                 <CheckBox Grid.Column="1" Content="可見 (IsVisible)" IsChecked="{Binding IsVisible, Mode=TwoWay}" />
                             </Grid>
 
+                            <Grid ColumnDefinitions="*, *" Margin="0,2">
+                                <StackPanel Grid.Column="0" Margin="0,0,4,0" Spacing="4">
+                                    <TextBlock Text="背景色 (Background)" FontSize="11" Foreground="#A1A1AA" />
+                                    <TextBox Text="{Binding Background, Mode=TwoWay}" PlaceholderText="#RRGGBB 或顏色名" />
+                                </StackPanel>
+                                <StackPanel Grid.Column="1" Margin="4,0,0,0" Spacing="4">
+                                    <TextBlock Text="前景色 (Foreground)" FontSize="11" Foreground="#A1A1AA" />
+                                    <TextBox Text="{Binding Foreground, Mode=TwoWay}" PlaceholderText="#RRGGBB 或顏色名" />
+                                </StackPanel>
+                            </Grid>
+
                             <StackPanel Spacing="4">
                                 <TextBlock Text="{Binding Opacity, StringFormat='不透明度: {0:P0}'}" FontSize="11" Foreground="#A1A1AA" />
                                 <Slider Minimum="0" Maximum="1" Value="{Binding Opacity, Mode=TwoWay}" />
@@ -192,6 +203,13 @@
                                                 <StackPanel Spacing="2">
                                                     <TextBlock Text="ViewModel 屬性名稱" FontSize="10" Foreground="#A1A1AA" />
                                                     <TextBox Text="{Binding ViewModelProperty, Mode=TwoWay}" />
+                                                </StackPanel>
+
+                                                <StackPanel Spacing="2">
+                                                    <TextBlock Text="資料型別 (C# DataType)" FontSize="10" Foreground="#A1A1AA" />
+                                                    <ComboBox ItemsSource="{Binding CommonDataTypes}"
+                                                              SelectedItem="{Binding CustomDataType, Mode=TwoWay}"
+                                                              HorizontalAlignment="Stretch" />
                                                 </StackPanel>
 
                                                 <StackPanel Spacing="2">
