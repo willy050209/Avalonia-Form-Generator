@@ -26,8 +26,8 @@ public sealed record BindingDefinition(
 /// <summary>
 /// 表示注入至 ViewModel 的服務相依性定義。
 /// </summary>
-/// <param name="InterfaceName">服務介面名稱（例如 IGreetingService, IOrderService）。</param>
-/// <param name="ImplementationName">服務實作類別名稱（例如 GreetingService, OrderService）。</param>
+/// <param name="InterfaceName">服務介面名稱（例如 IOrderService, IUserService）。</param>
+/// <param name="ImplementationName">服務實作類別名稱（例如 OrderService, UserService）。</param>
 /// <param name="Lifetime">生命週期（Singleton / Transient / Scoped）。</param>
 public sealed record ServiceDependencyDefinition(
     string InterfaceName,
