@@ -30,6 +30,9 @@ public sealed partial class CanvasViewModel : ObservableObject
     [ObservableProperty]
     private bool _includeMobileProject = true;
 
+    [ObservableProperty]
+    private bool _includeLicense = true;
+
     public IReadOnlyList<CanvasPreset> AvailablePresets { get; } = CanvasPreset.Presets;
 
     [ObservableProperty]

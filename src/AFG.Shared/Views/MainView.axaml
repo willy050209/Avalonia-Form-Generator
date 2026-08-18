@@ -65,6 +65,11 @@
                               Content="包含行動端 (.Android)"
                               ToolTip.Tip="勾選時將自動生成 .Android 跨平台專案"
                               FontSize="12" />
+
+                    <CheckBox IsChecked="{Binding Canvas.IncludeLicense, Mode=TwoWay}"
+                              Content="包含授權 (LICENSE)"
+                              ToolTip.Tip="勾選時將在匯出專案根目錄自動生成 MIT LICENSE 授權檔案"
+                              FontSize="12" />
                 </StackPanel>
 
                 <!-- 右側代碼生成操作 -->

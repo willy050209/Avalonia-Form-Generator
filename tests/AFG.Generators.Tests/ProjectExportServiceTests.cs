@@ -103,6 +103,21 @@ public sealed class ProjectExportServiceTests
     }
 
     [Fact]
+    public void GenerateFullProject_WhenIncludeLicenseIsFalse_ShouldNotGenerateLicenseFile()
+    {
+        // Arrange
+        var doc = FormDocument.CreateDefault();
+
+        // Act
+        var files = _exportService.GenerateFullProject(doc, new ProjectExportOptions(IncludeLicense: false));
+
+        // Assert
+        files.Should().NotContain(f => f.FileName == "LICENSE");
+        files.Should().Contain(f => f.FileName == ".gitignore");
+        files.Should().Contain(f => f.FileName == ".editorconfig");
+    }
+
+    [Fact]
     public async Task ExportToFolderAsync_ShouldCreateDirectoriesAndWriteFiles()
     {
         // Arrange
