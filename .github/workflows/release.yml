@@ -7,11 +7,40 @@ on:
   workflow_dispatch:
 
 jobs:
-  publish-binaries:
-    name: Publish Standalone Binary (${{ matrix.target }})
+  # 1. 全平台嚴格測試階段 (Windows / Linux / macOS 全部通過方可進入發布流程)
+  run-tests:
+    name: Run Tests (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
     strategy:
-      fail-fast: false
+      fail-fast: true
+      matrix:
+        os: [ ubuntu-latest, windows-latest, macos-latest ]
+
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Setup .NET SDK (net10.0)
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restore Dependencies
+        run: dotnet restore
+
+      - name: Build Solution (Release)
+        run: dotnet build --configuration Release --no-restore
+
+      - name: Run All Unit & Integration Tests
+        run: dotnet test --configuration Release --no-build --verbosity normal
+
+  # 2. 跨平台單一執行檔編譯與打包 (只有在 run-tests 全部成功通過時才會觸發)
+  publish-binaries:
+    name: Publish Standalone Binary (${{ matrix.target }})
+    needs: run-tests
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: true
       matrix:
         include:
           - os: windows-latest
@@ -75,9 +104,10 @@ jobs:
           name: ${{ matrix.output_name }}
           path: ./${{ matrix.output_name }}
 
+  # 3. 建立 GitHub Release 並上傳發布資產 (只有在測試與打包皆為成功時才會觸發)
   create-github-release:
     name: Create GitHub Release
-    needs: publish-binaries
+    needs: [run-tests, publish-binaries]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Source Code
