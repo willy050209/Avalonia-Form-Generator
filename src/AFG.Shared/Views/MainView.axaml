@@ -67,7 +67,7 @@
                     <TextBlock Text="裝置規格:" VerticalAlignment="Center" Foreground="#A1A1AA" FontSize="11" />
                     <ComboBox ItemsSource="{Binding Canvas.AvailablePresets}"
                               SelectedItem="{Binding Canvas.SelectedPreset, Mode=TwoWay}"
-                              Width="180"
+                              Width="200"
                               PlaceholderText="選擇裝置解析度">
                         <ComboBox.ItemTemplate>
                             <DataTemplate x:DataType="models:CanvasPreset">
@@ -76,17 +76,17 @@
                         </ComboBox.ItemTemplate>
                     </ComboBox>
 
-                    <TextBlock Text="寬:" VerticalAlignment="Center" Foreground="#A1A1AA" FontSize="11" />
+                    <TextBlock Text="寬 (px):" VerticalAlignment="Center" Foreground="#A1A1AA" FontSize="11" />
                     <NumericUpDown Value="{Binding Canvas.CanvasWidth, Mode=TwoWay}"
                                    Minimum="200" Maximum="4000"
-                                   Width="88"
+                                   Width="130"
                                    FormatString="0"
                                    ToolTip.Tip="自訂畫布寬度 (像素)" />
 
-                    <TextBlock Text="高:" VerticalAlignment="Center" Foreground="#A1A1AA" FontSize="11" />
+                    <TextBlock Text="高 (px):" VerticalAlignment="Center" Foreground="#A1A1AA" FontSize="11" />
                     <NumericUpDown Value="{Binding Canvas.CanvasHeight, Mode=TwoWay}"
                                    Minimum="200" Maximum="4000"
-                                   Width="88"
+                                   Width="130"
                                    FormatString="0"
                                    ToolTip.Tip="自訂畫布高度 (像素)" />
 
