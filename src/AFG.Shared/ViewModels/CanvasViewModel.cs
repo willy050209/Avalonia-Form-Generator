@@ -37,6 +37,9 @@ public sealed partial class CanvasViewModel : ObservableObject
     [ObservableProperty]
     private bool _includeLicense = true;
 
+    [ObservableProperty]
+    private ToolboxItem? _activeDraggingItem;
+
     public HistoryManager History { get; } = new();
 
     public ObservableCollection<string> SelectedNodeIds { get; } = [];

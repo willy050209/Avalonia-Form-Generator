@@ -59,6 +59,9 @@ public sealed partial class MainViewModel : ObservableObject
         Canvas.SelectionChanged += OnCanvasSelectionChanged;
         VisualTree.SelectionChanged += OnVisualTreeSelectionChanged;
         Inspector.NodeUpdated += OnInspectorNodeUpdated;
+        Toolbox.ItemDoubleClicked += item => Canvas.AddControlFromToolbox(item);
+        Toolbox.ItemDragStarted += item => Canvas.ActiveDraggingItem = item;
+        Toolbox.ItemDragEnded += () => Canvas.ActiveDraggingItem = null;
 
         // 初始化
         VisualTree.RebuildFromDocument(Canvas.Document);

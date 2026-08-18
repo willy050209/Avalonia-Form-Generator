@@ -1,4 +1,4 @@
-// filepath: src/AFG.Shared/Controls/DesignCanvas.cs
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Avalonia;
@@ -8,6 +8,8 @@ using Avalonia.Layout;
 using Avalonia.Media;
 using AFG.Core.Enums;
 using AFG.Core.Models.Ast;
+using AFG.Shared.Models;
+using AFG.Shared.Services;
 using AFG.Shared.ViewModels;
 
 namespace AFG.Shared.Controls;
@@ -264,6 +266,18 @@ public sealed class DesignCanvas : Grid
             return;
         }
 
+        // 0. 若目前處於工具箱拖曳放置狀態，直接在滑鼠釋放點加入控制項
+        if (ViewModel.ActiveDraggingItem is not null)
+        {
+            var dropPos = e.GetPosition(_elementsCanvas);
+            var item = ViewModel.ActiveDraggingItem;
+            ViewModel.ActiveDraggingItem = null;
+            Cursor = Cursor.Default;
+            ViewModel.AddControlFromToolbox(item, dropPos.X, dropPos.Y);
+            e.Handled = true;
+            return;
+        }
+
         var pos = e.GetPosition(this);
         _dragStartPoint = pos;
         var isCtrlPressed = e.KeyModifiers.HasFlag(KeyModifiers.Control);
@@ -317,6 +331,12 @@ public sealed class DesignCanvas : Grid
         base.OnPointerMoved(e);
 
         if (ViewModel is null) return;
+
+        if (ViewModel.ActiveDraggingItem is not null)
+        {
+            Cursor = new Cursor(StandardCursorType.DragCopy);
+            return;
+        }
 
         var currentPos = e.GetPosition(this);
 
@@ -415,6 +435,17 @@ public sealed class DesignCanvas : Grid
     protected override void OnPointerReleased(PointerReleasedEventArgs e)
     {
         base.OnPointerReleased(e);
+
+        if (ViewModel?.ActiveDraggingItem is not null)
+        {
+            var dropPos = e.GetPosition(_elementsCanvas);
+            var item = ViewModel.ActiveDraggingItem;
+            ViewModel.ActiveDraggingItem = null;
+            Cursor = Cursor.Default;
+            ViewModel.AddControlFromToolbox(item, dropPos.X, dropPos.Y);
+            e.Handled = true;
+            return;
+        }
 
         if (_isDragging && ViewModel is not null)
         {

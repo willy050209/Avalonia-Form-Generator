@@ -15,8 +15,9 @@
                  PlaceholderText="搜尋控制項..."
                  Margin="8,8,8,6" />
 
-        <!-- 工具箱清單 -->
+        <!-- 工具箱清單 (支援滑鼠拖曳至畫布) -->
         <ListBox Grid.Row="1"
+                 x:Name="ToolboxListBox"
                  ItemsSource="{Binding FilteredItems}"
                  SelectedItem="{Binding SelectedItem, Mode=TwoWay}"
                  Background="Transparent"
