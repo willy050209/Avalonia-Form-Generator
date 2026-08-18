@@ -171,29 +171,55 @@
                               Background="#27272A"
                               ResizeDirection="Rows" />
 
-                <!-- 底部即時程式碼預覽區 (整合 AvaloniaEdit + TextMate C# 語法高亮) -->
+                <!-- 底部即時程式碼預覽區 -->
                 <Border Grid.Row="2"
                         Height="220"
                         IsVisible="{Binding IsCodePanelVisible}"
-                        Background="#18181B">
-                    <TabControl SelectionChanged="OnTabSelectionChanged">
+                        Background="#18181B"
+                        BorderBrush="#27272A"
+                        BorderThickness="0,1,0,0">
+                    <TabControl>
                         <TabItem Header="View (C# Markup)">
-                            <ae:TextEditor x:Name="ViewCodeEditor"
-                                           IsReadOnly="True"
-                                           ShowLineNumbers="True"
-                                           FontFamily="Consolas, Cascadia Code, Courier New"
-                                           FontSize="12"
-                                           Background="#121214"
-                                           Foreground="#E4E4E7" />
+                            <Grid RowDefinitions="Auto, *">
+                                <StackPanel Grid.Row="0" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,4,8,4">
+                                    <Button Content="複製 View 程式碼"
+                                            Command="{Binding CopyViewCodeCommand}"
+                                            Padding="10,4"
+                                            FontSize="11"
+                                            Background="#27272A"
+                                            Foreground="#E4E4E7" />
+                                </StackPanel>
+                                <TextBox Grid.Row="1"
+                                         Text="{Binding GeneratedViewCode}"
+                                         IsReadOnly="True"
+                                         AcceptsReturn="True"
+                                         FontFamily="Consolas, Cascadia Code, Courier New"
+                                         FontSize="12"
+                                         Background="#121214"
+                                         Foreground="#E4E4E7"
+                                         BorderThickness="0" />
+                            </Grid>
                         </TabItem>
                         <TabItem Header="ViewModel (CommunityToolkit.Mvvm)">
-                            <ae:TextEditor x:Name="VmCodeEditor"
-                                           IsReadOnly="True"
-                                           ShowLineNumbers="True"
-                                           FontFamily="Consolas, Cascadia Code, Courier New"
-                                           FontSize="12"
-                                           Background="#121214"
-                                           Foreground="#E4E4E7" />
+                            <Grid RowDefinitions="Auto, *">
+                                <StackPanel Grid.Row="0" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,4,8,4">
+                                    <Button Content="複製 ViewModel 程式碼"
+                                            Command="{Binding CopyVmCodeCommand}"
+                                            Padding="10,4"
+                                            FontSize="11"
+                                            Background="#27272A"
+                                            Foreground="#E4E4E7" />
+                                </StackPanel>
+                                <TextBox Grid.Row="1"
+                                         Text="{Binding GeneratedVmCode}"
+                                         IsReadOnly="True"
+                                         AcceptsReturn="True"
+                                         FontFamily="Consolas, Cascadia Code, Courier New"
+                                         FontSize="12"
+                                         Background="#121214"
+                                         Foreground="#E4E4E7"
+                                         BorderThickness="0" />
+                            </Grid>
                         </TabItem>
                     </TabControl>
                 </Border>

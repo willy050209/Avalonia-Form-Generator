@@ -187,4 +187,29 @@ public sealed class FormCodeGeneratorTests
         RoslynCompilerService.CheckSyntaxDiagnostics(viewFile.Content).Should().BeEmpty();
         RoslynCompilerService.CheckSyntaxDiagnostics(vmFile.Content).Should().BeEmpty();
     }
+
+    [Fact]
+    public void GenerateAll_ShouldNeverProduceEmptyCode_ForValidDefaultDocument()
+    {
+        // Arrange
+        var doc = FormDocument.CreateDefault();
+
+        // Act
+        var result = _generator.GenerateAll(doc);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        result.Files.Should().HaveCount(2);
+
+        var viewFile = result.Files.FirstOrDefault(f => f.FileType == SourceFileType.View);
+        var vmFile = result.Files.FirstOrDefault(f => f.FileType == SourceFileType.ViewModel);
+
+        viewFile.Should().NotBeNull();
+        viewFile!.Content.Should().NotBeNullOrWhiteSpace();
+        viewFile.Content.Should().Contain("public partial class MainFormView : UserControl");
+
+        vmFile.Should().NotBeNull();
+        vmFile!.Content.Should().NotBeNullOrWhiteSpace();
+        vmFile.Content.Should().Contain("public partial class MainFormViewModel : ObservableObject");
+    }
 }
