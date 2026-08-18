@@ -6,6 +6,9 @@ on:
       - 'v*'
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   # 1. 全平台嚴格測試階段 (Windows / Linux / macOS 全部通過方可進入發布流程)
   run-tests:
@@ -109,6 +112,8 @@ jobs:
     name: Create GitHub Release
     needs: [run-tests, publish-binaries]
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - name: Checkout Source Code
         uses: actions/checkout@v4
