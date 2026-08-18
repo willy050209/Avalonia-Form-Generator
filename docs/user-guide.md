@@ -85,8 +85,8 @@
   - **ViewModel Command 名稱**：指定映射的 ViewModel RelayCommand 方法。
   - **非同步開關**：勾選後將自動在 ViewModel 產出 `async Task ...Async()` 簽章。
 
-### 2.6 即時預覽與跨平台方案匯出 (AvaloniaEdit 語法高亮)
-- **AvaloniaEdit 語法高亮**：底部預覽區已深度整合 **AvaloniaEdit** 與 **TextMate (Dark+ 主題)**，呈現媲美 VS Code / Rider 的 C# 程式碼著色、行號與平滑捲動體驗。
-- **單檔代碼複製**：在底部預覽區點選「複製 View」或「複製 VM」即可將 Roslyn 格式化後的 C# 代碼複製至剪貼簿。
+### 2.6 即時預覽與跨平台方案匯出 (即時反應式預覽與專案匯出)
+- **即時反應式預覽**：底部預覽區直連 AST 與生成引擎，無論畫布新增、刪除、移動控制項或修改資料綁定，皆能**零延遲即時更新** View (C# Markup) 與 ViewModel (CommunityToolkit.Mvvm) 程式碼。
+- **單檔代碼一鍵複製**：在底部預覽區各分頁右上角提供「複製 View 程式碼」與「複製 ViewModel 程式碼」按鈕，點選即可將 Roslyn 格式化後的 C# 代碼複製至剪貼簿並彈出成功通知。
 - **專案檔儲存/開啟**：點選「儲存」輸出 `.afg.json`；若載入損毀檔案，系統會顯示行數與欄位的詳細診斷提示。
 - **一鍵匯出跨平台專案**：點選「匯出整包專案」，系統自動產出 `.slnx` 方案、`.Shared` 核心（含 `INavigationService` 導航與動態 DI 容器）、`.Desktop` 與可選的 `.Android` 宿主專案！
