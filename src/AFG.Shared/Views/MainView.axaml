@@ -55,106 +55,61 @@
             </Menu>
         </Border>
 
-        <!-- 頂部工具列 (ToolBar，支援水平自動捲動防溢出) -->
+        <!-- 頂部工具列 (精簡乾淨：裝置規格、畫布尺寸、吸附與工作區切換) -->
         <Border Grid.Row="1"
                 Background="#202024"
                 BorderBrush="#27272A"
                 BorderThickness="0,0,0,1"
-                Padding="8,6">
-            <ScrollViewer HorizontalScrollBarVisibility="Auto"
-                          VerticalScrollBarVisibility="Disabled">
-                <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                    <!-- 檔案快捷操作 -->
-                    <StackPanel Orientation="Horizontal" Spacing="3">
-                        <Button Command="{Binding NewDocumentCommand}" ToolTip.Tip="建立新表單 (Ctrl+N)" Content="新增" />
-                        <Button Command="{Binding OpenDocumentCommand}" ToolTip.Tip="開啟 AFG 專案檔 (Ctrl+O)" Content="開啟" />
-                        <Button Command="{Binding SaveDocumentCommand}" ToolTip.Tip="儲存 AFG 專案檔 (Ctrl+S)" Content="儲存" />
-                        <Button Command="{Binding ExportFullProjectCommand}" ToolTip.Tip="匯出完整跨平台 Avalonia 方案" Content="匯出專案" />
-                    </StackPanel>
+                Padding="12,6">
+            <Grid ColumnDefinitions="Auto, *, Auto">
+                <!-- 裝置解析度/長寬比與跨平台選項 -->
+                <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                    <TextBlock Text="裝置規格:" VerticalAlignment="Center" Foreground="#A1A1AA" FontSize="11" />
+                    <ComboBox ItemsSource="{Binding Canvas.AvailablePresets}"
+                              SelectedItem="{Binding Canvas.SelectedPreset, Mode=TwoWay}"
+                              Width="180"
+                              PlaceholderText="選擇裝置解析度">
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate x:DataType="models:CanvasPreset">
+                                <TextBlock Text="{Binding}" FontSize="11" />
+                            </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                    </ComboBox>
 
-                    <Separator Classes="vertical" Width="1" Height="20" Background="#3F3F46" Margin="2,0" />
+                    <TextBlock Text="寬:" VerticalAlignment="Center" Foreground="#A1A1AA" FontSize="11" />
+                    <NumericUpDown Value="{Binding Canvas.CanvasWidth, Mode=TwoWay}"
+                                   Minimum="200" Maximum="4000"
+                                   Width="88"
+                                   FormatString="0"
+                                   ToolTip.Tip="自訂畫布寬度 (像素)" />
 
-                    <!-- 歷史與編輯快捷操作 -->
-                    <StackPanel Orientation="Horizontal" Spacing="3">
-                        <Button Command="{Binding UndoCommand}"
-                                IsEnabled="{Binding Canvas.History.CanUndo}"
-                                ToolTip.Tip="復原 (Ctrl + Z)" Content="復原" />
-                        <Button Command="{Binding RedoCommand}"
-                                IsEnabled="{Binding Canvas.History.CanRedo}"
-                                ToolTip.Tip="重做 (Ctrl + Y)" Content="重做" />
-                        <Button Command="{Binding CopyNodesCommand}" ToolTip.Tip="複製選取節點 (Ctrl + C)" Content="複製" />
-                        <Button Command="{Binding PasteNodesCommand}" ToolTip.Tip="貼上節點 (Ctrl + V)" Content="貼上" />
-                        <Button Command="{Binding DeleteSelectedNodeCommand}" ToolTip.Tip="刪除選取的控制項 (Delete)" Content="刪除" />
-                    </StackPanel>
+                    <TextBlock Text="高:" VerticalAlignment="Center" Foreground="#A1A1AA" FontSize="11" />
+                    <NumericUpDown Value="{Binding Canvas.CanvasHeight, Mode=TwoWay}"
+                                   Minimum="200" Maximum="4000"
+                                   Width="88"
+                                   FormatString="0"
+                                   ToolTip.Tip="自訂畫布高度 (像素)" />
 
-                    <Separator Classes="vertical" Width="1" Height="20" Background="#3F3F46" Margin="2,0" />
+                    <CheckBox IsChecked="{Binding Canvas.IncludeMobileProject, Mode=TwoWay}"
+                              Content="行動端 (.Android)"
+                              ToolTip.Tip="勾選時將自動生成 .Android 跨平台專案"
+                              FontSize="11" />
 
-                    <!-- 對齊與吸附工具列 -->
-                    <StackPanel Orientation="Horizontal" Spacing="3">
-                        <Button Command="{Binding AlignLeftCommand}" ToolTip.Tip="靠左對齊" Content="左對齊" />
-                        <Button Command="{Binding AlignCenterCommand}" ToolTip.Tip="水平置中" Content="水平置中" />
-                        <Button Command="{Binding AlignRightCommand}" ToolTip.Tip="靠右對齊" Content="右對齊" />
-                        <Button Command="{Binding AlignTopCommand}" ToolTip.Tip="靠頂對齊" Content="頂對齊" />
-                        <Button Command="{Binding AlignMiddleCommand}" ToolTip.Tip="垂直置中" Content="垂直置中" />
-                        <Button Command="{Binding AlignBottomCommand}" ToolTip.Tip="靠底對齊" Content="底對齊" />
-                        <Button Command="{Binding DistributeHorizontalCommand}" ToolTip.Tip="水平均勻分佈" Content="水平均分" />
-                        <Button Command="{Binding DistributeVerticalCommand}" ToolTip.Tip="垂直均勻分佈" Content="垂直均分" />
-                        <ToggleButton IsChecked="{Binding Canvas.SnapToGrid, Mode=TwoWay}" ToolTip.Tip="開啟/關閉網格吸附" Content="網格吸附" />
-                    </StackPanel>
+                    <CheckBox IsChecked="{Binding Canvas.IncludeLicense, Mode=TwoWay}"
+                              Content="授權 (LICENSE)"
+                              ToolTip.Tip="勾選時將在匯出專案根目錄自動生成 MIT LICENSE 授權檔案"
+                              FontSize="11" />
 
-                    <Separator Classes="vertical" Width="1" Height="20" Background="#3F3F46" Margin="2,0" />
-
-                    <!-- 裝置解析度/長寬比與跨平台選項 -->
-                    <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
-                        <TextBlock Text="解析度:" VerticalAlignment="Center" Foreground="#A1A1AA" FontSize="11" />
-                        <ComboBox ItemsSource="{Binding Canvas.AvailablePresets}"
-                                  SelectedItem="{Binding Canvas.SelectedPreset, Mode=TwoWay}"
-                                  Width="180"
-                                  PlaceholderText="選擇裝置解析度">
-                            <ComboBox.ItemTemplate>
-                                <DataTemplate x:DataType="models:CanvasPreset">
-                                    <TextBlock Text="{Binding}" FontSize="11" />
-                                </DataTemplate>
-                            </ComboBox.ItemTemplate>
-                        </ComboBox>
-
-                        <TextBlock Text="寬:" VerticalAlignment="Center" Foreground="#A1A1AA" FontSize="11" />
-                        <NumericUpDown Value="{Binding Canvas.CanvasWidth, Mode=TwoWay}"
-                                       Minimum="200" Maximum="4000"
-                                       Width="85"
-                                       FormatString="0"
-                                       ToolTip.Tip="自訂畫布寬度 (像素)" />
-
-                        <TextBlock Text="高:" VerticalAlignment="Center" Foreground="#A1A1AA" FontSize="11" />
-                        <NumericUpDown Value="{Binding Canvas.CanvasHeight, Mode=TwoWay}"
-                                       Minimum="200" Maximum="4000"
-                                       Width="85"
-                                       FormatString="0"
-                                       ToolTip.Tip="自訂畫布高度 (像素)" />
-
-                        <CheckBox IsChecked="{Binding Canvas.IncludeMobileProject, Mode=TwoWay}"
-                                  Content="包含 Android"
-                                  ToolTip.Tip="勾選時將自動生成 .Android 跨平台專案"
-                                  FontSize="11" />
-
-                        <CheckBox IsChecked="{Binding Canvas.IncludeLicense, Mode=TwoWay}"
-                                  Content="包含 LICENSE"
-                                  ToolTip.Tip="勾選時將在匯出專案根目錄自動生成 MIT LICENSE 授權檔案"
-                                  FontSize="11" />
-                    </StackPanel>
-
-                    <Separator Classes="vertical" Width="1" Height="20" Background="#3F3F46" Margin="2,0" />
-
-                    <!-- 面板摺疊與代碼操作 -->
-                    <StackPanel Orientation="Horizontal" Spacing="4">
-                        <ToggleButton IsChecked="{Binding IsLeftPanelVisible, Mode=TwoWay}" ToolTip.Tip="顯示/隱藏左側工具箱與元件樹" Content="工具箱" />
-                        <ToggleButton IsChecked="{Binding IsCodePanelVisible, Mode=TwoWay}" ToolTip.Tip="顯示/隱藏底部程式碼預覽" Content="程式碼" />
-                        <ToggleButton IsChecked="{Binding IsRightPanelVisible, Mode=TwoWay}" ToolTip.Tip="顯示/隱藏右側屬性檢查器" Content="屬性欄" />
-                        <Button Command="{Binding CopyViewCodeCommand}" ToolTip.Tip="複製 View C# Markup" Content="複製 View" />
-                        <Button Command="{Binding CopyVmCodeCommand}" ToolTip.Tip="複製 ViewModel C#" Content="複製 VM" />
-                    </StackPanel>
+                    <ToggleButton IsChecked="{Binding Canvas.SnapToGrid, Mode=TwoWay}" ToolTip.Tip="開啟/關閉網格吸附" Content="網格吸附" />
                 </StackPanel>
-            </ScrollViewer>
+
+                <!-- 面板摺疊開關 -->
+                <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                    <ToggleButton IsChecked="{Binding IsLeftPanelVisible, Mode=TwoWay}" ToolTip.Tip="顯示/隱藏左側工具箱與元件樹" Content="工具箱" />
+                    <ToggleButton IsChecked="{Binding IsCodePanelVisible, Mode=TwoWay}" ToolTip.Tip="顯示/隱藏底部程式碼預覽" Content="程式碼" />
+                    <ToggleButton IsChecked="{Binding IsRightPanelVisible, Mode=TwoWay}" ToolTip.Tip="顯示/隱藏右側屬性檢查器" Content="屬性欄" />
+                </StackPanel>
+            </Grid>
         </Border>
 
         <!-- 中間主工作區（支援左側、底部、右側面板摺疊展開） -->
