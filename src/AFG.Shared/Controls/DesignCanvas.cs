@@ -6,6 +6,7 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Layout;
 using Avalonia.Media;
+using Avalonia.VisualTree;
 using AFG.Core.Enums;
 using AFG.Core.Models.Ast;
 using AFG.Shared.Models;
@@ -389,9 +390,9 @@ public sealed class DesignCanvas : Grid
             var h = Math.Abs(currentPos.Y - _dragStartPoint.Y);
             _rubberbandRect = new Rect(x, y, w, h);
 
-            // 框選命中測試
+            // 框選命中測試（支援容器內部所有子控制項）
             var selectedIds = new List<string>();
-            foreach (var node in ViewModel.Document.RootNode.Children)
+            foreach (var node in AstTreeOperations.Flatten(ViewModel.Document.RootNode).Where(n => n.Id != ViewModel.Document.RootNode.Id))
             {
                 var bounds = GetNodeBounds(node);
                 if (_rubberbandRect.Intersects(bounds))
@@ -595,44 +596,78 @@ public sealed class DesignCanvas : Grid
             return null;
         }
 
-        return HitTestNodeRecursive(ViewModel.Document.RootNode, pos);
-    }
-
-    private static AstNode? HitTestNodeRecursive(AstNode parent, Point pos, double offsetX = 0, double offsetY = 0)
-    {
-        for (var i = parent.Children.Count - 1; i >= 0; i--)
+        var hitControl = FindHitControl(_elementsCanvas, pos);
+        if (hitControl?.Tag is string nodeId)
         {
-            var child = parent.Children[i];
-            var childX = offsetX + (child.CanvasLeft ?? 0);
-            var childY = offsetY + (child.CanvasTop ?? 0);
-            var childW = child.Width ?? 120;
-            var childH = child.Height ?? 35;
-
-            var bounds = new Rect(childX, childY, childW, childH);
-            if (bounds.Contains(pos))
-            {
-                if (child.Children.Count > 0)
-                {
-                    var deeper = HitTestNodeRecursive(child, pos, childX, childY);
-                    if (deeper is not null)
-                    {
-                        return deeper;
-                    }
-                }
-                return child;
-            }
+            return AstTreeOperations.FindNodeById(ViewModel.Document.RootNode, nodeId);
         }
 
         return null;
     }
 
-    internal static Rect GetNodeBounds(AstNode node)
+    private Control? FindHitControl(Visual parent, Point canvasPos)
     {
+        Control? deepestHit = null;
+
+        foreach (var child in parent.GetVisualChildren())
+        {
+            if (child is Control ctrl && ctrl.IsVisible)
+            {
+                var pt = ctrl.TranslatePoint(new Point(0, 0), this);
+                if (pt.HasValue)
+                {
+                    var rect = new Rect(pt.Value.X, pt.Value.Y, ctrl.Bounds.Width, ctrl.Bounds.Height);
+                    if (rect.Contains(canvasPos))
+                    {
+                        var deeper = FindHitControl(ctrl, canvasPos);
+                        deepestHit = deeper ?? (ctrl.Tag is not null ? ctrl : deepestHit);
+                    }
+                }
+            }
+        }
+
+        return deepestHit;
+    }
+
+    internal Rect GetNodeBounds(AstNode node)
+    {
+        var control = FindControlByNodeId(_elementsCanvas, node.Id);
+        if (control is not null && control.IsVisible)
+        {
+            var relativePoint = control.TranslatePoint(new Point(0, 0), this);
+            if (relativePoint.HasValue && control.Bounds.Width > 0 && control.Bounds.Height > 0)
+            {
+                return new Rect(relativePoint.Value.X, relativePoint.Value.Y, control.Bounds.Width, control.Bounds.Height);
+            }
+        }
+
         var x = node.CanvasLeft ?? 0;
         var y = node.CanvasTop ?? 0;
         var w = node.Width ?? 120;
         var h = node.Height ?? 35;
         return new Rect(x, y, w, h);
+    }
+
+    private static Control? FindControlByNodeId(Visual parent, string nodeId)
+    {
+        if (parent is Control ctrl && Equals(ctrl.Tag, nodeId))
+        {
+            return ctrl;
+        }
+
+        foreach (var child in parent.GetVisualChildren())
+        {
+            if (child is Visual visualChild)
+            {
+                var found = FindControlByNodeId(visualChild, nodeId);
+                if (found is not null)
+                {
+                    return found;
+                }
+            }
+        }
+
+        return null;
     }
 
     private static ResizeHandleType HitTestResizeHandle(Rect bounds, Point pos)
@@ -720,7 +755,7 @@ public sealed class DesignCanvas : Grid
                     var node = AstTreeOperations.FindNodeById(vm.Document.RootNode, id);
                     if (node is not null && node.Id != vm.Document.RootNode.Id && node != vm.SelectedNode)
                     {
-                        context.DrawRectangle(null, multiPen, GetNodeBounds(node));
+                        context.DrawRectangle(null, multiPen, _parent.GetNodeBounds(node));
                     }
                 }
             }
@@ -728,7 +763,7 @@ public sealed class DesignCanvas : Grid
             // 5. 繪製主選取裝飾器 (Primary Selection 8-Handle Adorner)
             if (vm?.SelectedNode is not null)
             {
-                var bounds = GetNodeBounds(vm.SelectedNode);
+                var bounds = _parent.GetNodeBounds(vm.SelectedNode);
                 var adornerPen = new Pen(new SolidColorBrush(Color.FromRgb(14, 165, 233)), 1.5);
                 var handleFill = new SolidColorBrush(Color.FromRgb(255, 255, 255));
                 var handlePen = new Pen(new SolidColorBrush(Color.FromRgb(14, 165, 233)), 1.5);
