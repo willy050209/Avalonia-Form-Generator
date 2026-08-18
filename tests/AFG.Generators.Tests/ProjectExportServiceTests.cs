@@ -52,6 +52,7 @@ public sealed class ProjectExportServiceTests
         slnx.Content.Should().Contain("<Project Path=\"src/OrderFormApp.Desktop/OrderFormApp.Desktop.csproj\" />");
         slnx.Content.Should().Contain("<Project Path=\"src/OrderFormApp.Android/OrderFormApp.Android.csproj\" />");
 
+        files.Should().Contain(f => f.FileName == "LICENSE");
         files.Should().Contain(f => f.FileName == ".gitignore");
         files.Should().Contain(f => f.FileName == ".editorconfig");
 
