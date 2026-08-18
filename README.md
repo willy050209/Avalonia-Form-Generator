@@ -25,12 +25,40 @@ graph LR
 
 ---
 
+## 支援控制項與版面配置清單 (Supported Controls & Containers)
+
+| 分類 | 支援項目 | 說明 |
+| :--- | :--- | :--- |
+| **基礎控制項** | `Button`, `TextBox`, `TextBlock`, `CheckBox`, `RadioButton`, `ComboBox`, `DatePicker`, `Slider`, `ProgressBar` | 支援完整幾何、外觀、雙向/單向資料綁定與命令事件轉換 |
+| **版面配置容器** | `Canvas`, `StackPanel`, `Grid`, `Border`, `DockPanel`, `WrapPanel`, `ScrollViewer` | 支援巢狀拖曳放入、自動流式排版、列/欄定義與視覺樹精準選取 |
+| **非視覺 / 硬體元件** | `DispatcherTimer`, `BackgroundWorker`, `BluetoothClient`, `SerialPortService` | 自動註冊為 Singleton / Transient DI 服務並提供專屬識別標籤 |
+
+---
+
+## 全域快捷鍵一覽 (Global Shortcuts)
+
+| 快捷鍵 | 功能 | 說明 |
+| :--- | :--- | :--- |
+| `Ctrl + Z` | 復原 (Undo) | 一步復原完整拖曳位移、縮放、屬性修改或節點增刪 |
+| `Ctrl + Y` / `Ctrl + Shift + Z` | 重做 (Redo) | 重做上一步復原的操作 |
+| `Ctrl + C` | 複製節點 (Copy) | 複製目前選取的一個或多個節點 |
+| `Ctrl + V` | 貼上節點 (Paste) | 貼上複製的節點並自動位移偏移量 |
+| `Delete` / `Backspace` | 刪除節點 (Delete) | 刪除選取之節點 |
+| `Ctrl + S` | 儲存專案 | 將目前設計儲存為 `.afg.json` 專案檔 |
+| `Ctrl + O` | 開啟專案 | 開啟現有的 `.afg.json` 專案檔 |
+| `Ctrl + N` | 新增表單 | 建立空白表單畫布 |
+| `Ctrl + Shift + E` | 匯出完整方案 | 匯出包含 Visual Studio `.slnx` 的多專案方案 |
+| `方向鍵 (↑ ↓ ← →)` | 微調位移 (Nudge) | 以像素或網格為單位微調選取節點位置 |
+
+---
+
 ## 核心特色 (Key Features)
 
 1. **視覺化設計畫布 (Design Canvas & Adorner System)**
-   - **自由畫布與容器模式**：支援 Canvas 絕對座標排版與 Grid / StackPanel 流式佈局。
+   - **自由畫布與容器模式**：支援 Canvas 絕對座標排版與 Grid / StackPanel / Border / DockPanel 等流式佈局。
    - **裝置解析度與長寬比預設 / 自訂**：支援主流手機長寬比（9:19.5、9:20、9:16）、平板（3:4、16:10）、桌面（1080p、720p）與**任意自訂寬高數值微調**。
-   - **8 點縮放控制裝飾器**：支援節點角落與四邊即時拉伸縮放、整體拖曳位移。
+   - **8 點縮放控制裝飾器**：基於 Avalonia 視覺樹 `TranslatePoint` 動態對齊，無論在 Canvas 或巢狀容器內均 100% 精準貼合。
+   - **智慧拖曳事務 (Drag Transaction)**：滑鼠拖曳移動期間不污染歷史堆疊，單次拖曳僅推入一次快照，`Ctrl+Z` 一步到位。
    - **智慧網格與邊界吸附 (`SnappingEngine`)**：提供 Snap to Grid 與節點間左/中/右、頂/中/底中心線即時對齊吸附。
    - **DOM 元件樹 (`VisualTreeExplorer`)**：階層式檢視目前畫布所有節點，即時連動選取狀態。
 
@@ -110,7 +138,7 @@ dotnet build
 ```bash
 dotnet test
 ```
-> 目前包含 **61 / 61** 項單元與整合編譯測試，100% 全數通過，0 警告，0 錯誤。
+> 目前包含 **62 / 62** 項單元與整合編譯測試，100% 全數通過，0 警告，0 錯誤。
 
 ### 3. 啟動桌面設計器 (Run App)
 ```bash

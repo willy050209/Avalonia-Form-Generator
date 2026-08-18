@@ -53,6 +53,7 @@ public sealed class DesignCanvas : Grid
     private Point _dragStartPoint;
     private Rect _initialNodeBounds;
     private bool _isDragging;
+    private bool _isDragTransacted;
     private bool _isRubberbandActive;
     private Rect _rubberbandRect;
 
@@ -334,6 +335,7 @@ public sealed class DesignCanvas : Grid
                 _activeHandle = handle;
                 _initialNodeBounds = selectedBounds;
                 _isDragging = true;
+                _isDragTransacted = false;
                 e.Pointer.Capture(this);
                 e.Handled = true;
                 return;
@@ -348,6 +350,7 @@ public sealed class DesignCanvas : Grid
             _activeHandle = ResizeHandleType.Move;
             _initialNodeBounds = GetNodeBounds(hitNode);
             _isDragging = true;
+            _isDragTransacted = false;
             _isRubberbandActive = false;
             e.Pointer.Capture(this);
         }
@@ -359,6 +362,7 @@ public sealed class DesignCanvas : Grid
             }
             _activeHandle = ResizeHandleType.None;
             _isDragging = false;
+            _isDragTransacted = false;
             _isRubberbandActive = true;
             _rubberbandRect = new Rect(pos, new Size(0, 0));
             e.Pointer.Capture(this);
@@ -413,6 +417,13 @@ public sealed class DesignCanvas : Grid
 
         var deltaX = currentPos.X - _dragStartPoint.X;
         var deltaY = currentPos.Y - _dragStartPoint.Y;
+
+        // 拖曳事務（Drag Transaction）：位移超過閾值時推入一次起始狀態至歷史記錄
+        if (!_isDragTransacted && (Math.Abs(deltaX) > 1.0 || Math.Abs(deltaY) > 1.0))
+        {
+            ViewModel.PushHistory();
+            _isDragTransacted = true;
+        }
 
         var selectedId = ViewModel.SelectedNode.Id;
 
@@ -489,12 +500,8 @@ public sealed class DesignCanvas : Grid
             return;
         }
 
-        if (_isDragging && ViewModel is not null)
-        {
-            ViewModel.PushHistory();
-        }
-
         _isDragging = false;
+        _isDragTransacted = false;
         _isRubberbandActive = false;
         _activeHandle = ResizeHandleType.None;
         e.Pointer.Capture(null);

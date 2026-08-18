@@ -10,6 +10,20 @@
              x:Class="AFG.Shared.Views.MainView"
              x:DataType="vm:MainViewModel">
 
+    <UserControl.KeyBindings>
+        <KeyBinding Gesture="Ctrl+Z" Command="{Binding UndoCommand}" />
+        <KeyBinding Gesture="Ctrl+Y" Command="{Binding RedoCommand}" />
+        <KeyBinding Gesture="Ctrl+Shift+Z" Command="{Binding RedoCommand}" />
+        <KeyBinding Gesture="Delete" Command="{Binding DeleteSelectedNodeCommand}" />
+        <KeyBinding Gesture="Back" Command="{Binding DeleteSelectedNodeCommand}" />
+        <KeyBinding Gesture="Ctrl+C" Command="{Binding CopyNodesCommand}" />
+        <KeyBinding Gesture="Ctrl+V" Command="{Binding PasteNodesCommand}" />
+        <KeyBinding Gesture="Ctrl+S" Command="{Binding SaveDocumentCommand}" />
+        <KeyBinding Gesture="Ctrl+N" Command="{Binding NewDocumentCommand}" />
+        <KeyBinding Gesture="Ctrl+O" Command="{Binding OpenDocumentCommand}" />
+        <KeyBinding Gesture="Ctrl+Shift+E" Command="{Binding ExportFullProjectCommand}" />
+    </UserControl.KeyBindings>
+
     <Grid RowDefinitions="Auto, Auto, *, Auto">
         <!-- 頂部選單列 (Menu Bar) -->
         <Border Grid.Row="0"
@@ -22,7 +36,7 @@
                     <MenuItem Header="開啟專案..." Command="{Binding OpenDocumentCommand}" InputGesture="Ctrl+O" />
                     <MenuItem Header="儲存專案..." Command="{Binding SaveDocumentCommand}" InputGesture="Ctrl+S" />
                     <Separator />
-                    <MenuItem Header="匯出完整跨平台專案..." Command="{Binding ExportFullProjectCommand}" />
+                    <MenuItem Header="匯出完整跨平台專案..." Command="{Binding ExportFullProjectCommand}" InputGesture="Ctrl+Shift+E" />
                 </MenuItem>
                 <MenuItem Header="編輯(_E)">
                     <MenuItem Header="復原" Command="{Binding UndoCommand}" IsEnabled="{Binding Canvas.History.CanUndo}" InputGesture="Ctrl+Z" />

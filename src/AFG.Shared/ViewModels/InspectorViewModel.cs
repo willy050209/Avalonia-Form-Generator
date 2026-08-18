@@ -246,39 +246,50 @@ public sealed partial class InspectorViewModel : ObservableObject
             return;
         }
 
-        var updatedNode = _currentNode with
+        try
         {
-            Name = NodeName.Trim(),
-            Text = string.IsNullOrEmpty(Text) ? null : Text,
-            Content = string.IsNullOrEmpty(Content) ? null : Content,
-            Header = string.IsNullOrEmpty(Header) ? null : Header,
-            Watermark = string.IsNullOrEmpty(Watermark) ? null : Watermark,
-            Width = Width,
-            Height = Height,
-            CanvasLeft = CanvasLeft,
-            CanvasTop = CanvasTop,
-            GridRow = GridRow,
-            GridColumn = GridColumn,
-            GridRowSpan = Math.Max(1, GridRowSpan),
-            GridColumnSpan = Math.Max(1, GridColumnSpan),
-            Margin = new ThicknessModel(MarginLeft, MarginTop, MarginRight, MarginBottom),
-            HorizontalAlignment = HorizontalAlignment,
-            VerticalAlignment = VerticalAlignment,
-            Opacity = Math.Clamp(Opacity, 0.0, 1.0),
-            IsEnabled = IsEnabled,
-            IsVisible = IsVisible,
-            FontSize = FontSize,
-            Background = string.IsNullOrWhiteSpace(Background) ? null : Background.Trim(),
-            Foreground = string.IsNullOrWhiteSpace(Foreground) ? null : Foreground.Trim(),
-            IsChecked = IsChecked,
-            Value = Value,
-            Bindings = Bindings.Select(b => b.ToDefinition()).ToImmutableList(),
-            Events = Events.Select(e => e.ToDefinition()).ToImmutableList()
-        };
+            var updatedNode = _currentNode with
+            {
+                Name = NodeName?.Trim() ?? string.Empty,
+                Text = string.IsNullOrEmpty(Text) ? null : Text,
+                Content = string.IsNullOrEmpty(Content) ? null : Content,
+                Header = string.IsNullOrEmpty(Header) ? null : Header,
+                Watermark = string.IsNullOrEmpty(Watermark) ? null : Watermark,
+                Width = Width.HasValue ? Math.Max(0, Width.Value) : null,
+                Height = Height.HasValue ? Math.Max(0, Height.Value) : null,
+                CanvasLeft = CanvasLeft,
+                CanvasTop = CanvasTop,
+                GridRow = Math.Max(0, GridRow),
+                GridColumn = Math.Max(0, GridColumn),
+                GridRowSpan = Math.Max(1, GridRowSpan),
+                GridColumnSpan = Math.Max(1, GridColumnSpan),
+                Margin = new ThicknessModel(
+                    Math.Max(0, MarginLeft),
+                    Math.Max(0, MarginTop),
+                    Math.Max(0, MarginRight),
+                    Math.Max(0, MarginBottom)),
+                HorizontalAlignment = HorizontalAlignment,
+                VerticalAlignment = VerticalAlignment,
+                Opacity = Math.Clamp(Opacity, 0.0, 1.0),
+                IsEnabled = IsEnabled,
+                IsVisible = IsVisible,
+                FontSize = FontSize.HasValue ? Math.Clamp(FontSize.Value, 1.0, 200.0) : null,
+                Background = string.IsNullOrWhiteSpace(Background) ? null : Background.Trim(),
+                Foreground = string.IsNullOrWhiteSpace(Foreground) ? null : Foreground.Trim(),
+                IsChecked = IsChecked,
+                Value = Value,
+                Bindings = Bindings.Select(b => b.ToDefinition()).ToImmutableList(),
+                Events = Events.Select(e => e.ToDefinition()).ToImmutableList()
+            };
 
-        _currentNode = updatedNode;
-        ValidateCurrentNode();
-        NodeUpdated?.Invoke(updatedNode);
+            _currentNode = updatedNode;
+            ValidateCurrentNode();
+            NodeUpdated?.Invoke(updatedNode);
+        }
+        catch
+        {
+            // 防護任何異常輸入與格式轉換錯誤，保持 UI 穩定
+        }
     }
 
     private void ValidateCurrentNode()
