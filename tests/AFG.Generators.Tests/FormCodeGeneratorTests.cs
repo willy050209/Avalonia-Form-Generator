@@ -212,4 +212,60 @@ public sealed class FormCodeGeneratorTests
         vmFile!.Content.Should().NotBeNullOrWhiteSpace();
         vmFile.Content.Should().Contain("public partial class MainFormViewModel : ObservableObject");
     }
+
+    [Fact]
+    public void GenerateAll_ShouldProduceMultiLineIndentedFluentCode_NotSingleLine()
+    {
+        // Arrange
+        var doc = new FormDocument
+        {
+            ViewClassName = "LayoutFormView",
+            ViewModelClassName = "LayoutFormViewModel",
+            RootNode = new AstNode
+            {
+                Id = "root",
+                Type = ControlType.Canvas,
+                Children = [
+                    new AstNode
+                    {
+                        Id = "btn",
+                        Type = ControlType.Button,
+                        Width = 120,
+                        Height = 35,
+                        CanvasLeft = 50,
+                        CanvasTop = 60,
+                        Content = "Click Me"
+                    },
+                    new AstNode
+                    {
+                        Id = "tb",
+                        Type = ControlType.TextBox,
+                        Width = 180,
+                        Height = 32,
+                        CanvasLeft = 50,
+                        CanvasTop = 110,
+                        Watermark = "Enter name"
+                    }
+                ]
+            }
+        };
+
+        // Act
+        var result = _generator.GenerateAll(doc);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        var viewFile = result.Files.First(f => f.FileType == SourceFileType.View);
+
+        // 驗證代碼包含多行縮排的鏈式方法，絕非壓扁在同一行
+        viewFile.Content.Should().Contain(".Width(120)");
+        viewFile.Content.Should().Contain(".Height(35)");
+        viewFile.Content.Should().Contain(".CanvasLeft(50)");
+        viewFile.Content.Should().Contain(".CanvasTop(60)");
+
+        // 驗證 Children 內部包含換行與子控制項
+        (viewFile.Content.Contains(".Children(\r\n") || viewFile.Content.Contains(".Children(\n")).Should().BeTrue();
+
+        RoslynCompilerService.CheckSyntaxDiagnostics(viewFile.Content).Should().BeEmpty();
+    }
 }

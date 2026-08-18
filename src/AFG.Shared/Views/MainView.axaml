@@ -6,7 +6,6 @@
              xmlns:views="using:AFG.Shared.Views"
              xmlns:controls="using:AFG.Shared.Controls"
              xmlns:models="using:AFG.Shared.Models"
-             xmlns:ae="using:AvaloniaEdit"
              mc:Ignorable="d" d:DesignWidth="1280" d:DesignHeight="800"
              x:Class="AFG.Shared.Views.MainView"
              x:DataType="vm:MainViewModel">
@@ -146,7 +145,7 @@
                           ResizeDirection="Columns" />
 
             <!-- 中央區塊：設計畫布與即時程式碼預覽 -->
-            <Grid Grid.Column="2" RowDefinitions="*, Auto, Auto">
+            <Grid Grid.Column="2" x:Name="CenterGrid" RowDefinitions="*, Auto, Auto">
                 <!-- 視覺畫布區 (ScrollViewer) -->
                 <ScrollViewer Grid.Row="0"
                               HorizontalScrollBarVisibility="Auto"
@@ -173,7 +172,7 @@
 
                 <!-- 底部即時程式碼預覽區 -->
                 <Border Grid.Row="2"
-                        Height="220"
+                        Height="240"
                         IsVisible="{Binding IsCodePanelVisible}"
                         Background="#18181B"
                         BorderBrush="#27272A"
@@ -189,15 +188,17 @@
                                             Background="#27272A"
                                             Foreground="#E4E4E7" />
                                 </StackPanel>
-                                <TextBox Grid.Row="1"
-                                         Text="{Binding GeneratedViewCode}"
-                                         IsReadOnly="True"
-                                         AcceptsReturn="True"
-                                         FontFamily="Consolas, Cascadia Code, Courier New"
-                                         FontSize="12"
-                                         Background="#121214"
-                                         Foreground="#E4E4E7"
-                                         BorderThickness="0" />
+                                <ScrollViewer Grid.Row="1"
+                                              HorizontalScrollBarVisibility="Auto"
+                                              VerticalScrollBarVisibility="Auto"
+                                              Background="#121214"
+                                              Padding="12,8">
+                                    <SelectableTextBlock x:Name="ViewCodeTextBlock"
+                                                         FontFamily="Consolas, Cascadia Code, Courier New"
+                                                         FontSize="12"
+                                                         LineHeight="20"
+                                                         Foreground="#D4D4D4" />
+                                </ScrollViewer>
                             </Grid>
                         </TabItem>
                         <TabItem Header="ViewModel (CommunityToolkit.Mvvm)">
@@ -210,15 +211,17 @@
                                             Background="#27272A"
                                             Foreground="#E4E4E7" />
                                 </StackPanel>
-                                <TextBox Grid.Row="1"
-                                         Text="{Binding GeneratedVmCode}"
-                                         IsReadOnly="True"
-                                         AcceptsReturn="True"
-                                         FontFamily="Consolas, Cascadia Code, Courier New"
-                                         FontSize="12"
-                                         Background="#121214"
-                                         Foreground="#E4E4E7"
-                                         BorderThickness="0" />
+                                <ScrollViewer Grid.Row="1"
+                                              HorizontalScrollBarVisibility="Auto"
+                                              VerticalScrollBarVisibility="Auto"
+                                              Background="#121214"
+                                              Padding="12,8">
+                                    <SelectableTextBlock x:Name="VmCodeTextBlock"
+                                                         FontFamily="Consolas, Cascadia Code, Courier New"
+                                                         FontSize="12"
+                                                         LineHeight="20"
+                                                         Foreground="#D4D4D4" />
+                                </ScrollViewer>
                             </Grid>
                         </TabItem>
                     </TabControl>

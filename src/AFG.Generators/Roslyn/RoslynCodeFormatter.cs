@@ -18,10 +18,14 @@ public static class RoslynCodeFormatter
             return rawCode;
         }
 
-        var syntaxTree = CSharpSyntaxTree.ParseText(rawCode);
-        var root = syntaxTree.GetRoot();
-        var formattedNode = root.NormalizeWhitespace();
+        // 若輸入為單行緊湊程式碼，則使用 Roslyn 進行基本語法標準化
+        if (!rawCode.Contains('\n') && !rawCode.Contains('\r'))
+        {
+            var syntaxTree = CSharpSyntaxTree.ParseText(rawCode);
+            var root = syntaxTree.GetRoot();
+            return root.NormalizeWhitespace(indentation: "    ", eol: Environment.NewLine).ToFullString();
+        }
 
-        return formattedNode.ToFullString();
+        return rawCode.Trim();
     }
 }
