@@ -196,8 +196,10 @@
                                                 </Grid>
 
                                                 <StackPanel Spacing="2">
-                                                    <TextBlock Text="View 屬性" FontSize="10" Foreground="#A1A1AA" />
-                                                    <TextBox Text="{Binding TargetProperty, Mode=TwoWay}" />
+                                                    <TextBlock Text="View 屬性 (TargetProperty)" FontSize="10" Foreground="#A1A1AA" />
+                                                    <ComboBox ItemsSource="{Binding AvailableProperties}"
+                                                              SelectedItem="{Binding TargetProperty, Mode=TwoWay}"
+                                                              HorizontalAlignment="Stretch" />
                                                 </StackPanel>
 
                                                 <StackPanel Spacing="2">
@@ -253,8 +255,10 @@
                                                 </Grid>
 
                                                 <StackPanel Spacing="2">
-                                                    <TextBlock Text="事件名稱 (如 Click, Tapped)" FontSize="10" Foreground="#A1A1AA" />
-                                                    <TextBox Text="{Binding EventName, Mode=TwoWay}" />
+                                                    <TextBlock Text="事件名稱 (EventName)" FontSize="10" Foreground="#A1A1AA" />
+                                                    <ComboBox ItemsSource="{Binding AvailableEvents}"
+                                                              SelectedItem="{Binding EventName, Mode=TwoWay}"
+                                                              HorizontalAlignment="Stretch" />
                                                 </StackPanel>
 
                                                 <StackPanel Spacing="2">

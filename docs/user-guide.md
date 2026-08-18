@@ -66,12 +66,19 @@
 3. **跨平台行動端開關**：勾選「包含行動端 (.Android)」可在匯出時同時生成 Android 宿主專案。
 4. **授權文件開關**：勾選「包含授權 (LICENSE)」可在匯出專案根目錄自動生成 MIT License 授權檔案。
 
-### 2.5 設定控制項屬性、顏色與自訂資料型別
+### 2.5 設定控制項屬性、顏色、資料綁定與事件命令
 在右側 **「屬性檢查器」** 中：
 - **「外觀」分頁**：支援設定名稱 (x:Name)、標題 (Content)、文字 (Text)、提示文字 (PlaceholderText)、背景色 (Background) 與前景色 (Foreground)（支援 `#RRGGBB` 色碼或顏色名稱）。
 - **「排版」分頁**：設定寬度、高度、Canvas 座標、Grid 網格座標、對齊方式與外距 Margin。
-- **「資料綁定」分頁**：設定 View 屬性、ViewModel 屬性名稱、綁定模式，並可透過下拉或手動輸入**自訂 C# 資料型別**（如 `decimal`, `ObservableCollection<string>`, `DateTime?` 等）。
-- **「事件命令」分頁**：設定事件名稱（如 `Click`）、Command 名稱，並可勾選是否為非同步命令 (`async Task ...Async()`)。
+- **「資料綁定」分頁**：
+  - **View 屬性 (TargetProperty)**：提供下拉選單（`Text`, `Content`, `IsChecked`, `Value`, `IsEnabled`, `IsVisible`, `ItemsSource`, `SelectedItem`, `SelectedIndex`, `Header` 等），選取時自動同步推斷合適的 C# 資料型別，徹底避免手動打字拼錯。
+  - **ViewModel 屬性名稱**：指定綁定的 ViewModel 屬性。
+  - **資料型別 (C# DataType)**：提供常見型別下拉選單（`string`, `bool`, `double`, `int`, `DateTime?`, `ObservableCollection<string>` 等）。
+  - **綁定模式 (Mode)**：下拉切換 `Default`, `TwoWay`, `OneWay`, `OneWayToSource`, `OneTime`。
+- **「事件命令」分頁**：
+  - **事件名稱 (EventName)**：提供豐富的 Avalonia 事件下拉選單（`Click`, `Tapped`, `DoubleTapped`, `PointerPressed`, `PointerReleased`, `SelectionChanged`, `ValueChanged`, `TextChanged`, `KeyDown`, `KeyUp`, `GotFocus`, `LostFocus`, `Checked`, `Unchecked` 等），防止拼字錯誤。
+  - **ViewModel Command 名稱**：指定映射的 ViewModel RelayCommand 方法。
+  - **非同步開關**：勾選後將自動在 ViewModel 產出 `async Task ...Async()` 簽章。
 
 ### 2.6 即時預覽與跨平台方案匯出
 - **單檔代碼複製**：在底部預覽區可直接檢視 Roslyn 格式化後的 C# 代碼，點選「複製 View」或「複製 VM」即可複製。

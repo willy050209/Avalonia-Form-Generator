@@ -5,7 +5,7 @@ using CoreBindingMode = AFG.Core.Enums.BindingMode;
 namespace AFG.Shared.ViewModels;
 
 /// <summary>
-/// 綁定項目編輯 ViewModel（支援自訂 C# 資料型別）。
+/// 綁定項目編輯 ViewModel（支援自訂 C# 資料型別與下拉選擇目標屬性）。
 /// </summary>
 public sealed partial class BindingItemViewModel : ObservableObject
 {
@@ -21,6 +21,27 @@ public sealed partial class BindingItemViewModel : ObservableObject
     [ObservableProperty]
     private CoreBindingMode _mode = CoreBindingMode.Default;
 
+    public IReadOnlyList<string> AvailableProperties { get; } =
+    [
+        "Text",
+        "Content",
+        "IsChecked",
+        "Value",
+        "IsEnabled",
+        "IsVisible",
+        "Opacity",
+        "Width",
+        "Height",
+        "FontSize",
+        "ItemsSource",
+        "SelectedItem",
+        "SelectedIndex",
+        "Header",
+        "Watermark",
+        "Background",
+        "Foreground"
+    ];
+
     public IReadOnlyList<string> CommonDataTypes { get; } =
     [
         "string",
@@ -33,6 +54,19 @@ public sealed partial class BindingItemViewModel : ObservableObject
         "ObservableCollection<object>",
         "List<string>"
     ];
+
+    partial void OnTargetPropertyChanged(string value)
+    {
+        CustomDataType = value switch
+        {
+            "IsChecked" or "IsEnabled" or "IsVisible" => "bool",
+            "Value" or "Opacity" or "Width" or "Height" or "FontSize" => "double",
+            "SelectedIndex" => "int",
+            "ItemsSource" => "ObservableCollection<string>",
+            "SelectedItem" => "string?",
+            _ => "string"
+        };
+    }
 
     public BindingDefinition ToDefinition() => new(
         TargetProperty: TargetProperty.Trim(),
@@ -50,7 +84,7 @@ public sealed partial class BindingItemViewModel : ObservableObject
 }
 
 /// <summary>
-/// 事件映射項目編輯 ViewModel（支援同步/非同步選項）。
+/// 事件映射項目編輯 ViewModel（支援事件名稱下拉選單與同步/非同步選項）。
 /// </summary>
 public sealed partial class EventItemViewModel : ObservableObject
 {
@@ -62,6 +96,26 @@ public sealed partial class EventItemViewModel : ObservableObject
 
     [ObservableProperty]
     private bool _isAsync = true;
+
+    public IReadOnlyList<string> AvailableEvents { get; } =
+    [
+        "Click",
+        "Tapped",
+        "DoubleTapped",
+        "PointerPressed",
+        "PointerReleased",
+        "PointerEntered",
+        "PointerExited",
+        "SelectionChanged",
+        "ValueChanged",
+        "TextChanged",
+        "KeyDown",
+        "KeyUp",
+        "GotFocus",
+        "LostFocus",
+        "Checked",
+        "Unchecked"
+    ];
 
     public EventMappingDefinition ToDefinition() => new(
         EventName: EventName.Trim(),
