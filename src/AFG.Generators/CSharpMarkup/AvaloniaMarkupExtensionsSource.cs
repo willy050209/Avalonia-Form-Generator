@@ -29,14 +29,14 @@ public static class AvaloniaMarkupExtensionsSource
     {
         // 1. 幾何尺寸與外觀數值與資料綁定
         public static T Width<T>(this T control, double value) where T : Control { control.Width = value; return control; }
-        public static T Width<T>(this T control, string path, BindingMode mode = BindingMode.Default) where T : Control
+        public static T Width<T>(this T control, string path, BindingMode mode) where T : Control
         {
             control.Bind(Layoutable.WidthProperty, new Binding(path) { Mode = mode });
             return control;
         }
 
         public static T Height<T>(this T control, double value) where T : Control { control.Height = value; return control; }
-        public static T Height<T>(this T control, string path, BindingMode mode = BindingMode.Default) where T : Control
+        public static T Height<T>(this T control, string path, BindingMode mode) where T : Control
         {
             control.Bind(Layoutable.HeightProperty, new Binding(path) { Mode = mode });
             return control;
@@ -51,7 +51,7 @@ public static class AvaloniaMarkupExtensionsSource
         public static T VerticalAlignment<T>(this T control, VerticalAlignment value) where T : Control { control.VerticalAlignment = value; return control; }
 
         public static T Opacity<T>(this T control, double value) where T : Control { control.Opacity = value; return control; }
-        public static T Opacity<T>(this T control, string path, BindingMode mode = BindingMode.Default) where T : Control
+        public static T Opacity<T>(this T control, string path, BindingMode mode) where T : Control
         {
             control.Bind(Visual.OpacityProperty, new Binding(path) { Mode = mode });
             return control;
@@ -73,14 +73,14 @@ public static class AvaloniaMarkupExtensionsSource
         }
 
         public static T IsEnabled<T>(this T control, bool value) where T : Control { control.IsEnabled = value; return control; }
-        public static T IsEnabled<T>(this T control, string path, BindingMode mode = BindingMode.Default) where T : Control
+        public static T IsEnabled<T>(this T control, string path, BindingMode mode) where T : Control
         {
             control.Bind(InputElement.IsEnabledProperty, new Binding(path) { Mode = mode });
             return control;
         }
 
         public static T IsVisible<T>(this T control, bool value) where T : Control { control.IsVisible = value; return control; }
-        public static T IsVisible<T>(this T control, string path, BindingMode mode = BindingMode.Default) where T : Control
+        public static T IsVisible<T>(this T control, string path, BindingMode mode) where T : Control
         {
             control.Bind(Visual.IsVisibleProperty, new Binding(path) { Mode = mode });
             return control;
@@ -125,7 +125,7 @@ public static class AvaloniaMarkupExtensionsSource
             return panel;
         }
 
-        // 4. 控制項內容、文字與標題（數值與資料綁定雙支援）
+        // 4. 控制項內容、文字與標題（明確區分靜態常數值與資料綁定）
         public static T Content<T>(this T control, object? content) where T : Control
         {
             if (control is ContentControl cc)
@@ -143,7 +143,7 @@ public static class AvaloniaMarkupExtensionsSource
             return control;
         }
 
-        public static T Content<T>(this T control, string path, BindingMode mode = BindingMode.Default) where T : Control
+        public static T Content<T>(this T control, string path, BindingMode mode) where T : Control
         {
             if (control is ContentControl cc)
             {
@@ -177,7 +177,7 @@ public static class AvaloniaMarkupExtensionsSource
             return control;
         }
 
-        public static T Text<T>(this T control, string path, BindingMode mode = BindingMode.Default) where T : Control
+        public static T Text<T>(this T control, string path, BindingMode mode) where T : Control
         {
             if (control is TextBlock tb)
             {
@@ -203,7 +203,7 @@ public static class AvaloniaMarkupExtensionsSource
             return control;
         }
 
-        public static T Header<T>(this T control, string path, BindingMode mode = BindingMode.Default) where T : Control
+        public static T Header<T>(this T control, string path, BindingMode mode) where T : Control
         {
             if (control is HeaderedContentControl hcc)
             {
@@ -237,7 +237,7 @@ public static class AvaloniaMarkupExtensionsSource
             return control;
         }
 
-        public static T IsChecked<T>(this T control, string path, BindingMode mode = BindingMode.TwoWay) where T : Control
+        public static T IsChecked<T>(this T control, string path, BindingMode mode) where T : Control
         {
             if (control is ToggleButton tb)
             {
@@ -255,7 +255,7 @@ public static class AvaloniaMarkupExtensionsSource
             return control;
         }
 
-        public static T Value<T>(this T control, string path, BindingMode mode = BindingMode.TwoWay) where T : Control
+        public static T Value<T>(this T control, string path, BindingMode mode) where T : Control
         {
             if (control is RangeBase rb)
             {
@@ -277,7 +277,7 @@ public static class AvaloniaMarkupExtensionsSource
             return control;
         }
 
-        public static T FontSize<T>(this T control, string path, BindingMode mode = BindingMode.Default) where T : Control
+        public static T FontSize<T>(this T control, string path, BindingMode mode) where T : Control
         {
             if (control is TemplatedControl tc)
             {
@@ -309,19 +309,19 @@ public static class AvaloniaMarkupExtensionsSource
             return control;
         }
 
-        public static T ItemsSource<T>(this T control, string path, BindingMode mode = BindingMode.Default) where T : ItemsControl
+        public static T ItemsSource<T>(this T control, string path, BindingMode mode) where T : ItemsControl
         {
             control.Bind(ItemsControl.ItemsSourceProperty, new Binding(path) { Mode = mode });
             return control;
         }
 
-        public static T SelectedItem<T>(this T control, string path, BindingMode mode = BindingMode.TwoWay) where T : SelectingItemsControl
+        public static T SelectedItem<T>(this T control, string path, BindingMode mode) where T : SelectingItemsControl
         {
             control.Bind(SelectingItemsControl.SelectedItemProperty, new Binding(path) { Mode = mode });
             return control;
         }
 
-        public static T SelectedIndex<T>(this T control, string path, BindingMode mode = BindingMode.TwoWay) where T : SelectingItemsControl
+        public static T SelectedIndex<T>(this T control, string path, BindingMode mode) where T : SelectingItemsControl
         {
             control.Bind(SelectingItemsControl.SelectedIndexProperty, new Binding(path) { Mode = mode });
             return control;

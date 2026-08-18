@@ -18,8 +18,8 @@ public sealed class MvvmViewModelGenerator : ICodeGenerator
 
         var allNodes = AstTreeOperations.Flatten(document.RootNode);
 
-        // 收集所有唯一的 ViewModel 屬性與指定/推斷型別
-        var properties = new Dictionary<string, string>(StringComparer.Ordinal);
+        // 收集所有唯一的 ViewModel 屬性與指定/推斷型別及初始值
+        var properties = new Dictionary<string, (string Type, string? InitialValue)>(StringComparer.Ordinal);
         foreach (var node in allNodes)
         {
             foreach (var binding in node.Bindings)
@@ -35,7 +35,8 @@ public sealed class MvvmViewModelGenerator : ICodeGenerator
                         ? binding.CustomDataType.Trim()
                         : InferPropertyType(binding.TargetProperty, node.Type);
 
-                    properties[binding.ViewModelProperty] = propType;
+                    var initialVal = ExtractInitialValue(node, binding.TargetProperty, propType);
+                    properties[binding.ViewModelProperty] = (propType, initialVal);
                 }
             }
         }
@@ -134,13 +135,15 @@ public sealed class MvvmViewModelGenerator : ICodeGenerator
         // 輸出屬性
         if (properties.Count > 0)
         {
-            foreach (var (propName, propType) in properties)
+            foreach (var (propName, propInfo) in properties)
             {
                 var fieldName = ToPrivateFieldName(propName);
-                var defaultValue = GetDefaultValueExpression(propType);
+                var defaultValue = !string.IsNullOrEmpty(propInfo.InitialValue)
+                    ? $" = {propInfo.InitialValue}"
+                    : GetDefaultValueExpression(propInfo.Type);
 
                 sb.AppendLine("    [ObservableProperty]");
-                sb.AppendLine($"    private {propType} {fieldName}{defaultValue};");
+                sb.AppendLine($"    private {propInfo.Type} {fieldName}{defaultValue};");
                 sb.AppendLine();
             }
         }
@@ -226,4 +229,19 @@ public sealed class MvvmViewModelGenerator : ICodeGenerator
         }
         return string.Empty;
     }
+
+    private static string? ExtractInitialValue(AstNode node, string targetProperty, string propType)
+    {
+        return targetProperty switch
+        {
+            "Text" => !string.IsNullOrEmpty(node.Text) ? $"\"{EscapeString(node.Text)}\"" : null,
+            "Content" => !string.IsNullOrEmpty(node.Content) ? $"\"{EscapeString(node.Content)}\"" : null,
+            "IsChecked" when node.IsChecked.HasValue => node.IsChecked.Value ? "true" : "false",
+            "Value" when node.Value.HasValue => node.Value.Value.ToString(System.Globalization.CultureInfo.InvariantCulture),
+            _ => null
+        };
+    }
+
+    private static string EscapeString(string input) =>
+        input.Replace("\\", "\\\\", StringComparison.Ordinal).Replace("\"", "\\\"", StringComparison.Ordinal);
 }

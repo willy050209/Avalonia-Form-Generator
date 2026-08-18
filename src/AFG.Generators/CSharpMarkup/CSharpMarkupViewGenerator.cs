@@ -188,56 +188,64 @@ public sealed class CSharpMarkupViewGenerator : ICodeGenerator
             sb.AppendLine($"{innerIndent}.Orientation(Orientation.{node.Orientation.Value})");
         }
 
-        // 4. 控制項專屬外觀與內容（依型別智慧判定 Content vs Text）
+        // 4. 控制項專屬外觀與內容（若已有資料綁定則不輸出覆寫之常數值）
+        var boundProps = new HashSet<string>(node.Bindings.Select(b => b.TargetProperty), StringComparer.Ordinal);
+
         if (IsContentControl(node.Type))
         {
-            var textOrContent = !string.IsNullOrEmpty(node.Content) ? node.Content : node.Text;
-            if (!string.IsNullOrEmpty(textOrContent))
+            if (!boundProps.Contains("Content") && !boundProps.Contains("Text"))
             {
-                sb.AppendLine($"{innerIndent}.Content(\"{EscapeString(textOrContent)}\")");
+                var textOrContent = !string.IsNullOrEmpty(node.Content) ? node.Content : node.Text;
+                if (!string.IsNullOrEmpty(textOrContent))
+                {
+                    sb.AppendLine($"{innerIndent}.Content(\"{EscapeString(textOrContent)}\")");
+                }
             }
         }
         else if (IsTextControl(node.Type))
         {
-            var textOrContent = !string.IsNullOrEmpty(node.Text) ? node.Text : node.Content;
-            if (!string.IsNullOrEmpty(textOrContent))
+            if (!boundProps.Contains("Text") && !boundProps.Contains("Content"))
             {
-                sb.AppendLine($"{innerIndent}.Text(\"{EscapeString(textOrContent)}\")");
+                var textOrContent = !string.IsNullOrEmpty(node.Text) ? node.Text : node.Content;
+                if (!string.IsNullOrEmpty(textOrContent))
+                {
+                    sb.AppendLine($"{innerIndent}.Text(\"{EscapeString(textOrContent)}\")");
+                }
             }
         }
         else
         {
-            if (!string.IsNullOrEmpty(node.Content))
+            if (!boundProps.Contains("Content") && !string.IsNullOrEmpty(node.Content))
             {
                 sb.AppendLine($"{innerIndent}.Content(\"{EscapeString(node.Content)}\")");
             }
-            if (!string.IsNullOrEmpty(node.Text))
+            if (!boundProps.Contains("Text") && !string.IsNullOrEmpty(node.Text))
             {
                 sb.AppendLine($"{innerIndent}.Text(\"{EscapeString(node.Text)}\")");
             }
         }
 
-        if (!string.IsNullOrEmpty(node.Header))
+        if (!boundProps.Contains("Header") && !string.IsNullOrEmpty(node.Header))
         {
             sb.AppendLine($"{innerIndent}.Header(\"{EscapeString(node.Header)}\")");
         }
 
-        if (!string.IsNullOrEmpty(node.Watermark))
+        if (!boundProps.Contains("Watermark") && !string.IsNullOrEmpty(node.Watermark))
         {
             sb.AppendLine($"{innerIndent}.Watermark(\"{EscapeString(node.Watermark)}\")");
         }
 
-        if (node.IsChecked.HasValue)
+        if (!boundProps.Contains("IsChecked") && node.IsChecked.HasValue)
         {
             sb.AppendLine($"{innerIndent}.IsChecked({(node.IsChecked.Value ? "true" : "false")})");
         }
 
-        if (node.Value.HasValue)
+        if (!boundProps.Contains("Value") && node.Value.HasValue)
         {
             sb.AppendLine($"{innerIndent}.Value({node.Value.Value.ToString(CultureInfo.InvariantCulture)})");
         }
 
-        if (node.FontSize.HasValue)
+        if (!boundProps.Contains("FontSize") && node.FontSize.HasValue)
         {
             sb.AppendLine($"{innerIndent}.FontSize({node.FontSize.Value.ToString(CultureInfo.InvariantCulture)})");
         }
@@ -252,22 +260,23 @@ public sealed class CSharpMarkupViewGenerator : ICodeGenerator
             sb.AppendLine($"{innerIndent}.Foreground(Brush.Parse(\"{EscapeString(node.Foreground)}\"))");
         }
 
-        // 5. MVVM 綁定配置
+        // 5. MVVM 綁定配置 (一律傳遞明確的 BindingMode 列舉參數，確保不與常數字串擴充方法衝突)
         foreach (var binding in node.Bindings)
         {
+            var modeName = binding.Mode switch
+            {
+                BindingMode.TwoWay => "BindingMode.TwoWay",
+                BindingMode.OneWay => "BindingMode.OneWay",
+                BindingMode.OneWayToSource => "BindingMode.OneWayToSource",
+                BindingMode.OneTime => "BindingMode.OneTime",
+                _ => (node.Type == ControlType.TextBox || binding.TargetProperty == "Text" || binding.TargetProperty == "IsChecked" || binding.TargetProperty == "Value")
+                    ? "BindingMode.TwoWay"
+                    : "BindingMode.Default"
+            };
+
             var bindingCall = useCompiledBindings
-                ? binding.Mode switch
-                {
-                    BindingMode.TwoWay => $".{binding.TargetProperty}(({viewModelClassName} vm) => vm.{binding.ViewModelProperty}, BindingMode.TwoWay)",
-                    BindingMode.OneWay => $".{binding.TargetProperty}(({viewModelClassName} vm) => vm.{binding.ViewModelProperty}, BindingMode.OneWay)",
-                    _ => $".{binding.TargetProperty}(({viewModelClassName} vm) => vm.{binding.ViewModelProperty})"
-                }
-                : binding.Mode switch
-                {
-                    BindingMode.TwoWay => $".{binding.TargetProperty}(nameof({viewModelClassName}.{binding.ViewModelProperty}), BindingMode.TwoWay)",
-                    BindingMode.OneWay => $".{binding.TargetProperty}(nameof({viewModelClassName}.{binding.ViewModelProperty}), BindingMode.OneWay)",
-                    _ => $".{binding.TargetProperty}(nameof({viewModelClassName}.{binding.ViewModelProperty}))"
-                };
+                ? $".{binding.TargetProperty}(({viewModelClassName} vm) => vm.{binding.ViewModelProperty}, {modeName})"
+                : $".{binding.TargetProperty}(nameof({viewModelClassName}.{binding.ViewModelProperty}), {modeName})";
 
             sb.AppendLine($"{innerIndent}{bindingCall}");
         }
