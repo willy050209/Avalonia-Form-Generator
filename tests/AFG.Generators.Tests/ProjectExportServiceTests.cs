@@ -471,4 +471,63 @@ public sealed class ProjectExportServiceTests
             }
         }
     }
+
+    [Fact]
+    public async Task ExportToFolderAsync_WithNonVisualComponents_ShouldBuildSuccessfully()
+    {
+        // Arrange
+        var tempFolder = Path.Combine(Path.GetTempPath(), "AFG_NonVisual_Test_" + Guid.NewGuid().ToString("N"));
+        var doc = new FormDocument
+        {
+            ViewClassName = "DeviceControlView",
+            ViewModelClassName = "DeviceControlViewModel",
+            Title = "裝置控制與不可視元件測試",
+            RootNode = new AstNode
+            {
+                Id = "root",
+                Type = ControlType.Canvas,
+                Children = [
+                    new AstNode { Id = "btn1", Type = ControlType.Button, Content = "開始同步", Events = [new EventMappingDefinition { EventName = "Click", CommandProperty = "StartSyncCommand", IsAsync = true }] },
+                    new AstNode { Id = "tmr1", Type = ControlType.DispatcherTimer, Name = "PollingTimer" },
+                    new AstNode { Id = "bgw1", Type = ControlType.BackgroundWorker, Name = "WorkerThread" },
+                    new AstNode { Id = "ble1", Type = ControlType.BluetoothClient, Name = "BleSensor" },
+                    new AstNode { Id = "com1", Type = ControlType.SerialPortService, Name = "SerialScanner" }
+                ]
+            }
+        };
+
+        try
+        {
+            await _exportService.ExportToFolderAsync(doc, tempFolder, new ProjectExportOptions(IncludeMobileProject: false));
+            var desktopCsprojPath = Path.Combine(tempFolder, "src", "DeviceControlApp.Desktop", "DeviceControlApp.Desktop.csproj");
+
+            var psi = new ProcessStartInfo
+            {
+                FileName = "dotnet",
+                Arguments = $"build \"{desktopCsprojPath}\" -c Release",
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            };
+
+            using var process = Process.Start(psi);
+            var stdout = await process!.StandardOutput.ReadToEndAsync();
+            var stderr = await process.StandardError.ReadToEndAsync();
+            await process.WaitForExitAsync();
+
+            process.ExitCode.Should().Be(0, $"含不可視元件之匯出專案應成功編譯。\n標準輸出:\n{stdout}\n錯誤輸出:\n{stderr}");
+        }
+        finally
+        {
+            if (Directory.Exists(tempFolder))
+            {
+                try
+                {
+                    Directory.Delete(tempFolder, recursive: true);
+                }
+                catch { }
+            }
+        }
+    }
 }

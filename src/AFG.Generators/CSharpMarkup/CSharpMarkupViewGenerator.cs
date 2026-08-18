@@ -17,11 +17,13 @@ public sealed class CSharpMarkupViewGenerator : ICodeGenerator
         sb.AppendLine("#nullable enable");
         sb.AppendLine();
         sb.AppendLine("using System;");
+        sb.AppendLine("using System.ComponentModel;");
         sb.AppendLine("using Avalonia;");
         sb.AppendLine("using Avalonia.Controls;");
         sb.AppendLine("using Avalonia.Data;");
         sb.AppendLine("using Avalonia.Layout;");
         sb.AppendLine("using Avalonia.Media;");
+        sb.AppendLine("using Avalonia.Threading;");
         sb.AppendLine();
         sb.AppendLine($"namespace {document.RootNamespace};");
         sb.AppendLine();
@@ -280,14 +282,18 @@ public sealed class CSharpMarkupViewGenerator : ICodeGenerator
             sb.AppendLine($"{innerIndent}{cmdCall}");
         }
 
-        // 7. 遞迴子節點 (Children)
-        if (node.Children.Count > 0)
+        // 7. 遞迴子節點 (Children - 僅包含實體可視控制項，不可視元件由 ViewModel / DI 管理)
+        var visualChildren = node.Children
+            .Where(c => !IsNonVisualComponent(c.Type))
+            .ToList();
+
+        if (visualChildren.Count > 0)
         {
             sb.AppendLine($"{innerIndent}.Children(");
-            for (var i = 0; i < node.Children.Count; i++)
+            for (var i = 0; i < visualChildren.Count; i++)
             {
-                var childCode = GenerateNodeCode(node.Children[i], indentLevel + 2, viewModelClassName, useCompiledBindings);
-                var isLast = i == node.Children.Count - 1;
+                var childCode = GenerateNodeCode(visualChildren[i], indentLevel + 2, viewModelClassName, useCompiledBindings);
+                var isLast = i == visualChildren.Count - 1;
                 var trailingComma = isLast ? string.Empty : ",";
                 sb.AppendLine($"{new string(' ', (indentLevel + 2) * 4)}{childCode}{trailingComma}");
             }
@@ -296,6 +302,13 @@ public sealed class CSharpMarkupViewGenerator : ICodeGenerator
 
         return sb.ToString().TrimEnd();
     }
+
+    public static bool IsNonVisualComponent(ControlType type) => type switch
+    {
+        ControlType.DispatcherTimer or ControlType.BackgroundWorker or
+        ControlType.BluetoothClient or ControlType.SerialPortService => true,
+        _ => false
+    };
 
     private static bool IsContentControl(ControlType type) => type switch
     {

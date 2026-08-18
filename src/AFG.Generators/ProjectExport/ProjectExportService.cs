@@ -157,9 +157,25 @@ public sealed class ProjectExportService(FormCodeGenerator? codeGenerator = null
         """;
         files.Add(new GeneratedSourceFile(Path.Combine(sharedDir, $"{sharedProjectName}.csproj"), sharedCsprojContent, SourceFileType.ProjectFile));
 
-        // 彙整所有文檔注入的服務
+        // 彙整所有文檔注入的服務 (包含 AST 中硬體通訊不可視元件)
+        var hardwareServiceNodes = project.Documents
+            .SelectMany(d => AstTreeOperations.Flatten(d.RootNode))
+            .Where(n => n.Type is ControlType.BluetoothClient or ControlType.SerialPortService)
+            .ToList();
+
+        var synthesizedServices = new List<ServiceDependencyDefinition>();
+        if (hardwareServiceNodes.Any(n => n.Type == ControlType.BluetoothClient))
+        {
+            synthesizedServices.Add(new ServiceDependencyDefinition { InterfaceName = "IBluetoothClient", ImplementationName = "BluetoothClient" });
+        }
+        if (hardwareServiceNodes.Any(n => n.Type == ControlType.SerialPortService))
+        {
+            synthesizedServices.Add(new ServiceDependencyDefinition { InterfaceName = "ISerialPortService", ImplementationName = "SerialPortService" });
+        }
+
         var allServices = project.Documents
             .SelectMany(d => d.InjectedServices)
+            .Concat(synthesizedServices)
             .DistinctBy(s => s.InterfaceName)
             .ToList();
 
@@ -294,6 +310,7 @@ public sealed class ProjectExportService(FormCodeGenerator? codeGenerator = null
         global using System.Collections.Generic;
         global using System.Collections.ObjectModel;
         global using System.ComponentModel;
+        global using System.Threading;
         global using System.Threading.Tasks;
         global using Avalonia;
         global using Avalonia.Controls;
@@ -302,6 +319,7 @@ public sealed class ProjectExportService(FormCodeGenerator? codeGenerator = null
         global using Avalonia.Media;
         global using Avalonia.Styling;
         global using Avalonia.Themes.Fluent;
+        global using Avalonia.Threading;
         global using CommunityToolkit.Mvvm.ComponentModel;
         global using CommunityToolkit.Mvvm.Input;
         global using Microsoft.Extensions.DependencyInjection;
