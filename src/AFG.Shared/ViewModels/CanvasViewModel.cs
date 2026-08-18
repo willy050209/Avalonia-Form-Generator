@@ -22,6 +22,12 @@ public sealed partial class CanvasViewModel : ObservableObject
     private double _gridSize = 8.0;
 
     [ObservableProperty]
+    private double _canvasWidth = 800;
+
+    [ObservableProperty]
+    private double _canvasHeight = 600;
+
+    [ObservableProperty]
     private bool _includeMobileProject = true;
 
     public IReadOnlyList<CanvasPreset> AvailablePresets { get; } = CanvasPreset.Presets;
@@ -31,8 +37,11 @@ public sealed partial class CanvasViewModel : ObservableObject
 
     partial void OnSelectedPresetChanged(CanvasPreset? value)
     {
-        if (value is not null)
+        if (value is not null && !value.IsCustom)
         {
+            CanvasWidth = value.Width;
+            CanvasHeight = value.Height;
+
             Document = Document with
             {
                 CanvasWidth = value.Width,
@@ -40,6 +49,32 @@ public sealed partial class CanvasViewModel : ObservableObject
             };
             DocumentChanged?.Invoke(Document);
         }
+    }
+
+    partial void OnCanvasWidthChanged(double value)
+    {
+        if (Math.Abs(Document.CanvasWidth - value) > 0.1)
+        {
+            Document = Document with { CanvasWidth = value };
+            MatchOrSetCustomPreset();
+            DocumentChanged?.Invoke(Document);
+        }
+    }
+
+    partial void OnCanvasHeightChanged(double value)
+    {
+        if (Math.Abs(Document.CanvasHeight - value) > 0.1)
+        {
+            Document = Document with { CanvasHeight = value };
+            MatchOrSetCustomPreset();
+            DocumentChanged?.Invoke(Document);
+        }
+    }
+
+    private void MatchOrSetCustomPreset()
+    {
+        var matched = AvailablePresets.FirstOrDefault(p => !p.IsCustom && Math.Abs(p.Width - Document.CanvasWidth) < 0.5 && Math.Abs(p.Height - Document.CanvasHeight) < 0.5);
+        SelectedPreset = matched ?? CanvasPreset.Custom;
     }
 
     public ObservableCollection<GuideLine> ActiveGuideLines { get; } = [];
@@ -50,12 +85,18 @@ public sealed partial class CanvasViewModel : ObservableObject
     public CanvasViewModel()
     {
         _document = FormDocument.CreateDefault();
+        CanvasWidth = _document.CanvasWidth;
+        CanvasHeight = _document.CanvasHeight;
+        MatchOrSetCustomPreset();
     }
 
     public void LoadDocument(FormDocument doc)
     {
         ArgumentNullException.ThrowIfNull(doc);
         Document = doc;
+        CanvasWidth = doc.CanvasWidth;
+        CanvasHeight = doc.CanvasHeight;
+        MatchOrSetCustomPreset();
         SelectedNode = null;
         ActiveGuideLines.Clear();
         DocumentChanged?.Invoke(Document);

@@ -2,7 +2,7 @@
 namespace AFG.Generators.Mvvm;
 
 /// <summary>
-/// 掃描 UI AST 中的資料綁定與事件命令，生成符合 CommunityToolkit.Mvvm 規範的 ViewModel 原始碼。
+/// 掃描 UI AST 中的資料綁定與事件命令，生成符合 CommunityToolkit.Mvvm 規範並整合相依性注入 (DI) 的 ViewModel 原始碼。
 /// </summary>
 public sealed class MvvmViewModelGenerator : ICodeGenerator
 {
@@ -51,11 +51,23 @@ public sealed class MvvmViewModelGenerator : ICodeGenerator
         sb.AppendLine("using System;");
         sb.AppendLine("using CommunityToolkit.Mvvm.ComponentModel;");
         sb.AppendLine("using CommunityToolkit.Mvvm.Input;");
+        sb.AppendLine($"using {document.RootNamespace}.Services;");
         sb.AppendLine();
         sb.AppendLine($"namespace {document.RootNamespace};");
         sb.AppendLine();
         sb.AppendLine($"public partial class {document.ViewModelClassName} : ObservableObject");
         sb.AppendLine("{");
+        sb.AppendLine("    private readonly IGreetingService? _greetingService;");
+        sb.AppendLine();
+        sb.AppendLine($"    public {document.ViewModelClassName}()");
+        sb.AppendLine("    {");
+        sb.AppendLine("    }");
+        sb.AppendLine();
+        sb.AppendLine($"    public {document.ViewModelClassName}(IGreetingService greetingService)");
+        sb.AppendLine("    {");
+        sb.AppendLine("        _greetingService = greetingService;");
+        sb.AppendLine("    }");
+        sb.AppendLine();
 
         // 輸出屬性
         if (properties.Count > 0)

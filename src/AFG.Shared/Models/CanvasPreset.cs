@@ -9,19 +9,27 @@ public sealed record CanvasPreset(
     string AspectRatio,
     double Width,
     double Height,
-    bool IsMobile = false)
+    bool IsMobile = false,
+    bool IsCustom = false)
 {
-    public override string ToString() => $"{Name} ({Width}x{Height}, {AspectRatio})";
+    public override string ToString() => IsCustom
+        ? Name
+        : $"{Name} ({Width}x{Height}, {AspectRatio})";
+
+    public static CanvasPreset Custom { get; } = new("自訂解析度 (Custom)", "Custom", 0, 0, IsMobile: true, IsCustom: true);
 
     public static IReadOnlyList<CanvasPreset> Presets { get; } =
     [
+        // 自訂選項
+        Custom,
+
         // 桌面端預設
         new("Desktop 1080p", "16:9", 1920, 1080, IsMobile: false),
         new("Desktop 720p", "16:9", 1280, 720, IsMobile: false),
         new("Desktop Standard", "4:3", 800, 600, IsMobile: false),
         new("Desktop Small", "16:10", 960, 600, IsMobile: false),
 
-        // 手機端預設（支援主流旗艦長寬比）
+        // 手機端預設（主流旗艦長寬比）
         new("Phone 9:19.5 (Modern Flagship)", "9:19.5", 390, 844, IsMobile: true),
         new("Phone 9:20 (Android Standard)", "9:20", 412, 915, IsMobile: true),
         new("Phone 9:16 (Classic Mobile)", "9:16", 360, 640, IsMobile: true),

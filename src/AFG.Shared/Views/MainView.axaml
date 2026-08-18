@@ -34,11 +34,11 @@
                 </StackPanel>
 
                 <!-- 裝置解析度/長寬比與跨平台選項 -->
-                <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="10" Margin="16,0,0,0" VerticalAlignment="Center">
+                <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8" Margin="16,0,0,0" VerticalAlignment="Center">
                     <TextBlock Text="解析度/比例:" VerticalAlignment="Center" Foreground="#A1A1AA" FontSize="12" />
                     <ComboBox ItemsSource="{Binding Canvas.AvailablePresets}"
                               SelectedItem="{Binding Canvas.SelectedPreset, Mode=TwoWay}"
-                              Width="220"
+                              Width="200"
                               PlaceholderText="選擇裝置解析度與比例">
                         <ComboBox.ItemTemplate>
                             <DataTemplate x:DataType="models:CanvasPreset">
@@ -46,6 +46,20 @@
                             </DataTemplate>
                         </ComboBox.ItemTemplate>
                     </ComboBox>
+
+                    <TextBlock Text="寬:" VerticalAlignment="Center" Foreground="#A1A1AA" FontSize="11" />
+                    <NumericUpDown Value="{Binding Canvas.CanvasWidth, Mode=TwoWay}"
+                                   Minimum="200" Maximum="4000"
+                                   Width="95"
+                                   FormatString="0"
+                                   ToolTip.Tip="自訂畫布寬度 (像素)" />
+
+                    <TextBlock Text="高:" VerticalAlignment="Center" Foreground="#A1A1AA" FontSize="11" />
+                    <NumericUpDown Value="{Binding Canvas.CanvasHeight, Mode=TwoWay}"
+                                   Minimum="200" Maximum="4000"
+                                   Width="95"
+                                   FormatString="0"
+                                   ToolTip.Tip="自訂畫布高度 (像素)" />
 
                     <CheckBox IsChecked="{Binding Canvas.IncludeMobileProject, Mode=TwoWay}"
                               Content="包含行動端 (.Android)"
