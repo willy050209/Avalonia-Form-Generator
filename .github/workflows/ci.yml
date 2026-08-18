@@ -1,0 +1,36 @@
+# GitHub Actions CI Workflow for Avalonia Form Generator
+name: AFG CI / CD Build & Test
+
+on:
+  push:
+    branches: [ master, main ]
+  pull_request:
+    branches: [ master, main ]
+  workflow_dispatch:
+
+jobs:
+  build-and-test:
+    name: Build & Test on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ ubuntu-latest, windows-latest, macos-latest ]
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup .NET SDK (net10.0)
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restore Dependencies
+        run: dotnet restore
+
+      - name: Build Solution (Release)
+        run: dotnet build --configuration Release --no-restore
+
+      - name: Run Unit & Integration Tests
+        run: dotnet test --configuration Release --no-build --verbosity normal

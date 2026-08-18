@@ -104,6 +104,48 @@ public sealed class ProjectExportServiceTests
     }
 
     [Fact]
+    public void GenerateMultiFormProject_ShouldGenerateMultipleViewsAndNavigationService()
+    {
+        // Arrange
+        var doc1 = new FormDocument
+        {
+            ViewClassName = "HomeView",
+            ViewModelClassName = "HomeViewModel",
+            RootNode = new AstNode { Id = "r1", Type = ControlType.Canvas }
+        };
+        var doc2 = new FormDocument
+        {
+            ViewClassName = "SettingsView",
+            ViewModelClassName = "SettingsViewModel",
+            RootNode = new AstNode { Id = "r2", Type = ControlType.StackPanel }
+        };
+        var project = new FormProjectDefinition
+        {
+            ProjectName = "PortalApp",
+            RootNamespace = "PortalApp",
+            InitialFormName = "HomeView",
+            Documents = [doc1, doc2]
+        };
+
+        // Act
+        var files = _exportService.GenerateMultiFormProject(project, new ProjectExportOptions());
+
+        // Assert
+        files.Should().NotBeNull();
+        files.Should().Contain(f => f.FileName == Path.Combine("src", "PortalApp.Shared", "Services", "INavigationService.cs"));
+        files.Should().Contain(f => f.FileName == Path.Combine("src", "PortalApp.Shared", "Services", "NavigationService.cs"));
+        files.Should().Contain(f => f.FileName == Path.Combine("src", "PortalApp.Shared", "Views", "HomeView.cs"));
+        files.Should().Contain(f => f.FileName == Path.Combine("src", "PortalApp.Shared", "Views", "SettingsView.cs"));
+        files.Should().Contain(f => f.FileName == Path.Combine("src", "PortalApp.Shared", "ViewModels", "HomeViewModel.cs"));
+        files.Should().Contain(f => f.FileName == Path.Combine("src", "PortalApp.Shared", "ViewModels", "SettingsViewModel.cs"));
+
+        var appFile = files.First(f => f.FileName == Path.Combine("src", "PortalApp.Shared", "App.cs"));
+        appFile.Content.Should().Contain("services.AddSingleton<INavigationService, NavigationService>()");
+        appFile.Content.Should().Contain("services.AddTransient<HomeView>");
+        appFile.Content.Should().Contain("services.AddTransient<SettingsView>");
+    }
+
+    [Fact]
     public void GenerateFullProject_WhenIncludeLicenseIsFalse_ShouldNotGenerateLicenseFile()
     {
         // Arrange

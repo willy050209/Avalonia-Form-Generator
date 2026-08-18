@@ -1,8 +1,10 @@
 // filepath: tests/AFG.Core.Tests/AfgSerializerTests.cs
+using System.Text.Json;
+
 namespace AFG.Core.Tests;
 
 /// <summary>
-/// 驗證 AfgSerializer JSON 序列化與反序列化 roundtrip 完整性，包含非同步與同步事件命令定義。
+/// 驗證 AfgSerializer JSON 序列化與反序列化 roundtrip 完整性，包含非同步與同步事件命令定義及損毀檔案防禦。
 /// </summary>
 public sealed class AfgSerializerTests
 {
@@ -111,6 +113,17 @@ public sealed class AfgSerializerTests
         // Assert
         result.RootNode.Children[0].Events[0].IsAsync.Should().BeFalse();
         result.RootNode.Children[1].Events[0].IsAsync.Should().BeTrue();
+    }
+
+    [Fact]
+    public void DeserializeDocument_ShouldThrowJsonException_WhenGivenCorruptJson()
+    {
+        // Arrange
+        var corruptJson = "{ \"ViewClassName\": \"Broken\", \"RootNode\": { \"Type\": ";
+
+        // Act & Assert
+        var act = () => AfgSerializer.DeserializeDocument(corruptJson);
+        act.Should().Throw<JsonException>();
     }
 
     [Fact]

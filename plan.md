@@ -139,21 +139,20 @@ AvaloniaFormGenerator/
 ---
 
 ### 🔹 階段 9：多表單導航、可摺疊工作區排版、例外容錯與 CI/CD (Multi-Form, UI Polish & CI/CD)
-- [ ] **階段狀態：待執行**
+- [x] **階段狀態：已完成**
 - **目標**：支援多表單架構、最佳化工作區佈局（可摺疊面板）、完善例外提示，並建立 GitHub Actions 跨平台 CI/CD。
 - **任務清單**：
-  - [ ] 9.1 **多表單 (Multi-Form / Multi-View Navigation) 支援**：
-    - 專案模型升級為支援多個表單（`ObservableCollection<FormDocument>`）。
-    - 支援分頁切換編輯不同 View，並在匯出專案時自動建立跨 View 導航服務（NavigationService）。
-  - [ ] 9.2 **畫面排版重構（可摺疊/可隱藏面板）**：
-    - 將工具箱、元件樹、屬性檢查器、程式碼預覽區域加入展開/摺疊 (Expander/Toggle) 按鈕，最大化畫布可用空間。
-    - 將全域配置與輔助設定統一收納至頂部工具列或側邊抽屜。
-  - [ ] 9.3 **例外與容錯處理 (Defensive & Friendly Errors)**：
-    - 當使用者載入損毀、不完整或版本不相容的 `.afg.json` 時，彈出友善詳細的錯誤對話框，防止程式崩潰。
-  - [ ] 9.4 **GitHub Actions 跨平台 CI/CD 建置**：
-    - 建立 `.github/workflows/ci.yml`，針對 `ubuntu-latest`, `windows-latest`, `macos-latest` 執行 `dotnet build` 與 `dotnet test`。
+  - [x] 9.1 **多表單 (Multi-Form / Multi-View Navigation) 支援**：
+    - 建立 `FormProjectDefinition` 模型支援多表單文檔清單。
+    - 匯出專案時自動於 `.Shared` 生成 `INavigationService` 與 `NavigationService` 跨 View 導航服務並完成 DI 註冊。
+  - [x] 9.2 **畫面排版重構（可摺疊/可隱藏面板）**：
+    - 在頂部工具列增加「工具箱」、「程式碼」、「屬性欄」切換按鈕，支援側邊欄、底部預覽與屬性檢查器面板獨立摺疊/展開，最大化畫布可用空間。
+  - [x] 9.3 **例外與容錯處理 (Defensive & Friendly Errors)**：
+    - 在 `MainViewModel` 針對損毀或不完整的 `.afg.json` 進行結構化 `JsonException` 行數/欄位攔截與友善錯誤提示，防止崩潰。
+  - [x] 9.4 **GitHub Actions 跨平台 CI/CD 建置**：
+    - 建立 `.github/workflows/ci.yml`，針對 `ubuntu-latest`, `windows-latest`, `macos-latest` 自動執行 `dotnet restore`, `dotnet build (Release)` 與 `dotnet test`。
 - **驗證方式**：
-  - 匯出多表單方案並以 `dotnet build` 驗證導航機制；測試損毀 JSON 檔案之防禦攔截；驗證 GitHub Actions 本地語法檢查。
+  - 匯出多表單方案並以 `dotnet build` 驗證導航機制；測試損毀 JSON 檔案之防禦攔截；驗證 GitHub Actions 跨平台工作流。
 
 ---
 

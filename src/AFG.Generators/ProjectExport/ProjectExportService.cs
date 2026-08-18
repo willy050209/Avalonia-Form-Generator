@@ -1,4 +1,7 @@
 // filepath: src/AFG.Generators/ProjectExport/ProjectExportService.cs
+using System.Collections.Immutable;
+using System.Text;
+using AFG.Core.Models.Ast;
 using AFG.Generators.Constants;
 using AFG.Generators.CSharpMarkup;
 
@@ -13,28 +16,36 @@ public sealed record ProjectExportOptions(
     string? CustomProjectName = null);
 
 /// <summary>
-/// 產出具備相依性注入 (DI) 與跨平台多專案架構 (.Shared, .Desktop, 可選 .Android) 之 Avalonia 現代化方案匯出服務。
+/// 產出具備相依性注入 (DI)、多表單導航 (NavigationService) 與跨平台多專案架構 (.Shared, .Desktop, 可選 .Android) 之 Avalonia 現代化方案匯出服務。
 /// </summary>
 public sealed class ProjectExportService(FormCodeGenerator? codeGenerator = null)
 {
     private readonly FormCodeGenerator _codeGenerator = codeGenerator ?? new FormCodeGenerator();
 
     /// <summary>
-    /// 生成包含 Visual Studio 現代化方案檔 (.slnx)、.Shared 共用核心、.Desktop 桌面宿主及可選 .Android 行動端專案的檔案集合。
+    /// 生成包含 Visual Studio 現代化方案檔 (.slnx)、.Shared 共用核心、.Desktop 桌面宿主及可選 .Android 行動端專案的單一表單檔案集合。
     /// </summary>
     public IReadOnlyList<GeneratedSourceFile> GenerateFullProject(FormDocument document, ProjectExportOptions? options = null)
     {
         ArgumentNullException.ThrowIfNull(document);
+        return GenerateMultiFormProject(FormProjectDefinition.FromSingleDocument(document), options);
+    }
+
+    /// <summary>
+    /// 生成包含多表單 (Multi-Form) 與導航服務 (NavigationService) 的完整跨平台方案檔案集合。
+    /// </summary>
+    public IReadOnlyList<GeneratedSourceFile> GenerateMultiFormProject(FormProjectDefinition project, ProjectExportOptions? options = null)
+    {
+        ArgumentNullException.ThrowIfNull(project);
         options ??= new ProjectExportOptions();
 
-        var result = _codeGenerator.GenerateAll(document);
+        if (project.Documents.Count == 0)
+        {
+            throw new ArgumentException("專案必須至少包含一個表單文檔。", nameof(project));
+        }
+
         var files = new List<GeneratedSourceFile>();
-
-        var rawName = string.IsNullOrWhiteSpace(document.ViewClassName)
-            ? "GeneratedApp"
-            : document.ViewClassName.Replace("View", "", StringComparison.Ordinal) + "App";
-
-        var baseProjectName = string.IsNullOrWhiteSpace(options.CustomProjectName) ? rawName : options.CustomProjectName.Trim();
+        var baseProjectName = string.IsNullOrWhiteSpace(options.CustomProjectName) ? project.ProjectName : options.CustomProjectName.Trim();
 
         var sharedProjectName = $"{baseProjectName}.Shared";
         var desktopProjectName = $"{baseProjectName}.Desktop";
@@ -109,13 +120,14 @@ public sealed class ProjectExportService(FormCodeGenerator? codeGenerator = null
         [*]
         indent_style = space
         indent_size = 4
-        end_of_line = crlf
+        end_of_line = lf
         charset = utf-8
         trim_trailing_whitespace = true
         insert_final_newline = true
 
         [*.cs]
         csharp_prefer_braces = true:suggestion
+        csharp_prefer_simple_using_statement = true:suggestion
         csharp_style_namespace_declarations = file_scoped:suggestion
         """;
         files.Add(new GeneratedSourceFile(".editorconfig", editorconfigContent, SourceFileType.ProjectFile));
@@ -130,7 +142,7 @@ public sealed class ProjectExportService(FormCodeGenerator? codeGenerator = null
             <Nullable>enable</Nullable>
             <ImplicitUsings>enable</ImplicitUsings>
             <LangVersion>latest</LangVersion>
-            <RootNamespace>{document.RootNamespace}</RootNamespace>
+            <RootNamespace>{project.RootNamespace}</RootNamespace>
             <NoWarn>$(NoWarn);NU1903</NoWarn>
           </PropertyGroup>
 
@@ -145,17 +157,33 @@ public sealed class ProjectExportService(FormCodeGenerator? codeGenerator = null
         """;
         files.Add(new GeneratedSourceFile(Path.Combine(sharedDir, $"{sharedProjectName}.csproj"), sharedCsprojContent, SourceFileType.ProjectFile));
 
-        var services = document.InjectedServices ?? [];
+        // 彙整所有文檔注入的服務
+        var allServices = project.Documents
+            .SelectMany(d => d.InjectedServices)
+            .DistinctBy(s => s.InterfaceName)
+            .ToList();
 
-        var serviceRegistrations = services.Count > 0
-            ? string.Join("\n", services.Select(s => $"        services.AddSingleton<{s.InterfaceName}, {(!string.IsNullOrEmpty(s.ImplementationName) ? s.ImplementationName : (s.InterfaceName.StartsWith('I') ? s.InterfaceName[1..] : $"{s.InterfaceName}Impl"))}>();")) + "\n"
+        var serviceRegistrations = allServices.Count > 0
+            ? string.Join("\n", allServices.Select(s => $"        services.AddSingleton<{s.InterfaceName}, {(!string.IsNullOrEmpty(s.ImplementationName) ? s.ImplementationName : (s.InterfaceName.StartsWith('I') ? s.InterfaceName[1..] : $"{s.InterfaceName}Impl"))}>();")) + "\n"
             : string.Empty;
 
-        var servicesUsing = services.Count > 0
-            ? $"global using {document.RootNamespace}.Services;"
-            : string.Empty;
+        // 彙整所有 View 與 ViewModel 註冊
+        var viewRegistrations = new StringBuilder();
+        foreach (var doc in project.Documents)
+        {
+            viewRegistrations.AppendLine($"        // 註冊 {doc.ViewClassName} 與對應 ViewModel");
+            viewRegistrations.AppendLine($"        services.AddTransient<{doc.ViewModelClassName}>();");
+            viewRegistrations.AppendLine($"        services.AddTransient<{doc.ViewClassName}>(sp =>");
+            viewRegistrations.AppendLine("        {");
+            viewRegistrations.AppendLine($"            var view = new {doc.ViewClassName}();");
+            viewRegistrations.AppendLine($"            view.DataContext = sp.GetRequiredService<{doc.ViewModelClassName}>();");
+            viewRegistrations.AppendLine("            return view;");
+            viewRegistrations.AppendLine("        });");
+        }
 
-        // App.cs（內建 DI 相依性注入與視窗最大化配置）
+        var initialDoc = project.Documents.FirstOrDefault(d => d.ViewClassName == project.InitialFormName) ?? project.Documents[0];
+
+        // App.cs（內建 DI 相依性注入、導航容器與視窗最大化配置）
         var appCs = $$"""
         // <auto-generated />
         using System;
@@ -166,14 +194,16 @@ public sealed class ProjectExportService(FormCodeGenerator? codeGenerator = null
         using Avalonia.Themes.Fluent;
         using Microsoft.Extensions.DependencyInjection;
 
-        namespace {{document.RootNamespace}};
+        namespace {{project.RootNamespace}};
 
         /// <summary>
-        /// 應用程式初始化、相依性注入 (DI) 與跨平台 UI 生命週期配置。
+        /// 應用程式初始化、相依性注入 (DI)、多表單導航與跨平台 UI 生命週期配置。
         /// </summary>
         public partial class App : Application
         {
             public static IServiceProvider Services { get; private set; } = null!;
+            private static Window? s_mainWindow;
+            private static ISingleViewApplicationLifetime? s_singleViewLifetime;
 
             public override void Initialize()
             {
@@ -191,38 +221,46 @@ public sealed class ProjectExportService(FormCodeGenerator? codeGenerator = null
                 // 桌面端生命週期 (視窗最大化啟動)
                 if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
                 {
-                    var mainView = Services.GetRequiredService<{{document.ViewClassName}}>();
-                    desktop.MainWindow = new Window
+                    var initialView = Services.GetRequiredService<{{initialDoc.ViewClassName}}>();
+                    s_mainWindow = new Window
                     {
                         Title = Config.AppTitle,
                         Width = Config.DefaultWindowWidth,
                         Height = Config.DefaultWindowHeight,
                         WindowState = WindowState.Maximized,
-                        Content = mainView
+                        Content = initialView
                     };
+                    desktop.MainWindow = s_mainWindow;
                 }
                 // 行動端生命週期 (Android / iOS 單視圖呈現)
                 else if (ApplicationLifetime is ISingleViewApplicationLifetime singleView)
                 {
-                    singleView.MainView = Services.GetRequiredService<{{document.ViewClassName}}>();
+                    s_singleViewLifetime = singleView;
+                    singleView.MainView = Services.GetRequiredService<{{initialDoc.ViewClassName}}>();
                 }
 
                 base.OnFrameworkInitializationCompleted();
             }
 
+            public static void SetActiveView(Control view)
+            {
+                if (s_mainWindow is not null)
+                {
+                    s_mainWindow.Content = view;
+                }
+                else if (s_singleViewLifetime is not null)
+                {
+                    s_singleViewLifetime.MainView = view;
+                }
+            }
+
             private static void ConfigureServices(IServiceCollection services)
             {
         {{serviceRegistrations}}
-                // 註冊檢視模型層 (ViewModels)
-                services.AddTransient<{{document.ViewModelClassName}}>();
+                // 註冊導航服務 (NavigationService)
+                services.AddSingleton<INavigationService, NavigationService>();
 
-                // 註冊檢視層 (Views) 並自動綁定 DataContext
-                services.AddTransient<{{document.ViewClassName}}>(sp =>
-                {
-                    var view = new {{document.ViewClassName}}();
-                    view.DataContext = sp.GetRequiredService<{{document.ViewModelClassName}}>();
-                    return view;
-                });
+        {{viewRegistrations.ToString().TrimEnd()}}
             }
         }
         """;
@@ -231,17 +269,17 @@ public sealed class ProjectExportService(FormCodeGenerator? codeGenerator = null
         // Config.cs
         var configCs = $$"""
         // <auto-generated />
-        namespace {{document.RootNamespace}};
+        namespace {{project.RootNamespace}};
 
         /// <summary>
         /// 全域靜態組態配置（視窗大小、標題、版本與目標平台等）。
         /// </summary>
         public static class Config
         {
-            public const string AppTitle = "{{document.Title}}";
+            public const string AppTitle = "{{project.Title}}";
             public const string Version = "1.0.0";
-            public const double DefaultWindowWidth = {{document.CanvasWidth}};
-            public const double DefaultWindowHeight = {{document.CanvasHeight}};
+            public const double DefaultWindowWidth = {{initialDoc.CanvasWidth}};
+            public const double DefaultWindowHeight = {{initialDoc.CanvasHeight}};
             public const bool IsMobileSupported = {{(options.IncludeMobileProject ? "true" : "false")}};
         }
         """;
@@ -265,8 +303,8 @@ public sealed class ProjectExportService(FormCodeGenerator? codeGenerator = null
         global using CommunityToolkit.Mvvm.ComponentModel;
         global using CommunityToolkit.Mvvm.Input;
         global using Microsoft.Extensions.DependencyInjection;
-        global using {{document.RootNamespace}};
-        {{servicesUsing}}
+        global using {{project.RootNamespace}};
+        global using {{project.RootNamespace}}.Services;
         """;
         files.Add(new GeneratedSourceFile(Path.Combine(sharedDir, "GlobalUsings.cs"), globalUsingsCs, SourceFileType.ProjectFile));
 
@@ -276,8 +314,52 @@ public sealed class ProjectExportService(FormCodeGenerator? codeGenerator = null
             AvaloniaMarkupExtensionsSource.Code,
             SourceFileType.ProjectFile));
 
-        // 服務層介面與實作：Services/*.cs
-        foreach (var svc in services)
+        // 導航介面與實作：Services/INavigationService.cs & Services/NavigationService.cs
+        var inavCs = $$"""
+        // <auto-generated />
+        using System;
+        using Avalonia.Controls;
+
+        namespace {{project.RootNamespace}}.Services;
+
+        /// <summary>
+        /// 提供多表單與頁面間切換導航的統一介面。
+        /// </summary>
+        public interface INavigationService
+        {
+            void NavigateTo<TView>() where TView : Control;
+            void NavigateTo(Type viewType);
+        }
+        """;
+        files.Add(new GeneratedSourceFile(Path.Combine(sharedDir, "Services", "INavigationService.cs"), inavCs, SourceFileType.ProjectFile));
+
+        var navCs = $$"""
+        // <auto-generated />
+        using System;
+        using Avalonia.Controls;
+        using Microsoft.Extensions.DependencyInjection;
+
+        namespace {{project.RootNamespace}}.Services;
+
+        /// <summary>
+        /// 透過 DI 容器與 App 宿主進行視圖切換的導航服務實作。
+        /// </summary>
+        public sealed class NavigationService(IServiceProvider serviceProvider) : INavigationService
+        {
+            public void NavigateTo<TView>() where TView : Control => NavigateTo(typeof(TView));
+
+            public void NavigateTo(Type viewType)
+            {
+                ArgumentNullException.ThrowIfNull(viewType);
+                var view = (Control)serviceProvider.GetRequiredService(viewType);
+                App.SetActiveView(view);
+            }
+        }
+        """;
+        files.Add(new GeneratedSourceFile(Path.Combine(sharedDir, "Services", "NavigationService.cs"), navCs, SourceFileType.ProjectFile));
+
+        // 自訂 DI 服務層介面與實作：Services/*.cs
+        foreach (var svc in allServices)
         {
             var implName = !string.IsNullOrEmpty(svc.ImplementationName)
                 ? svc.ImplementationName
@@ -285,7 +367,7 @@ public sealed class ProjectExportService(FormCodeGenerator? codeGenerator = null
 
             var ifaceCs = $$"""
             // <auto-generated />
-            namespace {{document.RootNamespace}}.Services;
+            namespace {{project.RootNamespace}}.Services;
 
             public interface {{svc.InterfaceName}}
             {
@@ -296,7 +378,7 @@ public sealed class ProjectExportService(FormCodeGenerator? codeGenerator = null
 
             var implCs = $$"""
             // <auto-generated />
-            namespace {{document.RootNamespace}}.Services;
+            namespace {{project.RootNamespace}}.Services;
 
             public sealed class {{implName}} : {{svc.InterfaceName}}
             {
@@ -306,23 +388,27 @@ public sealed class ProjectExportService(FormCodeGenerator? codeGenerator = null
             files.Add(new GeneratedSourceFile(Path.Combine(sharedDir, "Services", $"{implName}.cs"), implCs, SourceFileType.ProjectFile));
         }
 
-        // 檢視層與檢視模型層：Views 與 ViewModels
-        var viewFile = result.Files.FirstOrDefault(f => f.FileType == SourceFileType.View);
-        if (viewFile is not null)
+        // 依序生成所有表單之 Views 與 ViewModels
+        foreach (var doc in project.Documents)
         {
-            files.Add(new GeneratedSourceFile(
-                Path.Combine(sharedDir, "Views", viewFile.FileName),
-                viewFile.Content,
-                SourceFileType.View));
-        }
+            var genResult = _codeGenerator.GenerateAll(doc);
+            var viewFile = genResult.Files.FirstOrDefault(f => f.FileType == SourceFileType.View);
+            if (viewFile is not null)
+            {
+                files.Add(new GeneratedSourceFile(
+                    Path.Combine(sharedDir, "Views", viewFile.FileName),
+                    viewFile.Content,
+                    SourceFileType.View));
+            }
 
-        var vmFile = result.Files.FirstOrDefault(f => f.FileType == SourceFileType.ViewModel);
-        if (vmFile is not null)
-        {
-            files.Add(new GeneratedSourceFile(
-                Path.Combine(sharedDir, "ViewModels", vmFile.FileName),
-                vmFile.Content,
-                SourceFileType.ViewModel));
+            var vmFile = genResult.Files.FirstOrDefault(f => f.FileType == SourceFileType.ViewModel);
+            if (vmFile is not null)
+            {
+                files.Add(new GeneratedSourceFile(
+                    Path.Combine(sharedDir, "ViewModels", vmFile.FileName),
+                    vmFile.Content,
+                    SourceFileType.ViewModel));
+            }
         }
 
         // ==========================================
@@ -336,7 +422,7 @@ public sealed class ProjectExportService(FormCodeGenerator? codeGenerator = null
             <Nullable>enable</Nullable>
             <ImplicitUsings>enable</ImplicitUsings>
             <LangVersion>latest</LangVersion>
-            <RootNamespace>{document.RootNamespace}.Desktop</RootNamespace>
+            <RootNamespace>{project.RootNamespace}.Desktop</RootNamespace>
             <NoWarn>$(NoWarn);NU1903</NoWarn>
           </PropertyGroup>
 
@@ -352,9 +438,9 @@ public sealed class ProjectExportService(FormCodeGenerator? codeGenerator = null
         // <auto-generated />
         using System;
         using Avalonia;
-        using {{document.RootNamespace}};
+        using {{project.RootNamespace}};
 
-        namespace {{document.RootNamespace}}.Desktop;
+        namespace {{project.RootNamespace}}.Desktop;
 
         internal static class Program
         {
@@ -385,7 +471,7 @@ public sealed class ProjectExportService(FormCodeGenerator? codeGenerator = null
                 <Nullable>enable</Nullable>
                 <ImplicitUsings>enable</ImplicitUsings>
                 <LangVersion>latest</LangVersion>
-                <RootNamespace>{document.RootNamespace}.Android</RootNamespace>
+                <RootNamespace>{project.RootNamespace}.Android</RootNamespace>
               </PropertyGroup>
 
               <ItemGroup>
@@ -402,12 +488,12 @@ public sealed class ProjectExportService(FormCodeGenerator? codeGenerator = null
             using Android.Content.PM;
             using Avalonia;
             using Avalonia.Android;
-            using {{document.RootNamespace}};
+            using {{project.RootNamespace}};
 
-            namespace {{document.RootNamespace}}.Android;
+            namespace {{project.RootNamespace}}.Android;
 
             [Activity(
-                Label = "{{document.Title}}",
+                Label = "{{project.Title}}",
                 Theme = "@style/MyTheme.NoActionBar",
                 Icon = "@drawable/icon",
                 MainLauncher = true,
@@ -426,13 +512,13 @@ public sealed class ProjectExportService(FormCodeGenerator? codeGenerator = null
             var splashActivityCs = $$"""
             // <auto-generated />
             using Android.App;
-            using Android.Content;
+            using Android.Content.PM;
             using Android.OS;
             using Avalonia;
             using Avalonia.Android;
-            using {{document.RootNamespace}};
+            using {{project.RootNamespace}};
 
-            namespace {{document.RootNamespace}}.Android;
+            namespace {{project.RootNamespace}}.Android;
 
             [Activity(
                 Theme = "@style/MyTheme.Splash",
@@ -455,7 +541,7 @@ public sealed class ProjectExportService(FormCodeGenerator? codeGenerator = null
                       android:versionCode="1"
                       android:versionName="1.0">
               <uses-sdk android:minSdkVersion="21" android:targetSdkVersion="34" />
-              <application android:label="{{document.Title}}" android:theme="@style/MyTheme.NoActionBar" />
+              <application android:label="{{project.Title}}" android:theme="@style/MyTheme.NoActionBar" />
             </manifest>
             """;
             files.Add(new GeneratedSourceFile(Path.Combine(androidDir, "AndroidManifest.xml"), androidManifestXml, SourceFileType.ProjectFile));
@@ -470,6 +556,15 @@ public sealed class ProjectExportService(FormCodeGenerator? codeGenerator = null
     public async Task ExportToFolderAsync(FormDocument document, string destinationDirectory, ProjectExportOptions? options = null, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(document);
+        await ExportMultiFormToFolderAsync(FormProjectDefinition.FromSingleDocument(document), destinationDirectory, options, cancellationToken);
+    }
+
+    /// <summary>
+    /// 將多表單專案檔案寫出至本機資料夾，並自動建立分層子資料夾階層。
+    /// </summary>
+    public async Task ExportMultiFormToFolderAsync(FormProjectDefinition project, string destinationDirectory, ProjectExportOptions? options = null, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(project);
         ArgumentException.ThrowIfNullOrWhiteSpace(destinationDirectory);
 
         if (!Directory.Exists(destinationDirectory))
@@ -477,7 +572,7 @@ public sealed class ProjectExportService(FormCodeGenerator? codeGenerator = null
             Directory.CreateDirectory(destinationDirectory);
         }
 
-        var files = GenerateFullProject(document, options);
+        var files = GenerateMultiFormProject(project, options);
         foreach (var file in files)
         {
             var filePath = Path.Combine(destinationDirectory, file.FileName);

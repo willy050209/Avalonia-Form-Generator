@@ -91,18 +91,26 @@
                               FontSize="12" />
                 </StackPanel>
 
-                <!-- 右側代碼生成操作 -->
-                <StackPanel Grid.Column="5" Orientation="Horizontal" Spacing="8">
-                    <Button Command="{Binding CopyViewCodeCommand}" Content="複製 View C#" />
-                    <Button Command="{Binding CopyVmCodeCommand}" Content="複製 ViewModel C#" />
+                <!-- 右側面板摺疊切換與代碼複製操作 -->
+                <StackPanel Grid.Column="5" Orientation="Horizontal" Spacing="6">
+                    <ToggleButton IsChecked="{Binding IsLeftPanelVisible, Mode=TwoWay}" ToolTip.Tip="顯示/隱藏左側工具箱與元件樹" Content="工具箱" />
+                    <ToggleButton IsChecked="{Binding IsCodePanelVisible, Mode=TwoWay}" ToolTip.Tip="顯示/隱藏底部程式碼預覽" Content="程式碼" />
+                    <ToggleButton IsChecked="{Binding IsRightPanelVisible, Mode=TwoWay}" ToolTip.Tip="顯示/隱藏右側屬性檢查器" Content="屬性欄" />
+                    <Button Command="{Binding CopyViewCodeCommand}" Content="複製 View" />
+                    <Button Command="{Binding CopyVmCodeCommand}" Content="複製 VM" />
                 </StackPanel>
             </Grid>
         </Border>
 
-        <!-- 中間主工作區 -->
-        <Grid Grid.Row="1" ColumnDefinitions="260, 4, *, 4, 320">
+        <!-- 中間主工作區（支援左側、底部、右側面板摺疊展開） -->
+        <Grid Grid.Row="1" ColumnDefinitions="Auto, Auto, *, Auto, Auto">
             <!-- 左側邊欄：工具箱與 DOM 樹 -->
-            <Border Grid.Column="0" Background="#18181B" BorderBrush="#27272A" BorderThickness="0,0,1,0">
+            <Border Grid.Column="0"
+                    Width="260"
+                    IsVisible="{Binding IsLeftPanelVisible}"
+                    Background="#18181B"
+                    BorderBrush="#27272A"
+                    BorderThickness="0,0,1,0">
                 <TabControl>
                     <TabItem Header="工具箱">
                         <views:ToolboxView DataContext="{Binding Toolbox}" />
@@ -113,10 +121,14 @@
                 </TabControl>
             </Border>
 
-            <GridSplitter Grid.Column="1" Background="#27272A" ResizeDirection="Columns" />
+            <GridSplitter Grid.Column="1"
+                          Width="4"
+                          IsVisible="{Binding IsLeftPanelVisible}"
+                          Background="#27272A"
+                          ResizeDirection="Columns" />
 
             <!-- 中央區塊：設計畫布與即時程式碼預覽 -->
-            <Grid Grid.Column="2" RowDefinitions="*, 4, 220">
+            <Grid Grid.Column="2" RowDefinitions="*, Auto, Auto">
                 <!-- 視覺畫布區 (ScrollViewer) -->
                 <ScrollViewer Grid.Row="0"
                               HorizontalScrollBarVisibility="Auto"
@@ -135,10 +147,17 @@
                     </Border>
                 </ScrollViewer>
 
-                <GridSplitter Grid.Row="1" Background="#27272A" ResizeDirection="Rows" />
+                <GridSplitter Grid.Row="1"
+                              Height="4"
+                              IsVisible="{Binding IsCodePanelVisible}"
+                              Background="#27272A"
+                              ResizeDirection="Rows" />
 
                 <!-- 底部即時程式碼預覽區 -->
-                <Border Grid.Row="2" Background="#18181B">
+                <Border Grid.Row="2"
+                        Height="220"
+                        IsVisible="{Binding IsCodePanelVisible}"
+                        Background="#18181B">
                     <TabControl>
                         <TabItem Header="View (C# Markup)">
                             <TextBox Text="{Binding GeneratedViewCode}"
@@ -164,10 +183,19 @@
                 </Border>
             </Grid>
 
-            <GridSplitter Grid.Column="3" Background="#27272A" ResizeDirection="Columns" />
+            <GridSplitter Grid.Column="3"
+                          Width="4"
+                          IsVisible="{Binding IsRightPanelVisible}"
+                          Background="#27272A"
+                          ResizeDirection="Columns" />
 
             <!-- 右側邊欄：完整屬性與事件檢查器 (Inspector) -->
-            <Border Grid.Column="4" Background="#18181B" BorderBrush="#27272A" BorderThickness="1,0,0,0">
+            <Border Grid.Column="4"
+                    Width="320"
+                    IsVisible="{Binding IsRightPanelVisible}"
+                    Background="#18181B"
+                    BorderBrush="#27272A"
+                    BorderThickness="1,0,0,0">
                 <views:InspectorView DataContext="{Binding Inspector}" />
             </Border>
         </Grid>

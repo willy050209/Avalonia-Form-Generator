@@ -31,6 +31,15 @@ public sealed partial class MainViewModel : ObservableObject
     [ObservableProperty]
     private int _validationErrorCount;
 
+    [ObservableProperty]
+    private bool _isLeftPanelVisible = true;
+
+    [ObservableProperty]
+    private bool _isRightPanelVisible = true;
+
+    [ObservableProperty]
+    private bool _isCodePanelVisible;
+
     public MainViewModel(
         IFileDialogService? fileDialogService = null,
         IClipboardService? clipboardService = null,
@@ -86,6 +95,15 @@ public sealed partial class MainViewModel : ObservableObject
     }
 
     [RelayCommand]
+    private void ToggleLeftPanel() => IsLeftPanelVisible = !IsLeftPanelVisible;
+
+    [RelayCommand]
+    private void ToggleRightPanel() => IsRightPanelVisible = !IsRightPanelVisible;
+
+    [RelayCommand]
+    private void ToggleCodePanel() => IsCodePanelVisible = !IsCodePanelVisible;
+
+    [RelayCommand]
     private void NewDocument()
     {
         Canvas.LoadDocument(FormDocument.CreateDefault());
@@ -107,9 +125,13 @@ public sealed partial class MainViewModel : ObservableObject
             Canvas.LoadDocument(doc);
             _notificationService?.Show("開啟成功", $"已成功載入 {System.IO.Path.GetFileName(path)}");
         }
+        catch (System.Text.Json.JsonException jex)
+        {
+            _notificationService?.Show("檔案損毀", $"表單 JSON 格式錯誤 (行 {jex.LineNumber}, 欄 {jex.BytePositionInLine}):\n{jex.Message}", isError: true);
+        }
         catch (Exception ex)
         {
-            _notificationService?.Show("開啟失敗", ex.Message, isError: true);
+            _notificationService?.Show("開啟失敗", $"讀取表單失敗: {ex.Message}", isError: true);
         }
     }
 
