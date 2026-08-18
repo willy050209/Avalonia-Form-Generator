@@ -231,7 +231,26 @@ public sealed partial class CanvasViewModel : ObservableObject
         ArgumentNullException.ThrowIfNull(item);
         PushHistory();
 
-        var parentId = targetParentId ?? Document.RootNode.Id;
+        var parentId = targetParentId;
+        if (parentId is null)
+        {
+            // 1. 若目前選取的節點本身是容器，優先將元件放入該容器
+            if (SelectedNode is not null && SelectedNode.IsContainer)
+            {
+                parentId = SelectedNode.Id;
+            }
+            // 2. 若提供了滑鼠放置座標，命中測試畫布中該位置最深層的容器
+            else if (left.HasValue && top.HasValue)
+            {
+                var container = FindInnermostContainerAt(Document.RootNode, left.Value, top.Value);
+                if (container is not null)
+                {
+                    parentId = container.Id;
+                }
+            }
+        }
+
+        parentId ??= Document.RootNode.Id;
         var parentNode = AstTreeOperations.FindNodeById(Document.RootNode, parentId) ?? Document.RootNode;
 
         var defaultLeft = left ?? 40;
@@ -246,16 +265,19 @@ public sealed partial class CanvasViewModel : ObservableObject
         var (clampedLeft, clampedTop) = AstTreeOperations.ClampCoordinates(
             defaultLeft, defaultTop, item.DefaultWidth, item.DefaultHeight, Document.CanvasWidth, Document.CanvasHeight);
 
+        var isParentCanvas = parentNode.Type == ControlType.Canvas;
         var newNode = new AstNode
         {
             Name = $"{item.DisplayName}_{Guid.NewGuid():N}"[..12],
             Type = item.Type,
-            Width = item.DefaultWidth,
-            Height = item.DefaultHeight,
+            Width = isParentCanvas ? item.DefaultWidth : null,
+            Height = isParentCanvas ? item.DefaultHeight : null,
             Content = item.DefaultContent,
             Text = item.DefaultContent,
-            CanvasLeft = parentNode.Type == ControlType.Canvas ? clampedLeft : null,
-            CanvasTop = parentNode.Type == ControlType.Canvas ? clampedTop : null
+            CanvasLeft = isParentCanvas ? clampedLeft : null,
+            CanvasTop = isParentCanvas ? clampedTop : null,
+            HorizontalAlignment = isParentCanvas ? Core.Enums.HorizontalAlignment.Left : Core.Enums.HorizontalAlignment.Stretch,
+            VerticalAlignment = isParentCanvas ? Core.Enums.VerticalAlignment.Top : Core.Enums.VerticalAlignment.Stretch
         };
 
         var newRoot = AstTreeOperations.AddChild(Document.RootNode, parentId, newNode);
@@ -264,6 +286,31 @@ public sealed partial class CanvasViewModel : ObservableObject
 
         DocumentChanged?.Invoke(Document);
         SelectionChanged?.Invoke(SelectedNode);
+    }
+
+    public static AstNode? FindInnermostContainerAt(AstNode root, double x, double y)
+    {
+        for (var i = root.Children.Count - 1; i >= 0; i--)
+        {
+            var child = root.Children[i];
+            if (!child.IsContainer)
+            {
+                continue;
+            }
+
+            var left = child.CanvasLeft ?? 0;
+            var top = child.CanvasTop ?? 0;
+            var width = child.Width ?? 200;
+            var height = child.Height ?? 150;
+
+            if (x >= left && x <= left + width && y >= top && y <= top + height)
+            {
+                var deeper = FindInnermostContainerAt(child, x - left, y - top);
+                return deeper ?? child;
+            }
+        }
+
+        return null;
     }
 
     public void MoveNode(string nodeId, double rawLeft, double rawTop)

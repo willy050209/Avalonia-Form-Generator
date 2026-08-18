@@ -228,6 +228,25 @@ public sealed class AstTreeOperationsTests
     }
 
     [Fact]
+    public void AddChild_IntoNestedContainer_ShouldInsertCorrectlyAndBeFound()
+    {
+        // Arrange
+        var stack = new AstNode { Id = "stack1", Type = ControlType.StackPanel };
+        var root = new AstNode { Id = "root_canvas", Type = ControlType.Canvas, Children = [stack] };
+        var button = new AstNode { Id = "btn1", Type = ControlType.Button, Content = "Submit" };
+
+        // Act
+        var newRoot = AstTreeOperations.AddChild(root, "stack1", button);
+
+        // Assert
+        var foundStack = AstTreeOperations.FindNodeById(newRoot, "stack1");
+        foundStack.Should().NotBeNull();
+        foundStack!.Children.Should().HaveCount(1);
+        foundStack.Children[0].Id.Should().Be("btn1");
+        foundStack.Children[0].Content.Should().Be("Submit");
+    }
+
+    [Fact]
     public void ClampCoordinates_ShouldPreventNegativeOrOutOfCanvasCoordinates()
     {
         var (cLeft1, cTop1) = AstTreeOperations.ClampCoordinates(-50, -20, 100, 30, 800, 600);

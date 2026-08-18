@@ -206,6 +206,47 @@ public sealed class DesignCanvas : Grid
                 }
                 control = innerCanvas;
                 break;
+            case ControlType.DockPanel:
+                var dockPanel = new DockPanel
+                {
+                    Background = new SolidColorBrush(Color.FromArgb(20, 255, 255, 255))
+                };
+                foreach (var child in node.Children)
+                {
+                    var childCtrl = CreateControlFromNode(child);
+                    if (child.Dock.HasValue)
+                    {
+                        DockPanel.SetDock(childCtrl, (Avalonia.Controls.Dock)child.Dock.Value);
+                    }
+                    dockPanel.Children.Add(childCtrl);
+                }
+                control = dockPanel;
+                break;
+            case ControlType.WrapPanel:
+                var wrapPanel = new WrapPanel
+                {
+                    Background = new SolidColorBrush(Color.FromArgb(20, 255, 255, 255)),
+                    Orientation = (node.Orientation ?? Core.Enums.Orientation.Horizontal) == Core.Enums.Orientation.Vertical
+                        ? Avalonia.Layout.Orientation.Vertical
+                        : Avalonia.Layout.Orientation.Horizontal
+                };
+                foreach (var child in node.Children)
+                {
+                    wrapPanel.Children.Add(CreateControlFromNode(child));
+                }
+                control = wrapPanel;
+                break;
+            case ControlType.ScrollViewer:
+                var scrollViewer = new ScrollViewer
+                {
+                    Background = new SolidColorBrush(Color.FromArgb(20, 255, 255, 255))
+                };
+                if (node.Children.Count > 0)
+                {
+                    scrollViewer.Content = CreateControlFromNode(node.Children[0]);
+                }
+                control = scrollViewer;
+                break;
             case ControlType.DispatcherTimer or ControlType.BackgroundWorker or ControlType.BluetoothClient or ControlType.SerialPortService:
                 var iconTag = node.Type switch
                 {
@@ -554,14 +595,31 @@ public sealed class DesignCanvas : Grid
             return null;
         }
 
-        // 從上層 (後加入者) 優先測試直屬與遞迴子節點
-        for (var i = ViewModel.Document.RootNode.Children.Count - 1; i >= 0; i--)
+        return HitTestNodeRecursive(ViewModel.Document.RootNode, pos);
+    }
+
+    private static AstNode? HitTestNodeRecursive(AstNode parent, Point pos, double offsetX = 0, double offsetY = 0)
+    {
+        for (var i = parent.Children.Count - 1; i >= 0; i--)
         {
-            var node = ViewModel.Document.RootNode.Children[i];
-            var bounds = GetNodeBounds(node);
+            var child = parent.Children[i];
+            var childX = offsetX + (child.CanvasLeft ?? 0);
+            var childY = offsetY + (child.CanvasTop ?? 0);
+            var childW = child.Width ?? 120;
+            var childH = child.Height ?? 35;
+
+            var bounds = new Rect(childX, childY, childW, childH);
             if (bounds.Contains(pos))
             {
-                return node;
+                if (child.Children.Count > 0)
+                {
+                    var deeper = HitTestNodeRecursive(child, pos, childX, childY);
+                    if (deeper is not null)
+                    {
+                        return deeper;
+                    }
+                }
+                return child;
             }
         }
 
