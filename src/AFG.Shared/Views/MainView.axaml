@@ -30,7 +30,7 @@
                     <Separator />
                     <MenuItem Header="複製節點" Command="{Binding CopyNodesCommand}" InputGesture="Ctrl+C" />
                     <MenuItem Header="貼上節點" Command="{Binding PasteNodesCommand}" InputGesture="Ctrl+V" />
-                    <MenuItem Header="刪除選取" Command="{Binding DeleteSelectedNodeCommand}" InputGesture="Del" />
+                    <MenuItem Header="刪除選取" Command="{Binding DeleteSelectedNodeCommand}" InputGesture="Delete" />
                 </MenuItem>
                 <MenuItem Header="排版對齊(_A)">
                     <MenuItem Header="靠左對齊" Command="{Binding AlignLeftCommand}" />
