@@ -28,5 +28,11 @@ public enum ControlType
     StackPanel,
     DockPanel,
     WrapPanel,
-    ScrollViewer
+    ScrollViewer,
+
+    // 不可視元件與通訊服務
+    DispatcherTimer,
+    BackgroundWorker,
+    BluetoothClient,
+    SerialPortService
 }

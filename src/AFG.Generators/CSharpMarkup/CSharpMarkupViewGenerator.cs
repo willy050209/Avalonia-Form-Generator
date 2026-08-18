@@ -36,7 +36,7 @@ public sealed class CSharpMarkupViewGenerator : ICodeGenerator
         sb.AppendLine("    {");
 
         // 遞迴生成根節點
-        var rootCode = GenerateNodeCode(document.RootNode, indentLevel: 2, document.ViewModelClassName);
+        var rootCode = GenerateNodeCode(document.RootNode, indentLevel: 2, document.ViewModelClassName, document.UseCompiledBindings);
         sb.AppendLine($"        Content = {rootCode};");
 
         sb.AppendLine("    }");
@@ -51,7 +51,7 @@ public sealed class CSharpMarkupViewGenerator : ICodeGenerator
     /// <summary>
     /// 遞迴將 AST 節點轉換為 C# Fluent 鏈式調用語法。
     /// </summary>
-    public static string GenerateNodeCode(AstNode node, int indentLevel, string viewModelClassName)
+    public static string GenerateNodeCode(AstNode node, int indentLevel, string viewModelClassName, bool useCompiledBindings = false)
     {
         ArgumentNullException.ThrowIfNull(node);
 
@@ -253,19 +253,31 @@ public sealed class CSharpMarkupViewGenerator : ICodeGenerator
         // 5. MVVM 綁定配置
         foreach (var binding in node.Bindings)
         {
-            var bindingCall = binding.Mode switch
-            {
-                BindingMode.TwoWay => $".{binding.TargetProperty}(nameof({viewModelClassName}.{binding.ViewModelProperty}), BindingMode.TwoWay)",
-                BindingMode.OneWay => $".{binding.TargetProperty}(nameof({viewModelClassName}.{binding.ViewModelProperty}), BindingMode.OneWay)",
-                _ => $".{binding.TargetProperty}(nameof({viewModelClassName}.{binding.ViewModelProperty}))"
-            };
+            var bindingCall = useCompiledBindings
+                ? binding.Mode switch
+                {
+                    BindingMode.TwoWay => $".{binding.TargetProperty}(({viewModelClassName} vm) => vm.{binding.ViewModelProperty}, BindingMode.TwoWay)",
+                    BindingMode.OneWay => $".{binding.TargetProperty}(({viewModelClassName} vm) => vm.{binding.ViewModelProperty}, BindingMode.OneWay)",
+                    _ => $".{binding.TargetProperty}(({viewModelClassName} vm) => vm.{binding.ViewModelProperty})"
+                }
+                : binding.Mode switch
+                {
+                    BindingMode.TwoWay => $".{binding.TargetProperty}(nameof({viewModelClassName}.{binding.ViewModelProperty}), BindingMode.TwoWay)",
+                    BindingMode.OneWay => $".{binding.TargetProperty}(nameof({viewModelClassName}.{binding.ViewModelProperty}), BindingMode.OneWay)",
+                    _ => $".{binding.TargetProperty}(nameof({viewModelClassName}.{binding.ViewModelProperty}))"
+                };
+
             sb.AppendLine($"{innerIndent}{bindingCall}");
         }
 
         // 6. 事件映射至命令
         foreach (var evt in node.Events)
         {
-            sb.AppendLine($"{innerIndent}.Command(nameof({viewModelClassName}.{evt.CommandProperty}))");
+            var cmdCall = useCompiledBindings
+                ? $".Command(({viewModelClassName} vm) => vm.{evt.CommandProperty})"
+                : $".Command(nameof({viewModelClassName}.{evt.CommandProperty}))";
+
+            sb.AppendLine($"{innerIndent}{cmdCall}");
         }
 
         // 7. 遞迴子節點 (Children)
@@ -274,7 +286,7 @@ public sealed class CSharpMarkupViewGenerator : ICodeGenerator
             sb.AppendLine($"{innerIndent}.Children(");
             for (var i = 0; i < node.Children.Count; i++)
             {
-                var childCode = GenerateNodeCode(node.Children[i], indentLevel + 2, viewModelClassName);
+                var childCode = GenerateNodeCode(node.Children[i], indentLevel + 2, viewModelClassName, useCompiledBindings);
                 var isLast = i == node.Children.Count - 1;
                 var trailingComma = isLast ? string.Empty : ",";
                 sb.AppendLine($"{new string(' ', (indentLevel + 2) * 4)}{childCode}{trailingComma}");

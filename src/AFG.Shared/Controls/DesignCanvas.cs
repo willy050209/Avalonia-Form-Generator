@@ -204,6 +204,36 @@ public sealed class DesignCanvas : Grid
                 }
                 control = innerCanvas;
                 break;
+            case ControlType.DispatcherTimer or ControlType.BackgroundWorker or ControlType.BluetoothClient or ControlType.SerialPortService:
+                var iconTag = node.Type switch
+                {
+                    ControlType.DispatcherTimer => "[Timer]",
+                    ControlType.BackgroundWorker => "[Worker]",
+                    ControlType.BluetoothClient => "[BLE]",
+                    ControlType.SerialPortService => "[COM]",
+                    _ => "[Service]"
+                };
+                var compBorder = new Border
+                {
+                    Background = new SolidColorBrush(Color.FromArgb(220, 30, 41, 59)),
+                    BorderBrush = new SolidColorBrush(Color.FromRgb(56, 189, 248)),
+                    BorderThickness = new Thickness(1.5),
+                    CornerRadius = new CornerRadius(6),
+                    Padding = new Thickness(6, 4),
+                    Child = new StackPanel
+                    {
+                        Orientation = Avalonia.Layout.Orientation.Horizontal,
+                        Spacing = 6,
+                        VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center,
+                        Children =
+                        {
+                            new TextBlock { Text = iconTag, FontWeight = FontWeight.Bold, Foreground = new SolidColorBrush(Color.FromRgb(56, 189, 248)), FontSize = 11 },
+                            new TextBlock { Text = node.Name, Foreground = Brushes.White, FontSize = 11, VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center }
+                        }
+                    }
+                };
+                control = compBorder;
+                break;
             default:
                 control = new Button { Content = node.Name };
                 break;

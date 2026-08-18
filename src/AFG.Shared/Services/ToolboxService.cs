@@ -25,7 +25,13 @@ public static class ToolboxService
         new("StackPanel", "佈局容器", ControlType.StackPanel, "Stk", 300, 200),
         new("Canvas", "佈局容器", ControlType.Canvas, "Cvs", 400, 300),
         new("DockPanel", "佈局容器", ControlType.DockPanel, "Dck", 400, 300),
-        new("ScrollViewer", "佈局容器", ControlType.ScrollViewer, "Scr", 300, 200)
+        new("ScrollViewer", "佈局容器", ControlType.ScrollViewer, "Scr", 300, 200),
+
+        // 不可視元件與硬體通訊
+        new("DispatcherTimer", "不可視元件", ControlType.DispatcherTimer, "Tmr", 150, 40, "計時器 (Timer)"),
+        new("BackgroundWorker", "不可視元件", ControlType.BackgroundWorker, "Bgw", 150, 40, "背景工作 (Worker)"),
+        new("BluetoothClient", "硬體通訊", ControlType.BluetoothClient, "Ble", 150, 40, "藍牙通訊 (BLE)"),
+        new("SerialPortService", "硬體通訊", ControlType.SerialPortService, "Com", 150, 40, "序列埠 (COM)")
     ];
 
     public static IReadOnlyList<ToolboxItem> GetAvailableItems() => Items;

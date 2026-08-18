@@ -1,4 +1,5 @@
 // filepath: src/AFG.Generators/ProjectExport/ProjectExportService.cs
+using AFG.Generators.Constants;
 using AFG.Generators.CSharpMarkup;
 
 namespace AFG.Generators.ProjectExport;
@@ -134,11 +135,11 @@ public sealed class ProjectExportService(FormCodeGenerator? codeGenerator = null
           </PropertyGroup>
 
           <ItemGroup>
-            <PackageReference Include="Avalonia" Version="11.2.5" />
-            <PackageReference Include="Avalonia.Themes.Fluent" Version="11.2.5" />
-            <PackageReference Include="Avalonia.Fonts.Inter" Version="11.2.5" />
-            <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
-            <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.2" />
+            <PackageReference Include="Avalonia" Version="{PackageVersions.Avalonia}" />
+            <PackageReference Include="Avalonia.Themes.Fluent" Version="{PackageVersions.Avalonia}" />
+            <PackageReference Include="Avalonia.Fonts.Inter" Version="{PackageVersions.Avalonia}" />
+            <PackageReference Include="CommunityToolkit.Mvvm" Version="{PackageVersions.CommunityToolkitMvvm}" />
+            <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="{PackageVersions.MicrosoftExtensionsDependencyInjection}" />
           </ItemGroup>
         </Project>
         """;
@@ -341,7 +342,7 @@ public sealed class ProjectExportService(FormCodeGenerator? codeGenerator = null
 
           <ItemGroup>
             <ProjectReference Include="..\{sharedProjectName}\{sharedProjectName}.csproj" />
-            <PackageReference Include="Avalonia.Desktop" Version="11.2.5" />
+            <PackageReference Include="Avalonia.Desktop" Version="{PackageVersions.Avalonia}" />
           </ItemGroup>
         </Project>
         """;
@@ -389,7 +390,7 @@ public sealed class ProjectExportService(FormCodeGenerator? codeGenerator = null
 
               <ItemGroup>
                 <ProjectReference Include="..\{sharedProjectName}\{sharedProjectName}.csproj" />
-                <PackageReference Include="Avalonia.Android" Version="11.2.5" />
+                <PackageReference Include="Avalonia.Android" Version="{PackageVersions.Avalonia}" />
               </ItemGroup>
             </Project>
             """;

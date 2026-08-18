@@ -47,6 +47,11 @@ public sealed record FormDocument
     public bool EnableDependencyInjection { get; init; } = true;
 
     /// <summary>
+    /// 是否使用強型別編譯綁定 (Compiled / Lambda Bindings) 語法。
+    /// </summary>
+    public bool UseCompiledBindings { get; init; }
+
+    /// <summary>
     /// 注入至此 ViewModel 的自訂服務相依性清單（為空時產出乾淨無參數 ViewModel）。
     /// </summary>
     public ImmutableList<ServiceDependencyDefinition> InjectedServices { get; init; } = [];

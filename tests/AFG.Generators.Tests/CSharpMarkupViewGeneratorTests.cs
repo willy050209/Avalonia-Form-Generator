@@ -2,7 +2,7 @@
 namespace AFG.Generators.Tests;
 
 /// <summary>
-/// 驗證 C# Declarative UI Markup 生成器產出邏輯與語法正確性。
+/// 驗證 C# Declarative UI Markup 生成器產出邏輯與語法正確性（包含 Compiled / Lambda Bindings 支援）。
 /// </summary>
 public sealed class CSharpMarkupViewGeneratorTests
 {
@@ -75,6 +75,52 @@ public sealed class CSharpMarkupViewGeneratorTests
         result.Content.Should().Contain(".Text(nameof(LoginFormViewModel.Username), BindingMode.TwoWay)");
 
         // 語法樹診斷檢查
+        var syntaxDiagnostics = RoslynCompilerService.CheckSyntaxDiagnostics(result.Content);
+        syntaxDiagnostics.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Generate_ShouldSupportCompiledBindings_WhenUseCompiledBindingsIsTrue()
+    {
+        // Arrange
+        var doc = new FormDocument
+        {
+            RootNamespace = "MyApp.Views",
+            ViewClassName = "CompiledBindingView",
+            ViewModelClassName = "CompiledBindingViewModel",
+            UseCompiledBindings = true,
+            RootNode = new AstNode
+            {
+                Id = "root",
+                Type = ControlType.StackPanel,
+                Children = [
+                    new AstNode
+                    {
+                        Id = "tb",
+                        Type = ControlType.TextBox,
+                        Bindings = [
+                            new BindingDefinition { TargetProperty = "Text", ViewModelProperty = "Title", Mode = BindingMode.TwoWay }
+                        ]
+                    },
+                    new AstNode
+                    {
+                        Id = "btn",
+                        Type = ControlType.Button,
+                        Events = [
+                            new EventMappingDefinition { EventName = "Click", CommandProperty = "SaveCommand" }
+                        ]
+                    }
+                ]
+            }
+        };
+
+        // Act
+        var result = _generator.Generate(doc);
+
+        // Assert
+        result.Content.Should().Contain(".Text((CompiledBindingViewModel vm) => vm.Title, BindingMode.TwoWay)");
+        result.Content.Should().Contain(".Command((CompiledBindingViewModel vm) => vm.SaveCommand)");
+
         var syntaxDiagnostics = RoslynCompilerService.CheckSyntaxDiagnostics(result.Content);
         syntaxDiagnostics.Should().BeEmpty();
     }

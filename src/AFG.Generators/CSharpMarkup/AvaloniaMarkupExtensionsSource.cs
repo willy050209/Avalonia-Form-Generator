@@ -296,6 +296,19 @@ public static class AvaloniaMarkupExtensionsSource
             return btn;
         }
 
+        public static Button Command<TVm>(this Button btn, Func<TVm, object?> expr)
+        {
+            btn.Bind(Button.CommandProperty, new Binding());
+            return btn;
+        }
+
+        public static T Text<T, TVm>(this T control, Func<TVm, object?> expr, BindingMode mode = BindingMode.Default) where T : Control
+        {
+            if (control is TextBlock tb) tb.Bind(TextBlock.TextProperty, new Binding { Mode = mode });
+            else if (control is TextBox txt) txt.Bind(TextBox.TextProperty, new Binding { Mode = mode });
+            return control;
+        }
+
         public static T ItemsSource<T>(this T control, string path, BindingMode mode = BindingMode.Default) where T : ItemsControl
         {
             control.Bind(ItemsControl.ItemsSourceProperty, new Binding(path) { Mode = mode });

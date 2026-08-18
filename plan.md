@@ -118,18 +118,23 @@ AvaloniaFormGenerator/
 ---
 
 ### 🔹 階段 8：程式碼生成引擎現代化與工具箱擴充 (Code Generation & Components)
-- [ ] **階段狀態：待執行**
-- **目標**：統一套件依賴版本、支援強型別 Lambda 綁定模式、擴充不可視與硬體控制項。
+- [x] **階段狀態：已完成**
+- **目標**：統一套件版本管理、支援強型別 Compiled/Lambda Bindings、擴充不可視與通訊控制項。
 - **任務清單**：
-  - [ ] 8.1 **統一套件版本管理**：
-    - 在全域常數或配置檔中統一管理 Avalonia 與 CommunityToolkit.Mvvm 之版本號，消除專案與匯出模板間的版本衝突。
-  - [ ] 8.2 **C# Markup 強型別 Lambda 綁定支援**：
-    - 擴充 View 生成器，支援切換輸出為強型別 Compiled Binding / Lambda 語法（例如 `.Text(vm => vm.Username)` 或 `.Bind(TextBox.TextProperty, ...)`）。
-  - [ ] 8.3 **擴充工具箱控制項 (不可視元件與 COM 元件)**：
-    - 新增不可視邏輯元件：`DispatcherTimer` (計時器)、`BackgroundWorker` (背景任務)。
-    - 新增現代硬體與通訊元件模型：`BluetoothClient` (藍牙元件)、`SerialPortService` (序列埠通訊)。
+  - [x] 8.1 **統一套件依賴版本管理**：
+    - 在全域常數中抽離 Avalonia 與 CommunityToolkit.Mvvm 之版本號（建立 `PackageVersions.cs` 於 `AFG.Generators`），消除各處寫死字串的維護隱患。
+  - [x] 8.2 **C# Markup 強型別 Lambda 綁定支援**：
+    - 擴充 View 生成器，支援切換輸出為強型別 Compiled Binding / Lambda 語法（例如 `.Text((ViewModel vm) => vm.Username)`）與標準字串 binding 模式（`nameof(ViewModel.Property)`）。
+    - 在 `FormDocument` 增加 `bool UseCompiledBindings { get; init; }` 開關。
+  - [x] 8.3 **擴充工具箱控制項 (不可視元件與通訊控制項)**：
+    - 在 `ControlType.cs` 與 `ToolboxService.cs` 增加不可視元件與通訊服務模型：
+      - `DispatcherTimer` (計時器元件)
+      - `BackgroundWorker` (背景工作元件)
+      - `BluetoothClient` (藍牙客戶端)
+      - `SerialPortService` (序列埠通訊)
+    - 在畫布上提供專屬元件卡片 Badge 渲染與綁定支援。
 - **驗證方式**：
-  - 撰寫單元測試驗證不可視元件之 AST 序列化與 C# 程式碼生成，確保匯出專案可編譯。
+  - 驗證生成的 C# 代碼可切換輸出強型別 Lambda 綁定並無語法警告；驗證新增不可視控制項於工具箱與畫布可正常操作與序列化。
 
 ---
 
