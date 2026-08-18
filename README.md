@@ -335,6 +335,21 @@ public partial class App : Application
 
 ---
 
+## 跨平台發布矩陣與 CI/CD (Release Matrix & Automation)
+
+本專案透過 GitHub Actions 提供完整的 CI/CD 跨平台建置與發布自動化流程：
+
+- **嚴格驗證機制**：僅在 `Windows`、`Linux`、`macOS` 全平台單元與整合測試（75+ 項測試）全數成功通過後，方可進入發布流程。
+- **主流 4 大架構二進位檔案釋出**：
+  | 平台 (OS) | 架構 (RID) | 發布產物 (Asset) | 說明 |
+  | :--- | :--- | :--- | :--- |
+  | **Windows** | `win-x64` | `AFG-win-x64.zip` | 64 位元 Windows 單一獨立執行檔 |
+  | **Linux** | `linux-x64` | `AFG-linux-x64.tar.gz` | 64 位元 Linux (Ubuntu / Debian / Fedora) |
+  | **macOS** | `osx-x64` | `AFG-osx-x64.tar.gz` | Intel x64 架構 Mac |
+  | **macOS** | `osx-arm64` | `AFG-osx-arm64.tar.gz` | Apple Silicon (M1/M2/M3/M4) 原生架構 |
+
+---
+
 ## 授權條款 (License)
 
 本專案遵循 MIT License 授權協議。

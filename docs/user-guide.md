@@ -90,3 +90,11 @@
 - **單檔代碼一鍵複製**：在底部預覽區各分頁右上角提供「複製 View 程式碼」與「複製 ViewModel 程式碼」按鈕，點選即可將 Roslyn 格式化後的 C# 代碼複製至剪貼簿並彈出成功通知。
 - **專案檔儲存/開啟**：點選「儲存」輸出 `.afg.json`；若載入損毀檔案，系統會顯示行數與欄位的詳細診斷提示。
 - **一鍵匯出跨平台專案**：點選「匯出整包專案」，系統自動產出 `.slnx` 方案、`.Shared` 核心（含 `INavigationService` 導航與動態 DI 容器）、`.Desktop` 與可選的 `.Android` 宿主專案！
+
+### 2.7 跨平台二進位版本發布 (v1.0.0 Release Matrix)
+- **主流 4 大架構發布產物**：
+  - `AFG-win-x64.zip` (Windows 64 位元)
+  - `AFG-linux-x64.tar.gz` (Linux x64)
+  - `AFG-osx-x64.tar.gz` (macOS Intel x64)
+  - `AFG-osx-arm64.tar.gz` (macOS Apple Silicon M 系列)
+- **CI/CD 自動化安全驗證**：GitHub Actions 在所有平台單元與整合測試 100% 通過後自動產出 Single-File 自包含執行檔並發布至 GitHub Releases。
