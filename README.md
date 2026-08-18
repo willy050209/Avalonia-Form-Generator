@@ -110,7 +110,7 @@ dotnet build
 ```bash
 dotnet test
 ```
-> 目前包含 **45 / 45** 項單元測試，100% 全數通過，0 警告，0 錯誤。
+> 目前包含 **48 / 48** 項單元測試，100% 全數通過，0 警告，0 錯誤。
 
 ### 3. 啟動桌面設計器 (Run App)
 ```bash
@@ -196,9 +196,10 @@ public partial class LoginFormViewModel : ObservableObject
     private string _username = string.Empty;
 
     [RelayCommand]
-    private void Submit()
+    private async Task SubmitAsync()
     {
-        // TODO: 實作命令業務邏輯
+        // TODO: 實作非同步命令業務邏輯
+        await Task.CompletedTask;
     }
 }
 ```

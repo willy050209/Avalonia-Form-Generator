@@ -1,6 +1,6 @@
 # C# Declarative Markup 生成語法規範 (C# Markup Spec)
 
-本文檔說明 AFG 所產出的純 C# 宣告式 UI（C# Markup / Declarative C# UI）的鏈式語法規則、資料綁定表達式、相依性注入 (DI) 與 ViewModel 生成規範。
+本文檔說明 AFG 所產出的純 C# 宣告式 UI（C# Markup / Declarative C# UI）的鏈式語法規則、資料綁定表達式、相依性注入 (DI) 與同步/非同步 ViewModel 生成規範。
 
 ---
 
@@ -52,7 +52,7 @@ Content = new Canvas()
 
 ---
 
-## 2. 相依性注入 (DI) 與 ViewModel 生成規範
+## 2. 相依性注入 (DI) 與 ViewModel 命令生成規範
 
 AFG 的 ViewModel 生成器嚴格遵循 `CommunityToolkit.Mvvm` 與 `Microsoft.Extensions.DependencyInjection` 標準：
 
@@ -78,8 +78,24 @@ AFG 的 ViewModel 生成器嚴格遵循 `CommunityToolkit.Mvvm` 與 `Microsoft.E
 2. **屬性生成**：
    - 根據綁定目標自動推斷型別（例如 `IsChecked` / `IsEnabled` -> `bool`, `Value` -> `double`, `Text` -> `string`）。
    - 欄位加上 `[ObservableProperty]`，採用下劃線駝峰命名（如 `_username`），原始碼生成器自動生成公開屬性 `Username`。
-3. **命令生成**：
-   - 映射的方法加上 `[RelayCommand]`，自動去除 "Command" 後綴作為方法名（如 `SubmitOrderCommand` -> `void SubmitOrder()`）。
+3. **命令生成 (同步 vs 非同步)**：
+   - **非同步命令 (預設)**：方法簽章為 `async Task ...Async()`，CommunityToolkit.Mvvm 自動擴展為 `IAsyncRelayCommand` 屬性。
+     ```csharp
+     [RelayCommand]
+     private async Task SubmitAsync()
+     {
+         // TODO: 實作非同步命令業務邏輯
+         await Task.CompletedTask;
+     }
+     ```
+   - **同步命令**：方法簽章為 `void ...()`，自動擴展為 `IRelayCommand` 屬性。
+     ```csharp
+     [RelayCommand]
+     private void Reset()
+     {
+         // TODO: 實作同步命令業務邏輯
+     }
+     ```
 
 ---
 

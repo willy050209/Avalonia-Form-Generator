@@ -31,7 +31,7 @@ public sealed class ProjectExportServiceTests
                         Id = "btn",
                         Type = ControlType.Button,
                         Content = "Submit Order",
-                        Events = [new EventMappingDefinition { EventName = "Click", CommandProperty = "SubmitOrderCommand" }]
+                        Events = [new EventMappingDefinition { EventName = "Click", CommandProperty = "SubmitOrderCommand", IsAsync = true }]
                     }
                 ]
             }
@@ -197,7 +197,7 @@ public sealed class ProjectExportServiceTests
                         GridColumnSpan = 2,
                         Width = 140,
                         Height = 35,
-                        Events = [new EventMappingDefinition { EventName = "Click", CommandProperty = "SaveCustomerCommand" }]
+                        Events = [new EventMappingDefinition { EventName = "Click", CommandProperty = "SaveCustomerCommand", IsAsync = true }]
                     }
                 ]
             }
@@ -240,6 +240,100 @@ public sealed class ProjectExportServiceTests
                 {
                     Directory.Delete(tempFolder, recursive: true);
                 }
+                catch
+                {
+                    // 忽略清理時由鎖定引起之例外
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// 驗證複雜資料綁定 (Text, IsChecked, Value, IsEnabled, Opacity, Width, Height) 與同步/非同步命令混合情境下的實體編譯。
+    /// </summary>
+    [Fact]
+    public async Task ExportedProject_WithComplexDataAndEventBindings_ShouldCompileAndMatchMvvmPattern()
+    {
+        var tempFolder = Path.Combine(Path.GetTempPath(), "AFG_ComplexBindingsTest_" + Guid.NewGuid().ToString("N"));
+        var doc = new FormDocument
+        {
+            ViewClassName = "ComplexFormView",
+            ViewModelClassName = "ComplexFormViewModel",
+            Title = "複合資料綁定測試",
+            RootNode = new AstNode
+            {
+                Id = "rootCanvas",
+                Type = ControlType.Canvas,
+                Children = [
+                    new AstNode
+                    {
+                        Id = "txt1",
+                        Type = ControlType.TextBox,
+                        Bindings = [
+                            new BindingDefinition { TargetProperty = "Text", ViewModelProperty = "TitleText", Mode = BindingMode.TwoWay },
+                            new BindingDefinition { TargetProperty = "IsEnabled", ViewModelProperty = "CanEditText" }
+                        ]
+                    },
+                    new AstNode
+                    {
+                        Id = "slider1",
+                        Type = ControlType.Slider,
+                        Bindings = [
+                            new BindingDefinition { TargetProperty = "Value", ViewModelProperty = "SliderValue", Mode = BindingMode.TwoWay }
+                        ]
+                    },
+                    new AstNode
+                    {
+                        Id = "btnSync",
+                        Type = ControlType.Button,
+                        Content = "同步重設",
+                        Events = [
+                            new EventMappingDefinition { EventName = "Click", CommandProperty = "ResetSyncCommand", IsAsync = false }
+                        ]
+                    },
+                    new AstNode
+                    {
+                        Id = "btnAsync",
+                        Type = ControlType.Button,
+                        Content = "非同步提交",
+                        Events = [
+                            new EventMappingDefinition { EventName = "Click", CommandProperty = "SubmitDataCommand", IsAsync = true }
+                        ]
+                    }
+                ]
+            }
+        };
+
+        try
+        {
+            await _exportService.ExportToFolderAsync(doc, tempFolder, new ProjectExportOptions(IncludeMobileProject: false));
+            var desktopCsprojPath = Path.Combine(tempFolder, "src", "ComplexFormApp.Desktop", "ComplexFormApp.Desktop.csproj");
+
+            var psi = new ProcessStartInfo
+            {
+                FileName = "dotnet",
+                Arguments = $"build \"{desktopCsprojPath}\" -c Release",
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            };
+
+            using var process = Process.Start(psi);
+            var stdout = await process!.StandardOutput.ReadToEndAsync();
+            var stderr = await process.StandardError.ReadToEndAsync();
+            await process.WaitForExitAsync();
+
+            process.ExitCode.Should().Be(0, $"複合資料綁定與命令專案應成功編譯。\n標準輸出:\n{stdout}\n錯誤輸出:\n{stderr}");
+        }
+        finally
+        {
+            if (Directory.Exists(tempFolder))
+            {
+                try
+                {
+                    Directory.Delete(tempFolder, recursive: true);
+                }
                 catch { }
             }
         }
@@ -272,7 +366,7 @@ public sealed class ProjectExportServiceTests
                     Id = "root",
                     Type = ControlType.Canvas,
                     Children = [
-                        new AstNode { Id = "btn1", Type = ControlType.Button, Text = "計算", Content = "Button", Events = [new EventMappingDefinition { EventName = "Click", CommandProperty = "Button_1Command" }] },
+                        new AstNode { Id = "btn1", Type = ControlType.Button, Text = "計算", Content = "Button", Events = [new EventMappingDefinition { EventName = "Click", CommandProperty = "Button_1Command", IsAsync = true }] },
                         new AstNode { Id = "txt1", Type = ControlType.TextBox, Watermark = "請輸入數字", Bindings = [new BindingDefinition { TargetProperty = "Text", ViewModelProperty = "TextBox_d2d5Property" }] },
                         new AstNode { Id = "tb1", Type = ControlType.TextBlock, Text = "答案" },
                         new AstNode { Id = "tb2", Type = ControlType.TextBlock, Bindings = [new BindingDefinition { TargetProperty = "IsEnabled", ViewModelProperty = "TextBlock_c1Property" }] }

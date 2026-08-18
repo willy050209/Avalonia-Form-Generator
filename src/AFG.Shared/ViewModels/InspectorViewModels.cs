@@ -31,7 +31,7 @@ public sealed partial class BindingItemViewModel : ObservableObject
 }
 
 /// <summary>
-/// 事件映射項目編輯 ViewModel。
+/// 事件映射項目編輯 ViewModel（支援同步/非同步選項）。
 /// </summary>
 public sealed partial class EventItemViewModel : ObservableObject
 {
@@ -41,13 +41,18 @@ public sealed partial class EventItemViewModel : ObservableObject
     [ObservableProperty]
     private string _commandProperty = string.Empty;
 
+    [ObservableProperty]
+    private bool _isAsync = true;
+
     public EventMappingDefinition ToDefinition() => new(
         EventName: EventName.Trim(),
-        CommandProperty: CommandProperty.Trim());
+        CommandProperty: CommandProperty.Trim(),
+        IsAsync: IsAsync);
 
     public static EventItemViewModel FromDefinition(EventMappingDefinition def) => new()
     {
         EventName = def.EventName,
-        CommandProperty = def.CommandProperty
+        CommandProperty = def.CommandProperty,
+        IsAsync = def.IsAsync
     };
 }

@@ -22,15 +22,17 @@ public sealed record BindingDefinition(
 }
 
 /// <summary>
-/// 表示 View 控制項事件至 ViewModel RelayCommand 的映射定義。
+/// 表示 View 控制項事件至 ViewModel RelayCommand 的映射定義（支援同步與非同步模式）。
 /// </summary>
 /// <param name="EventName">事件名稱（例如 Click, SelectionChanged, Tapped）。</param>
 /// <param name="CommandProperty">ViewModel 端 Command 屬性名稱（例如 SubmitCommand）。</param>
 /// <param name="CommandParameterProperty">Command 傳遞的參數屬性路徑（可為 null）。</param>
+/// <param name="IsAsync">是否生成非同步命令 Task 方法（預設為 true，符合現代非同步開發標準）。</param>
 public sealed record EventMappingDefinition(
     string EventName,
     string CommandProperty,
-    string? CommandParameterProperty = null)
+    string? CommandParameterProperty = null,
+    bool IsAsync = true)
 {
-    public EventMappingDefinition() : this(string.Empty, string.Empty) { }
+    public EventMappingDefinition() : this(string.Empty, string.Empty, null, true) { }
 }

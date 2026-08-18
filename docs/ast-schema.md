@@ -15,8 +15,8 @@
   "viewClassName": "UserFormView",
   "viewModelClassName": "UserFormViewModel",
   "title": "使用者表單",
-  "canvasWidth": 800.0,
-  "canvasHeight": 600.0,
+  "canvasWidth": 390.0,
+  "canvasHeight": 844.0,
   "rootNode": { ... }
 }
 ```
@@ -75,7 +75,8 @@
   "events": [
     {
       "eventName": "Click",
-      "commandProperty": "LoginCommand"
+      "commandProperty": "LoginCommand",
+      "isAsync": true
     }
   ],
   "children": []
@@ -87,10 +88,11 @@
 ## 3. 資料綁定與事件映射結構
 
 ### 3.1 `BindingDefinition`
-- `targetProperty`: View 端屬性（如 `Text`, `IsEnabled`, `IsChecked`）。
-- `viewModelProperty`: ViewModel 端屬性名稱（如 `Username`）。
+- `targetProperty`: View 端屬性（如 `Text`, `IsEnabled`, `IsChecked`, `Value`, `Width`, `Height`, `Opacity`）。
+- `viewModelProperty`: ViewModel 端屬性名稱（如 `Username`, `CanSubmit`）。
 - `mode`: `default` | `oneWay` | `twoWay` | `oneTime` | `oneWayToSource`。
 
 ### 3.2 `EventMappingDefinition`
 - `eventName`: View 事件名稱（如 `Click`, `Tapped`, `SelectionChanged`）。
 - `commandProperty`: ViewModel 端的 Command 屬性名稱（如 `SubmitCommand`）。
+- `isAsync`: `bool`（預設 `true`）。指定是否生成非同步 `async Task ...Async()` 方法或同步 `void ...()` 方法。

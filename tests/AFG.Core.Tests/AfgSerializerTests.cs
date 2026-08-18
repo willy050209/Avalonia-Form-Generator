@@ -2,7 +2,7 @@
 namespace AFG.Core.Tests;
 
 /// <summary>
-/// 驗證 AfgSerializer JSON 序列化與反序列化 roundtrip 完整性。
+/// 驗證 AfgSerializer JSON 序列化與反序列化 roundtrip 完整性，包含非同步與同步事件命令定義。
 /// </summary>
 public sealed class AfgSerializerTests
 {
@@ -46,7 +46,8 @@ public sealed class AfgSerializerTests
                             new EventMappingDefinition
                             {
                                 EventName = "Click",
-                                CommandProperty = "SubmitCommand"
+                                CommandProperty = "SubmitCommand",
+                                IsAsync = true
                             }
                         ]
                     }
@@ -73,6 +74,43 @@ public sealed class AfgSerializerTests
         child.Bindings[0].ViewModelProperty.Should().Be("CanSubmit");
         child.Events.Should().HaveCount(1);
         child.Events[0].CommandProperty.Should().Be("SubmitCommand");
+        child.Events[0].IsAsync.Should().BeTrue();
+    }
+
+    [Fact]
+    public void Roundtrip_EventMappingDefinition_ShouldPreserveSyncAndAsyncFlags()
+    {
+        // Arrange
+        var doc = new FormDocument
+        {
+            RootNode = new AstNode
+            {
+                Id = "root",
+                Type = ControlType.Canvas,
+                Children = [
+                    new AstNode
+                    {
+                        Id = "btnSync",
+                        Type = ControlType.Button,
+                        Events = [new EventMappingDefinition { EventName = "Click", CommandProperty = "ClearCommand", IsAsync = false }]
+                    },
+                    new AstNode
+                    {
+                        Id = "btnAsync",
+                        Type = ControlType.Button,
+                        Events = [new EventMappingDefinition { EventName = "Click", CommandProperty = "FetchDataCommand", IsAsync = true }]
+                    }
+                ]
+            }
+        };
+
+        // Act
+        var json = AfgSerializer.SerializeDocument(doc);
+        var result = AfgSerializer.DeserializeDocument(json);
+
+        // Assert
+        result.RootNode.Children[0].Events[0].IsAsync.Should().BeFalse();
+        result.RootNode.Children[1].Events[0].IsAsync.Should().BeTrue();
     }
 
     [Fact]

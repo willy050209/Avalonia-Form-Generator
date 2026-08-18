@@ -43,7 +43,7 @@ public sealed class FormCodeGeneratorTests
                         CanvasTop = 160,
                         Content = "Send",
                         Events = [
-                            new EventMappingDefinition { EventName = "Click", CommandProperty = "SendCommand" }
+                            new EventMappingDefinition { EventName = "Click", CommandProperty = "SendCommand", IsAsync = true }
                         ]
                     }
                 ]
@@ -71,7 +71,7 @@ public sealed class FormCodeGeneratorTests
         vmFile!.FileName.Should().Be("ContactFormViewModel.cs");
         vmFile.Content.Should().Contain("ContactFormViewModel : ObservableObject");
         vmFile.Content.Should().Contain("private string _email = string.Empty;");
-        vmFile.Content.Should().Contain("private void Send()");
+        vmFile.Content.Should().Contain("private async Task SendAsync()");
 
         // 語法檢查
         RoslynCompilerService.CheckSyntaxDiagnostics(viewFile.Content).Should().BeEmpty();

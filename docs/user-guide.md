@@ -78,13 +78,17 @@
 ### 2.6 配置事件轉命令 (Event-to-Command Mapping)
 1. 切換至 **「事件命令」** 分頁。
 2. 點選 **「新增事件命令」**。
-3. 輸入事件名稱（例如 `Click`, `Tapped`）與對應的 Command 名稱（例如 `SubmitOrderCommand`）。
-4. 程式碼生成器會自動在 ViewModel 中生成帶有 `[RelayCommand]` 的方法：
+3. 設定：
+   - **事件名稱**：例如 `Click`, `Tapped`, `SelectionChanged`。
+   - **ViewModel Command 名稱**：例如 `SubmitOrderCommand`, `RefreshCommand`。
+   - **非同步命令 (Async RelayCommand)**：勾選（預設）將生成符合現代非同步標準的 `private async Task ...Async()` 方法；未勾選則生成同步 `private void ...()`。
+4. 程式碼生成器會自動在 ViewModel 中生成：
    ```csharp
    [RelayCommand]
-   private void SubmitOrder()
+   private async Task SubmitOrderAsync()
    {
-       // TODO: 實作命令業務邏輯
+       // TODO: 實作非同步命令業務邏輯
+       await Task.CompletedTask;
    }
    ```
 

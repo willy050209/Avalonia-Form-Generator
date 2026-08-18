@@ -243,6 +243,11 @@
                                                     <TextBlock Text="ViewModel Command 名稱" FontSize="10" Foreground="#A1A1AA" />
                                                     <TextBox Text="{Binding CommandProperty, Mode=TwoWay}" />
                                                 </StackPanel>
+
+                                                <CheckBox IsChecked="{Binding IsAsync, Mode=TwoWay}"
+                                                          Content="非同步命令 (Async RelayCommand)"
+                                                          FontSize="11"
+                                                          Margin="0,2,0,0" />
                                             </StackPanel>
                                         </Border>
                                     </DataTemplate>

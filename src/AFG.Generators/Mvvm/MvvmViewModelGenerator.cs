@@ -2,7 +2,7 @@
 namespace AFG.Generators.Mvvm;
 
 /// <summary>
-/// 掃描 UI AST 中的資料綁定與事件命令，生成符合 CommunityToolkit.Mvvm 規範並整合相依性注入 (DI) 的 ViewModel 原始碼。
+/// 掃描 UI AST 中的資料綁定與事件命令，生成符合 CommunityToolkit.Mvvm 規範並整合相依性注入 (DI) 與同步/非同步 Command 的 ViewModel 原始碼。
 /// </summary>
 public sealed class MvvmViewModelGenerator : ICodeGenerator
 {
@@ -31,15 +31,18 @@ public sealed class MvvmViewModelGenerator : ICodeGenerator
             }
         }
 
-        // 收集所有唯一的 Command 命令名稱
-        var commands = new HashSet<string>(StringComparer.Ordinal);
+        // 收集所有唯一的 Command 命令名稱與非同步標記
+        var commands = new Dictionary<string, bool>(StringComparer.Ordinal);
         foreach (var node in allNodes)
         {
             foreach (var evt in node.Events)
             {
                 if (!string.IsNullOrWhiteSpace(evt.CommandProperty))
                 {
-                    commands.Add(evt.CommandProperty);
+                    if (!commands.ContainsKey(evt.CommandProperty))
+                    {
+                        commands[evt.CommandProperty] = evt.IsAsync;
+                    }
                 }
             }
         }
@@ -49,6 +52,7 @@ public sealed class MvvmViewModelGenerator : ICodeGenerator
         sb.AppendLine("#nullable enable");
         sb.AppendLine();
         sb.AppendLine("using System;");
+        sb.AppendLine("using System.Threading.Tasks;");
         sb.AppendLine("using CommunityToolkit.Mvvm.ComponentModel;");
         sb.AppendLine("using CommunityToolkit.Mvvm.Input;");
         sb.AppendLine($"using {document.RootNamespace}.Services;");
@@ -83,20 +87,39 @@ public sealed class MvvmViewModelGenerator : ICodeGenerator
             }
         }
 
-        // 輸出 Commands
+        // 輸出 Commands (支援同步 void 與非同步 async Task)
         if (commands.Count > 0)
         {
-            foreach (var cmdName in commands)
+            foreach (var (cmdName, isAsync) in commands)
             {
-                var methodName = cmdName.EndsWith("Command", StringComparison.Ordinal)
+                var rawName = cmdName.EndsWith("Command", StringComparison.Ordinal)
                     ? cmdName[..^"Command".Length]
                     : cmdName;
 
                 sb.AppendLine("    [RelayCommand]");
-                sb.AppendLine($"    private void {methodName}()");
-                sb.AppendLine("    {");
-                sb.AppendLine("        // TODO: 實作命令業務邏輯");
-                sb.AppendLine("    }");
+                if (isAsync)
+                {
+                    var asyncMethodName = rawName.EndsWith("Async", StringComparison.Ordinal)
+                        ? rawName
+                        : $"{rawName}Async";
+
+                    sb.AppendLine($"    private async Task {asyncMethodName}()");
+                    sb.AppendLine("    {");
+                    sb.AppendLine("        // TODO: 實作非同步命令業務邏輯");
+                    sb.AppendLine("        await Task.CompletedTask;");
+                    sb.AppendLine("    }");
+                }
+                else
+                {
+                    var syncMethodName = rawName.EndsWith("Async", StringComparison.Ordinal)
+                        ? rawName[..^"Async".Length]
+                        : rawName;
+
+                    sb.AppendLine($"    private void {syncMethodName}()");
+                    sb.AppendLine("    {");
+                    sb.AppendLine("        // TODO: 實作同步命令業務邏輯");
+                    sb.AppendLine("    }");
+                }
                 sb.AppendLine();
             }
         }
