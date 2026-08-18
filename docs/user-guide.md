@@ -38,12 +38,15 @@
 - **刪除控制項**：選取控制項後按 `Delete` 或 `Backspace` 鍵。
 - **縮放畫布**：按住 `Ctrl + 滑鼠滾輪` 可在 20% ~ 300% 間平滑縮放畫布。
 
-### 2.2 橡皮筋多選與對齊/均分工具
+### 2.2 橡皮筋多選、對齊均分與容器拖曳重新排序 (Container Drag-Reordering)
 - **多選控制項**：在畫布空白處按住滑鼠左鍵拖曳拉出「橡皮筋框選盒」，即可一次圈選多個控制項；或點選節點時按住 `Ctrl` 鍵進行多重選取。
 - **對齊工具列**：
   - 靠左對齊 / 水平置中 / 靠右對齊
   - 靠頂對齊 / 垂直置中 / 靠底對齊
   - 水平均勻分佈 / 垂直均勻分佈
+- **容器內拖曳重新排序**：
+  - 在 `StackPanel`, `DockPanel`, `WrapPanel` 等容器內拖曳子元件時，畫布會即時計算目標插入位置，並呈現**亮藍色插入指示線（Blue Insertion Indicator Line）與端點光暈圓點**。
+  - 放開滑鼠後自動調換 AST Children 索引，並推入歷史紀錄堆疊（支援 `Ctrl+Z` 復原）。
 
 ### 2.3 可摺疊面板與工作區自訂
 在頂部工具列右側提供三個面板切換開關：
@@ -68,11 +71,13 @@
 
 ### 2.5 設定控制項屬性、顏色、資料綁定與事件命令
 在右側 **「屬性檢查器」** 中：
+- **流暢輸入與焦點保護**：在編輯 ViewModel 屬性名稱或 Command 命令名稱時，系統具備防重入與焦點保護機制，連續打字輸入絕不丟失鍵盤焦點。
 - **「外觀」分頁**：支援設定名稱 (x:Name)、標題 (Content)、文字 (Text)、提示文字 (PlaceholderText)、背景色 (Background) 與前景色 (Foreground)（支援 `#RRGGBB` 色碼或顏色名稱）。
 - **「排版」分頁**：設定寬度、高度、Canvas 座標、Grid 網格座標、對齊方式與外距 Margin。
 - **「資料綁定」分頁**：
   - **View 屬性 (TargetProperty)**：提供下拉選單（`Text`, `Content`, `IsChecked`, `Value`, `IsEnabled`, `IsVisible`, `ItemsSource`, `SelectedItem`, `SelectedIndex`, `Header` 等），選取時自動同步推斷合適的 C# 資料型別，徹底避免手動打字拼錯。
   - **ViewModel 屬性名稱**：指定綁定的 ViewModel 屬性。
+  - **文字連動綁定 (TextBox 綁定至 TextBlock)**：只要將 `TextBox` 的 `Text` 屬性（TwoWay 模式）與 `TextBlock` 的 `Text` 屬性（OneWay 或 Default 模式）指定為**同一個 ViewModel 屬性名稱**（例如 `UserName`），在執行期於文字輸入框打字時，標籤文字就會即時同步更新呈現！
   - **資料型別 (C# DataType)**：提供常見型別下拉選單（`string`, `bool`, `double`, `int`, `DateTime?`, `ObservableCollection<string>` 等）。
   - **綁定模式 (Mode)**：下拉切換 `Default`, `TwoWay`, `OneWay`, `OneWayToSource`, `OneTime`。
 - **「事件命令」分頁**：
@@ -80,7 +85,8 @@
   - **ViewModel Command 名稱**：指定映射的 ViewModel RelayCommand 方法。
   - **非同步開關**：勾選後將自動在 ViewModel 產出 `async Task ...Async()` 簽章。
 
-### 2.6 即時預覽與跨平台方案匯出
-- **單檔代碼複製**：在底部預覽區可直接檢視 Roslyn 格式化後的 C# 代碼，點選「複製 View」或「複製 VM」即可複製。
+### 2.6 即時預覽與跨平台方案匯出 (AvaloniaEdit 語法高亮)
+- **AvaloniaEdit 語法高亮**：底部預覽區已深度整合 **AvaloniaEdit** 與 **TextMate (Dark+ 主題)**，呈現媲美 VS Code / Rider 的 C# 程式碼著色、行號與平滑捲動體驗。
+- **單檔代碼複製**：在底部預覽區點選「複製 View」或「複製 VM」即可將 Roslyn 格式化後的 C# 代碼複製至剪貼簿。
 - **專案檔儲存/開啟**：點選「儲存」輸出 `.afg.json`；若載入損毀檔案，系統會顯示行數與欄位的詳細診斷提示。
 - **一鍵匯出跨平台專案**：點選「匯出整包專案」，系統自動產出 `.slnx` 方案、`.Shared` 核心（含 `INavigationService` 導航與動態 DI 容器）、`.Desktop` 與可選的 `.Android` 宿主專案！

@@ -257,4 +257,23 @@ public sealed class AstTreeOperationsTests
         cLeft2.Should().Be(790);
         cTop2.Should().Be(590);
     }
+
+    [Fact]
+    public void ReorderChild_InsideContainer_ShouldUpdateChildrenOrder()
+    {
+        // Arrange
+        var btn1 = new AstNode { Id = "1", Name = "Btn1" };
+        var btn2 = new AstNode { Id = "2", Name = "Btn2" };
+        var btn3 = new AstNode { Id = "3", Name = "Btn3" };
+        var stack = new AstNode { Id = "stack1", Type = ControlType.StackPanel, Children = [btn1, btn2, btn3] };
+        var root = new AstNode { Id = "root", Type = ControlType.Canvas, Children = [stack] };
+
+        // Act: 將 btn3 移到最前面 (索引 0)
+        var result = AstTreeOperations.ReorderChild(root, "stack1", "3", 0);
+
+        // Assert
+        var updatedStack = AstTreeOperations.FindNodeById(result, "stack1");
+        updatedStack.Should().NotBeNull();
+        updatedStack!.Children.Select(c => c.Id).Should().ContainInOrder("3", "1", "2");
+    }
 }

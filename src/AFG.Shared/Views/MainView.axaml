@@ -6,6 +6,7 @@
              xmlns:views="using:AFG.Shared.Views"
              xmlns:controls="using:AFG.Shared.Controls"
              xmlns:models="using:AFG.Shared.Models"
+             xmlns:ae="using:AvaloniaEdit"
              mc:Ignorable="d" d:DesignWidth="1280" d:DesignHeight="800"
              x:Class="AFG.Shared.Views.MainView"
              x:DataType="vm:MainViewModel">
@@ -177,31 +178,29 @@
                               Background="#27272A"
                               ResizeDirection="Rows" />
 
-                <!-- 底部即時程式碼預覽區 -->
+                <!-- 底部即時程式碼預覽區 (整合 AvaloniaEdit + TextMate C# 語法高亮) -->
                 <Border Grid.Row="2"
                         Height="220"
                         IsVisible="{Binding IsCodePanelVisible}"
                         Background="#18181B">
                     <TabControl>
                         <TabItem Header="View (C# Markup)">
-                            <TextBox Text="{Binding GeneratedViewCode}"
-                                     IsReadOnly="True"
-                                     FontFamily="Consolas, Cascadia Code, Courier New"
-                                     FontSize="12"
-                                     AcceptsReturn="True"
-                                     TextWrapping="NoWrap"
-                                     Background="#121214"
-                                     Foreground="#E4E4E7" />
+                            <ae:TextEditor x:Name="ViewCodeEditor"
+                                           IsReadOnly="True"
+                                           ShowLineNumbers="True"
+                                           FontFamily="Consolas, Cascadia Code, Courier New"
+                                           FontSize="12"
+                                           Background="#121214"
+                                           Foreground="#E4E4E7" />
                         </TabItem>
                         <TabItem Header="ViewModel (CommunityToolkit.Mvvm)">
-                            <TextBox Text="{Binding GeneratedVmCode}"
-                                     IsReadOnly="True"
-                                     FontFamily="Consolas, Cascadia Code, Courier New"
-                                     FontSize="12"
-                                     AcceptsReturn="True"
-                                     TextWrapping="NoWrap"
-                                     Background="#121214"
-                                     Foreground="#E4E4E7" />
+                            <ae:TextEditor x:Name="VmCodeEditor"
+                                           IsReadOnly="True"
+                                           ShowLineNumbers="True"
+                                           FontFamily="Consolas, Cascadia Code, Courier New"
+                                           FontSize="12"
+                                           Background="#121214"
+                                           Foreground="#E4E4E7" />
                         </TabItem>
                     </TabControl>
                 </Border>

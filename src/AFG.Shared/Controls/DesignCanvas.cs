@@ -57,6 +57,13 @@ public sealed class DesignCanvas : Grid
     private bool _isRubberbandActive;
     private Rect _rubberbandRect;
 
+    // 容器內拖曳重新排序 (Container Drag-Reordering)
+    private bool _isReorderingInContainer;
+    private string? _reorderParentId;
+    private string? _reorderChildId;
+    private int _reorderTargetIndex;
+    private (Point Start, Point End)? _insertionIndicator;
+
     public DesignCanvas()
     {
         ClipToBounds = true;
@@ -429,9 +436,66 @@ public sealed class DesignCanvas : Grid
 
         if (_activeHandle == ResizeHandleType.Move)
         {
-            var newLeft = _initialNodeBounds.X + deltaX;
-            var newTop = _initialNodeBounds.Y + deltaY;
-            ViewModel.MoveNode(selectedId, newLeft, newTop);
+            var parent = AstTreeOperations.FindParentNode(ViewModel.Document.RootNode, selectedId);
+            if (parent is not null && parent.Type is ControlType.StackPanel or ControlType.DockPanel or ControlType.WrapPanel)
+            {
+                // 容器內拖曳重新排序 (Container Drag-Reordering)
+                _isReorderingInContainer = true;
+                _reorderParentId = parent.Id;
+                _reorderChildId = selectedId;
+
+                var isVertical = parent.Type != ControlType.StackPanel || (parent.Orientation ?? Core.Enums.Orientation.Vertical) == Core.Enums.Orientation.Vertical;
+                var children = parent.Children;
+                var targetIndex = children.Count;
+                (Point, Point)? indicator = null;
+
+                for (var i = 0; i < children.Count; i++)
+                {
+                    var childBounds = GetNodeBounds(children[i]);
+                    if (isVertical)
+                    {
+                        if (currentPos.Y < childBounds.Center.Y)
+                        {
+                            targetIndex = i;
+                            indicator = (new Point(childBounds.Left, childBounds.Top), new Point(childBounds.Right, childBounds.Top));
+                            break;
+                        }
+                    }
+                    else
+                    {
+                        if (currentPos.X < childBounds.Center.X)
+                        {
+                            targetIndex = i;
+                            indicator = (new Point(childBounds.Left, childBounds.Top), new Point(childBounds.Left, childBounds.Bottom));
+                            break;
+                        }
+                    }
+                }
+
+                if (indicator is null && children.Count > 0)
+                {
+                    var lastBounds = GetNodeBounds(children[^1]);
+                    if (isVertical)
+                    {
+                        indicator = (new Point(lastBounds.Left, lastBounds.Bottom), new Point(lastBounds.Right, lastBounds.Bottom));
+                    }
+                    else
+                    {
+                        indicator = (new Point(lastBounds.Right, lastBounds.Top), new Point(lastBounds.Right, lastBounds.Bottom));
+                    }
+                }
+
+                _reorderTargetIndex = targetIndex;
+                _insertionIndicator = indicator;
+            }
+            else
+            {
+                _isReorderingInContainer = false;
+                _insertionIndicator = null;
+                var newLeft = _initialNodeBounds.X + deltaX;
+                var newTop = _initialNodeBounds.Y + deltaY;
+                ViewModel.MoveNode(selectedId, newLeft, newTop);
+            }
         }
         else
         {
@@ -498,6 +562,15 @@ public sealed class DesignCanvas : Grid
             ViewModel.AddControlFromToolbox(item, dropPos.X, dropPos.Y);
             e.Handled = true;
             return;
+        }
+
+        if (_isReorderingInContainer && _reorderParentId is not null && _reorderChildId is not null && ViewModel is not null)
+        {
+            ViewModel.ReorderChild(_reorderParentId, _reorderChildId, _reorderTargetIndex);
+            _isReorderingInContainer = false;
+            _insertionIndicator = null;
+            _reorderParentId = null;
+            _reorderChildId = null;
         }
 
         _isDragging = false;
@@ -796,6 +869,20 @@ public sealed class DesignCanvas : Grid
                 {
                     context.DrawRectangle(handleFill, handlePen, new Rect(p.X - (handleSize / 2), p.Y - (handleSize / 2), handleSize, handleSize));
                 }
+            }
+
+            // 6. 繪製容器拖曳重新排序藍色插入指示線 (Container Drag-Reordering Blue Insertion Indicator)
+            if (_parent._isReorderingInContainer && _parent._insertionIndicator.HasValue)
+            {
+                var (p1, p2) = _parent._insertionIndicator.Value;
+                var insertPen = new Pen(new SolidColorBrush(Color.FromRgb(56, 189, 248)), 3.0);
+                var glowPen = new Pen(new SolidColorBrush(Color.FromArgb(120, 56, 189, 248)), 6.0);
+                var dotBrush = new SolidColorBrush(Color.FromRgb(56, 189, 248));
+
+                context.DrawLine(glowPen, p1, p2);
+                context.DrawLine(insertPen, p1, p2);
+                context.DrawEllipse(dotBrush, null, p1, 4.0, 4.0);
+                context.DrawEllipse(dotBrush, null, p2, 4.0, 4.0);
             }
         }
     }

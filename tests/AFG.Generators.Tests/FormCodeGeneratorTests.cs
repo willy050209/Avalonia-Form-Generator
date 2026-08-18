@@ -77,4 +77,60 @@ public sealed class FormCodeGeneratorTests
         RoslynCompilerService.CheckSyntaxDiagnostics(viewFile.Content).Should().BeEmpty();
         RoslynCompilerService.CheckSyntaxDiagnostics(vmFile.Content).Should().BeEmpty();
     }
+
+    [Fact]
+    public void GenerateAll_WithTextBlockBoundToTextBox_ShouldGenerateReactiveBinding()
+    {
+        // Arrange
+        var doc = new FormDocument
+        {
+            ViewClassName = "SyncFormView",
+            ViewModelClassName = "SyncFormViewModel",
+            RootNode = new AstNode
+            {
+                Id = "root",
+                Type = ControlType.Canvas,
+                Children = [
+                    new AstNode
+                    {
+                        Id = "tb_input",
+                        Name = "InputBox",
+                        Type = ControlType.TextBox,
+                        Text = "Hello AFG",
+                        Bindings = [
+                            new BindingDefinition { TargetProperty = "Text", ViewModelProperty = "InputMessage", Mode = BindingMode.TwoWay }
+                        ]
+                    },
+                    new AstNode
+                    {
+                        Id = "tb_display",
+                        Name = "DisplayLabel",
+                        Type = ControlType.TextBlock,
+                        Bindings = [
+                            new BindingDefinition { TargetProperty = "Text", ViewModelProperty = "InputMessage", Mode = BindingMode.OneWay }
+                        ]
+                    }
+                ]
+            }
+        };
+
+        // Act
+        var result = _generator.GenerateAll(doc);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        var viewFile = result.Files.First(f => f.FileType == SourceFileType.View);
+        var vmFile = result.Files.First(f => f.FileType == SourceFileType.ViewModel);
+
+        // 驗證 View 包含兩者對同一個 ViewModel 屬性的綁定
+        viewFile.Content.Should().Contain(".Text(nameof(SyncFormViewModel.InputMessage), BindingMode.TwoWay)");
+        viewFile.Content.Should().Contain(".Text(nameof(SyncFormViewModel.InputMessage), BindingMode.OneWay)");
+
+        // 驗證 ViewModel 包含該屬性並初始賦值
+        vmFile.Content.Should().Contain("[ObservableProperty]");
+        vmFile.Content.Should().Contain("private string _inputMessage = \"Hello AFG\";");
+
+        RoslynCompilerService.CheckSyntaxDiagnostics(viewFile.Content).Should().BeEmpty();
+        RoslynCompilerService.CheckSyntaxDiagnostics(vmFile.Content).Should().BeEmpty();
+    }
 }

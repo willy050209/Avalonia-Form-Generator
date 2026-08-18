@@ -120,6 +120,17 @@ public sealed partial class InspectorViewModel : ObservableObject
 
     public void LoadNode(AstNode? node)
     {
+        if (_isUpdating)
+        {
+            return;
+        }
+
+        if (node is not null && _currentNode is not null && node.Id == _currentNode.Id)
+        {
+            _currentNode = node;
+            return;
+        }
+
         _isUpdating = true;
         _currentNode = node;
 

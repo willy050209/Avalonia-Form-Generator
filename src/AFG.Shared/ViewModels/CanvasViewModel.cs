@@ -288,6 +288,20 @@ public sealed partial class CanvasViewModel : ObservableObject
         SelectionChanged?.Invoke(SelectedNode);
     }
 
+    public void ReorderChild(string parentId, string childId, int newIndex)
+    {
+        ArgumentNullException.ThrowIfNull(parentId);
+        ArgumentNullException.ThrowIfNull(childId);
+
+        PushHistory();
+        var newRoot = AstTreeOperations.ReorderChild(Document.RootNode, parentId, childId, newIndex);
+        Document = Document with { RootNode = newRoot };
+        SelectedNode = AstTreeOperations.FindNodeById(Document.RootNode, childId);
+
+        DocumentChanged?.Invoke(Document);
+        SelectionChanged?.Invoke(SelectedNode);
+    }
+
     public static AstNode? FindInnermostContainerAt(AstNode root, double x, double y)
     {
         for (var i = root.Children.Count - 1; i >= 0; i--)
@@ -482,7 +496,6 @@ public sealed partial class CanvasViewModel : ObservableObject
         SelectedNode = updatedNode;
 
         DocumentChanged?.Invoke(Document);
-        SelectionChanged?.Invoke(SelectedNode);
     }
 
     public void DeleteSelectedNode() => DeleteSelectedNodes();

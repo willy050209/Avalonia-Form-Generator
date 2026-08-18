@@ -162,7 +162,7 @@ sequenceDiagram
 
 | 專案模組 | 職責劃分 | 關鍵類別 |
 | :--- | :--- | :--- |
-| **`AFG.Core`** | UI AST 節點定義、多表單專案定義、純函數樹操作（遞迴複製、對齊、均分、限制邊界）、驗證與 JSON 序列化 | `AstNode`, `FormDocument`, `FormProjectDefinition`, `AstTreeOperations`, `AstValidator`, `AfgSerializer` |
+| **`AFG.Core`** | UI AST 節點定義、多表單專案定義、純函數樹操作（遞迴複製、對齊、均分、限制邊界、容器子節點重排）、驗證與 JSON 序列化 | `AstNode`, `FormDocument`, `FormProjectDefinition`, `AstTreeOperations`, `AstValidator`, `AfgSerializer` |
 | **`AFG.Generators`** | C# Declarative UI 程式碼生成（支援 nameof 與 Lambda 編譯綁定）、CommunityToolkit.Mvvm 與動態 DI 生成、版本常數管理、Roslyn 格式化、多表單專案匯出 | `CSharpMarkupViewGenerator`, `MvvmViewModelGenerator`, `PackageVersions`, `RoslynCompilerService`, `ProjectExportService` |
-| **`AFG.Shared`** | 視覺畫布（遞迴容器、橡皮筋框選）、8 點縮放裝飾器、對齊吸附計算、裝置解析度模型、可摺疊面板排版、歷史堆疊、屬性檢查器 | `DesignCanvas`, `HistoryManager`, `SnappingEngine`, `CanvasPreset`, `MainViewModel`, `InspectorViewModel`, `CanvasViewModel` |
+| **`AFG.Shared`** | 視覺畫布（遞迴容器、橡皮筋框選、容器拖曳重排指示線）、8 點縮放裝飾器、對齊吸附計算、裝置解析度模型、可摺疊面板排版、歷史堆疊、屬性檢查器（焦點保護）、AvaloniaEdit + TextMate 語法高亮 | `DesignCanvas`, `HistoryManager`, `SnappingEngine`, `CanvasPreset`, `MainViewModel`, `InspectorViewModel`, `CanvasViewModel` |
 | **`AFG.Desktop`** | Windows/macOS/Linux 桌面應用程式進入點、最大化視窗啟動與本機平台服務 | `Program`, `MainWindow`, `DesktopFileDialogService`, `DesktopClipboardService` |

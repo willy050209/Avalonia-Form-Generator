@@ -173,6 +173,36 @@ public static class AstTreeOperations
     }
 
     /// <summary>
+    /// 在指定容器中重新排序子節點位置（不可變更新）。
+    /// </summary>
+    /// <param name="root">目前 AST 根節點。</param>
+    /// <param name="parentId">容器父節點 Id。</param>
+    /// <param name="childId">要重新排序的子節點 Id。</param>
+    /// <param name="newIndex">目標新索引位置。</param>
+    /// <returns>更新後的新根節點。</returns>
+    public static AstNode ReorderChild(AstNode root, string parentId, string childId, int newIndex)
+    {
+        ArgumentNullException.ThrowIfNull(root);
+        ArgumentNullException.ThrowIfNull(parentId);
+        ArgumentNullException.ThrowIfNull(childId);
+
+        var parent = FindNodeById(root, parentId);
+        if (parent is null) return root;
+
+        var child = parent.Children.FirstOrDefault(c => c.Id == childId);
+        if (child is null) return root;
+
+        var oldIndex = parent.Children.IndexOf(child);
+        if (oldIndex == newIndex || oldIndex < 0) return root;
+
+        var targetIndex = Math.Clamp(newIndex, 0, parent.Children.Count - 1);
+        var list = parent.Children.RemoveAt(oldIndex).Insert(targetIndex, child);
+        var updatedParent = parent with { Children = list };
+
+        return UpdateNode(root, updatedParent);
+    }
+
+    /// <summary>
     /// 移除指定子節點，回傳新的根節點（不可變更新）。
     /// </summary>
     /// <param name="root">目前 AST 根節點。</param>
