@@ -1,6 +1,6 @@
-# 系統架構與設計規格書 (System Architecture Specification)
+# 系統架構與技術規格書 (System Architecture Specification)
 
-本文檔詳細說明 **Avalonia Form Generator (AFG)** 的分層架構、中介語意樹資料流、Roslyn 程式碼生成管線與平台宿主設計。
+本文檔詳細說明 **Avalonia Form Generator (AFG)** 的分層架構、中介語意樹資料流、Roslyn 程式碼生成管線、相依性注入 (DI) 設計與跨平台宿主生成。
 
 ---
 
@@ -8,8 +8,8 @@
 
 1. **SRP 單一職責原則 (Separation of Concerns)**：
    - 核心 AST 語意樹 (`AFG.Core`) 為純 C# 資料模型，**零 UI 依賴**，可獨立於任何展示層進行序列化與測試。
-   - 程式碼生成引擎 (`AFG.Generators`) 只關注 AST 轉譯、語法樹建構與 Roslyn 編譯診斷。
-   - 視覺設計器 UI (`AFG.Shared`) 專注於畫布操作、手柄縮放、吸附對齊與屬性互動。
+   - 程式碼生成引擎 (`AFG.Generators`) 只關注 AST 轉譯、語法樹建構、DI 架構產出與 Roslyn 編譯診斷。
+   - 視覺設計器 UI (`AFG.Shared`) 專注於畫布操作、手柄縮放、吸附對齊、裝置解析度選擇與屬性互動。
    - 桌面宿主 (`AFG.Desktop`) 僅負責生命週期初始化與平台 API 注入（如檔案選擇器、剪貼簿）。
 
 2. **不可變性與純函數式操作 (Immutability & Pure Functions)**：
@@ -27,7 +27,7 @@
 
 ```mermaid
 graph TD
-    subgraph Desktop Layer
+    subgraph Host Layer
         Desktop["AFG.Desktop (ClassicDesktopLifetime, Platform Services)"]
     end
 
@@ -37,14 +37,15 @@ graph TD
         Inspector["InspectorView (Property, Layout, Binding, Command)"]
         Toolbox["ToolboxView (Controls Palette)"]
         VisualTree["VisualTreeExplorerView (DOM Tree)"]
+        CanvasPreset["CanvasPreset (Device Resolution & Aspect Ratio)"]
     end
 
     subgraph Generator Layer
         FormCodeGen["FormCodeGenerator (Facade)"]
         MarkupGen["CSharpMarkupViewGenerator"]
-        MvvmGen["MvvmViewModelGenerator"]
+        MvvmGen["MvvmViewModelGenerator (DI Constructor Injection)"]
         RoslynComp["RoslynCompilerService (In-Memory Emit)"]
-        ExportSvc["ProjectExportService (Full Project Zip/Folder)"]
+        ExportSvc["ProjectExportService (Multi-project .slnx, .Shared, .Desktop, .Android)"]
     end
 
     subgraph Core AST Layer
@@ -59,6 +60,7 @@ graph TD
     MainView --> Inspector
     MainView --> Toolbox
     MainView --> VisualTree
+    MainView --> CanvasPreset
     
     DesignCanvas --> FormCodeGen
     Inspector --> AstModel
@@ -77,9 +79,41 @@ graph TD
 
 ---
 
-## 3. 資料流與狀態同步機制 (Data Flow)
+## 3. 相依性注入 (DI) 架構設計
 
-AFG 採用「**以中介語意樹 (AST) 為單一真實來源 (Single Source of Truth)**」的反應式單向/雙向同步資料流：
+在產生的專案中，透過 `Microsoft.Extensions.DependencyInjection` 建立跨平台服務容器：
+
+```mermaid
+graph TD
+    App["App.cs (ServiceCollection & ServiceProvider)"]
+    
+    subgraph Services Layer
+        IGreeting["IGreetingService"]
+        Greeting["GreetingService"]
+    end
+
+    subgraph ViewModel Layer
+        VM["MainFormViewModel (Constructor Injected with IGreetingService)"]
+    end
+
+    subgraph View Layer
+        View["MainFormView (DataContext resolved from DI)"]
+    end
+
+    App -->|Register Singleton| IGreeting
+    IGreeting -.-> Greeting
+    App -->|Register Transient| VM
+    App -->|Register Factory| View
+    
+    VM -->|Receives via constructor| IGreeting
+    View -->|Bound with| VM
+```
+
+---
+
+## 4. 資料流與狀態同步機制 (Data Flow)
+
+AFG 採用「**以中介語意樹 (AST) 為單一真實來源 (Single Source of Truth)**」的反應式同步資料流：
 
 ```mermaid
 sequenceDiagram
@@ -90,13 +124,13 @@ sequenceDiagram
     participant Generator as FormCodeGenerator
     participant Preview as 代碼預覽 (Code Preview)
 
-    User->>Canvas: 拖曳控制項 / 8 點縮放
-    Canvas->>AST: 更新 AstNode 幾何座標與尺寸
+    User->>Canvas: 拖曳控制項 / 8 點縮放 / 切換解析度
+    Canvas->>AST: 更新 AstNode 幾何座標與畫布尺寸
     AST-->>Inspector: 同步反映選取節點屬性數值
     AST->>Generator: 觸發即時程式碼生成
     Generator->>Preview: 格式化 View.cs 與 ViewModel.cs
 
-    User->>Inspector: 修改文字 / 新增資料綁定
+    User->>Inspector: 修改文字 / 新增資料綁定 / 設定命令
     Inspector->>AST: 發布 NodeUpdated 事件不可變更新 AST
     AST-->>Canvas: 重新渲染畫布控制項與選取框
     AST->>Generator: 觸發即時程式碼生成
@@ -105,11 +139,11 @@ sequenceDiagram
 
 ---
 
-## 4. 模組職責明細
+## 5. 模組職責明細
 
 | 專案模組 | 職責劃分 | 關鍵類別 |
 | :--- | :--- | :--- |
 | **`AFG.Core`** | UI AST 節點定義、排版結構模型、純函數樹操作、驗證與 JSON 序列化 | `AstNode`, `FormDocument`, `AstTreeOperations`, `AstValidator`, `AfgSerializer` |
-| **`AFG.Generators`** | C# Declarative UI 程式碼生成、CommunityToolkit.Mvvm 生成、Roslyn 格式化與記憶體編譯 | `CSharpMarkupViewGenerator`, `MvvmViewModelGenerator`, `RoslynCompilerService`, `ProjectExportService` |
-| **`AFG.Shared`** | 視覺畫布、8 點縮放裝飾器、對齊吸附計算、工具箱、DOM 樹與屬性檢查器 | `DesignCanvas`, `SnappingEngine`, `MainViewModel`, `InspectorViewModel`, `CanvasViewModel` |
+| **`AFG.Generators`** | C# Declarative UI 程式碼生成、CommunityToolkit.Mvvm 與 DI 生成、Roslyn 格式化、跨平台多專案匯出 | `CSharpMarkupViewGenerator`, `MvvmViewModelGenerator`, `RoslynCompilerService`, `ProjectExportService` |
+| **`AFG.Shared`** | 視覺畫布、8 點縮放裝飾器、對齊吸附計算、裝置解析度模型、工具箱、DOM 樹與屬性檢查器 | `DesignCanvas`, `SnappingEngine`, `CanvasPreset`, `MainViewModel`, `InspectorViewModel`, `CanvasViewModel` |
 | **`AFG.Desktop`** | Windows/macOS/Linux 桌面應用程式進入點與本機對話框/剪貼簿平台服務 | `Program`, `MainWindow`, `DesktopFileDialogService`, `DesktopClipboardService` |

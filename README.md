@@ -1,33 +1,35 @@
 # Avalonia Form Generator (AFG)
 
 > **視覺化拖曳式 Avalonia MVVM 介面與宣告式純 C# 程式碼生成工具**  
-> 基於 **.NET 10**、**C# 14**、**Avalonia 11/12**、**CommunityToolkit.Mvvm** 與 **Microsoft.CodeAnalysis (Roslyn)** 打造。
+> 基於 **.NET 10**、**C# 14**、**Avalonia 11/12**、**Microsoft.Extensions.DependencyInjection**、**CommunityToolkit.Mvvm** 與 **Microsoft.CodeAnalysis (Roslyn)** 打造。
 
 ---
 
-## 📖 專案簡介 (Overview)
+## 專案簡介 (Overview)
 
 Avalonia UI 具備強大的跨平台特性與現代化的宣告式 UI 架構，但在傳統開發流程中缺乏直覺的「所見即所得 (WYSIWYG)」視覺化拖曳設計器。
 
-**Avalonia Form Generator (AFG)** 旨在解決快速原型開發與表單密集型系統（如 CRUD 管理後台）的痛點，提供類似 WinForms 的直覺畫布拖曳、8 點縮放與智慧吸附輔助線，並將畫布操作同步至**中介語意樹 (UI Metadata AST)**，最終轉譯為**乾淨宣告式的純 C# Markup View** 與符合 **CommunityToolkit.Mvvm** 規範的 ViewModel 程式碼。
+**Avalonia Form Generator (AFG)** 旨在解決快速原型開發與表單密集型系統（如 CRUD 管理後台、行動端跨平台介面）的痛點，提供直覺的畫布拖曳、8 點縮放與智慧吸附輔助線，並將畫布操作同步至**中介語意樹 (UI Metadata AST)**，最終轉譯為**乾淨宣告式的純 C# Markup View**、**相依性注入 (DI) 架構** 與符合 **CommunityToolkit.Mvvm** 規範的 ViewModel 程式碼。
 
 ```mermaid
 graph LR
-    Toolbox["🧰 工具箱 (Toolbox)"] -->|拖曳加入| Canvas["🎨 視覺畫布 (DesignCanvas)"]
-    Canvas -->|選取 / 縮放 / 位移| Inspector["🔍 屬性/事件檢查器 (Inspector)"]
-    Inspector -->|雙向更新| AST["🌳 中介語意樹 (UI AST Schema)"]
-    AST -->|Roslyn 轉譯與格式化| CodeGen["⚙️ 程式碼生成引擎 (CodeGenerator)"]
-    CodeGen --> ViewCS["📄 View.cs (C# Markup)"]
-    CodeGen --> VmCS["⚙️ ViewModel.cs (Mvvm)"]
-    CodeGen --> Export["🚀 完整 Avalonia 專案匯出"]
+    Toolbox["工具箱 (Toolbox)"] -->|拖曳加入| Canvas["視覺畫布 (DesignCanvas)"]
+    Canvas -->|選取 / 縮放 / 位移 / 解析度切換| Inspector["屬性/事件檢查器 (Inspector)"]
+    Inspector -->|雙向更新| AST["中介語意樹 (UI AST Schema)"]
+    AST -->|Roslyn 轉譯與格式化| CodeGen["程式碼生成引擎 (CodeGenerator)"]
+    CodeGen --> SharedProj["Shared 跨平台核心 (DI, App, View, ViewModel, Services)"]
+    CodeGen --> DesktopProj["Desktop 桌面端宿主專案"]
+    CodeGen --> AndroidProj["Android 行動端宿主專案 (可選)"]
+    CodeGen --> Export["完整跨平台方案 (.slnx) 匯出"]
 ```
 
 ---
 
-## ✨ 核心特色 (Key Features)
+## 核心特色 (Key Features)
 
 1. **視覺化設計畫布 (Design Canvas & Adorner System)**
    - **自由畫布與容器模式**：支援 Canvas 絕對座標排版與 Grid / StackPanel 流式佈局。
+   - **裝置解析度與長寬比預設 / 自訂**：支援主流手機長寬比（9:19.5、9:20、9:16）、平板（3:4、16:10）、桌面（1080p、720p）與**任意自訂寬高數值微調**。
    - **8 點縮放控制裝飾器**：支援節點角落與四邊即時拉伸縮放、整體拖曳位移。
    - **智慧網格與邊界吸附 (`SnappingEngine`)**：提供 Snap to Grid 與節點間左/中/右、頂/中/底中心線即時對齊吸附。
    - **DOM 元件樹 (`VisualTreeExplorer`)**：階層式檢視目前畫布所有節點，即時連動選取狀態。
@@ -37,25 +39,26 @@ graph LR
    - **MVVM 視覺化綁定建構器 (`Binding Builder`)**：支援屬性雙向綁定 (TwoWay)、單向綁定 (OneWay) 與模式切換。
    - **事件轉命令 (`Event-to-Command Mapping`)**：自動將 Click / SelectionChanged 等事件映射為 RelayCommand。
 
-3. **純 C# Markup 程式碼生成引擎 (`AFG.Generators`)**
-   - **宣告式 C# UI 輸出**：採用鏈式方法調用 (Fluent Method Chaining) 遞迴生成現代 C# View。
-   - **強型別 ViewModel**：基於 `CommunityToolkit.Mvvm`，自動生成帶有 `[ObservableProperty]` 與 `[RelayCommand]` 的 Partial Class。
+3. **相依性注入與跨平台多專案生成 (`AFG.Generators`)**
+   - **全面整合 `Microsoft.Extensions.DependencyInjection`**：在 `App.cs` 配置 `ServiceCollection` / `ServiceProvider`，自動註冊 Services、ViewModels 與 Views，支援 ViewModel 建構子相依性注入。
+   - **跨平台多專案方案結構**：一鍵產出 `.slnx` 方案，包含 `.Shared` 跨平台共用庫、`.Desktop` 桌面端進入點、以及可選的 `.Android` 行動端專案。
+   - **純 C# Markup 宣告式 UI**：無 AXAML 依賴，採用 Fluent Method Chaining 鏈式調用，型別安全且編譯即時檢查。
+   - **啟動視窗預設最大化**：桌面端與匯出專案啟動時均設定 `WindowState = WindowState.Maximized`。
    - **Roslyn 格式化與記憶體編譯診斷**：使用 Roslyn 語法樹標準化縮排，並在記憶體中編譯檢查，即時提供語法警告。
-   - **整包專案匯出 (`ProjectExportService`)**：一鍵匯出符合 **Visual Studio 2022/2026 現代化方案格式 (包含 `.slnx`, `.csproj`, `.editorconfig`, `.gitignore`)** 的獨立可編譯 Avalonia .NET 10 專案。
 
 4. **專案檔保存與載入 (`.afg.json`)**
    - 完整支援將設計中介語意樹序列化為 JSON 檔，方便團隊協同與二次編輯。
 
 ---
 
-## 🏗️ 系統架構與專案結構 (Solution Architecture)
+## 系統架構與專案結構 (Solution Architecture)
 
 專案嚴格遵守 **模式 A (Avalonia UI 跨平台多專案分層結構)** 與 **SRP 單一職責原則**：
 
-```
+```text
 AvaloniaFormGenerator/
 ├── src/
-│   ├── AFG.Core/                         # [核心核心層] UI AST 中介模型、不可變結構、純函數樹操作、驗證與 JSON 序列化
+│   ├── AFG.Core/                         # [核心層] UI AST 中介模型、不可變結構、純函數樹操作、驗證與 JSON 序列化
 │   │   ├── Enums/                        # 控制項類型、佈局模式、綁定模式等列舉
 │   │   ├── Models/Ast/                   # AstNode, FormDocument, BindingDefinition, EventMapping, AstTreeOperations
 │   │   ├── Models/Common/                # ThicknessModel, CornerRadiusModel, GridLengthModel
@@ -65,26 +68,26 @@ AvaloniaFormGenerator/
 │   ├── AFG.Generators/                   # [程式碼生成引擎] Roslyn 格式化、C# Declarative View 生成、Mvvm 生成與專案匯出
 │   │   ├── Abstractions/                 # ICodeGenerator, IRoslynCompilerService
 │   │   ├── CSharpMarkup/                 # CSharpMarkupViewGenerator (Fluent 鏈式調用 View 生成器)
-│   │   ├── Mvvm/                         # MvvmViewModelGenerator (自動屬性/命令提取與去重)
-│   │   ├── ProjectExport/                # ProjectExportService (整包獨立專案匯出)
+│   │   ├── Mvvm/                         # MvvmViewModelGenerator (自動屬性/命令提取與 DI 建構子生成)
+│   │   ├── ProjectExport/                # ProjectExportService (多專案 .slnx, .Shared, .Desktop, .Android 匯出)
 │   │   ├── Roslyn/                       # RoslynCodeFormatter, RoslynCompilerService
 │   │   └── FormCodeGenerator.cs          # 生成器外觀服務
 │   │
 │   ├── AFG.Shared/                       # [跨平台共用 UI] 視覺畫布、8 點縮放裝飾器、對齊吸附、屬性檢查器
 │   │   ├── Controls/                     # DesignCanvas (雙層渲染架構), SnappingEngine (吸附計算)
-│   │   ├── Models/                       # ToolboxItem
+│   │   ├── Models/                       # ToolboxItem, CanvasPreset (裝置解析度與長寬比模型)
 │   │   ├── Services/                     # IFileDialogService, IClipboardService, ToolboxService
 │   │   ├── ViewModels/                   # MainViewModel, CanvasViewModel, InspectorViewModel, ToolboxViewModel, VisualTreeViewModel
 │   │   └── Views/                        # MainView, DesignCanvas, InspectorView, ToolboxView, VisualTreeExplorerView
 │   │
 │   └── AFG.Desktop/                      # [桌面端進入點] Windows/macOS/Linux 桌面宿主與本機平台 API 實作
 │       ├── Services/                     # DesktopFileDialogService, DesktopClipboardService
-│       ├── MainWindow.axaml / .cs        # 桌面主視窗
+│       ├── MainWindow.axaml / .cs        # 桌面主視窗 (WindowState="Maximized")
 │       └── Program.cs                    # 應用程式進入點 (ClassicDesktopStyleApplicationLifetime)
 │
 ├── tests/
 │   ├── AFG.Core.Tests/                   # AST 增刪改查、循環防護、驗證器、序列化、吸附與檢查器測試 (32 項測試)
-│   └── AFG.Generators.Tests/             # C# Markup 轉譯、ViewModel 生成、Roslyn 格式化與整包專案匯出測試 (10 項測試)
+│   └── AFG.Generators.Tests/             # C# Markup 轉譯、ViewModel 生成、Roslyn 格式化、DI 驗證與整包專案 dotnet build 測試 (13 項測試)
 │
 ├── docs/                                 # 詳細技術與使用手冊
 └── plan.md                               # 專案執行計劃書 (Phased Milestones)
@@ -92,7 +95,7 @@ AvaloniaFormGenerator/
 
 ---
 
-## 🚀 快速開始 (Getting Started)
+## 快速開始 (Getting Started)
 
 ### 環境需求 (Prerequisites)
 - [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0) 或更高版本。
@@ -107,7 +110,7 @@ dotnet build
 ```bash
 dotnet test
 ```
-> 目前包含 **42 / 42** 項單元測試，100% 全數通過，0 警告，0 錯誤。
+> 目前包含 **45 / 45** 項單元測試，100% 全數通過，0 警告，0 錯誤。
 
 ### 3. 啟動桌面設計器 (Run App)
 ```bash
@@ -116,7 +119,7 @@ dotnet run --project src/AFG.Desktop/AFG.Desktop.csproj
 
 ---
 
-## 💻 C# Markup 程式碼生成範例 (Generated Code Example)
+## C# Markup 與相依性注入生成範例 (Generated Code Example)
 
 ### 1. 產出的 View (純 C# Declarative UI)
 ```csharp
@@ -142,20 +145,20 @@ public partial class LoginFormView : UserControl
     private void InitializeComponent()
     {
         Content = new Canvas()
-            .Width(800)
-            .Height(600)
+            .Width(390)
+            .Height(844)
             .Children(
                 new TextBox()
                     .Width(240)
                     .Height(35)
-                    .CanvasLeft(100)
+                    .CanvasLeft(75)
                     .CanvasTop(80)
-                    .PlaceholderText("請輸入使用者名稱")
+                    .Watermark("請輸入使用者名稱")
                     .Text(nameof(LoginFormViewModel.Username), BindingMode.TwoWay),
                 new Button()
                     .Width(120)
                     .Height(35)
-                    .CanvasLeft(100)
+                    .CanvasLeft(75)
                     .CanvasTop(130)
                     .Content("登入")
                     .Command(nameof(LoginFormViewModel.SubmitCommand))
@@ -164,7 +167,7 @@ public partial class LoginFormView : UserControl
 }
 ```
 
-### 2. 產出的 ViewModel (CommunityToolkit.Mvvm)
+### 2. 產出的 ViewModel (整合 DI 與 CommunityToolkit.Mvvm)
 ```csharp
 // <auto-generated />
 #nullable enable
@@ -172,11 +175,23 @@ public partial class LoginFormView : UserControl
 using System;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using GeneratedApp.Views.Services;
 
 namespace GeneratedApp.Views;
 
 public partial class LoginFormViewModel : ObservableObject
 {
+    private readonly IGreetingService? _greetingService;
+
+    public LoginFormViewModel()
+    {
+    }
+
+    public LoginFormViewModel(IGreetingService greetingService)
+    {
+        _greetingService = greetingService;
+    }
+
     [ObservableProperty]
     private string _username = string.Empty;
 
@@ -188,35 +203,109 @@ public partial class LoginFormViewModel : ObservableObject
 }
 ```
 
----
+### 3. 產出的 App.cs (相依性注入容器配置)
+```csharp
+// <auto-generated />
+using System;
+using Avalonia;
+using Avalonia.Controls;
+using Avalonia.Controls.ApplicationLifetimes;
+using Avalonia.Styling;
+using Avalonia.Themes.Fluent;
+using Microsoft.Extensions.DependencyInjection;
+using GeneratedApp.Views.Services;
 
-## 📁 匯出的 Visual Studio 方案結構 (Exported Solution Structure)
+namespace GeneratedApp.Views;
 
-匯出後的專案遵循 Visual Studio 2022+ 現代化解決方案慣例與純 C# 宣告式架構（無 AXAML 依賴）：
+public partial class App : Application
+{
+    public static IServiceProvider Services { get; private set; } = null!;
 
-```text
-{ProjectName}/
-├── {ProjectName}.slnx                      # Visual Studio 2022+ 現代化方案檔
-├── .editorconfig                           # Visual Studio 程式碼格式化標準
-├── .gitignore                              # Visual Studio 專案忽略清單
-└── {ProjectName}/                          # 專案根目錄 (同名子資料夾)
-    ├── {ProjectName}.csproj                # .NET 10 專案檔 (含 Avalonia & CommunityToolkit.Mvvm)
-    ├── App.cs                              # 應用程式初始化與跨平台 UI 生命週期配置 (純 C#)
-    ├── Config.cs                           # 全域靜態組態配置（視窗大小、標題、版本等）
-    ├── GlobalUsings.cs                     # 共享專案全域引用配置
-    ├── Program.cs                          # 桌面端程式載入點
-    ├── Markup/
-    │   └── AvaloniaMarkupExtensions.cs     # C# Declarative UI Fluent 擴充方法 (Width, Height, Children 等)
-    ├── Services/
-    │   └── GreetingService.cs              # 服務層 / Model 實例
-    ├── ViewModels/
-    │   └── {ViewModelClassName}.cs         # 檢視模型層 (CommunityToolkit.Mvvm)
-    └── Views/
-        └── {ViewClassName}.cs              # 檢視層 (純 C# Markup 宣告式元件)
+    public override void Initialize()
+    {
+        Styles.Add(new FluentTheme());
+        RequestedThemeVariant = ThemeVariant.Dark;
+    }
+
+    public override void OnFrameworkInitializationCompleted()
+    {
+        var services = new ServiceCollection();
+        ConfigureServices(services);
+        Services = services.BuildServiceProvider();
+
+        if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
+        {
+            var mainView = Services.GetRequiredService<LoginFormView>();
+            desktop.MainWindow = new Window
+            {
+                Title = Config.AppTitle,
+                Width = Config.DefaultWindowWidth,
+                Height = Config.DefaultWindowHeight,
+                WindowState = WindowState.Maximized,
+                Content = mainView
+            };
+        }
+        else if (ApplicationLifetime is ISingleViewApplicationLifetime singleView)
+        {
+            singleView.MainView = Services.GetRequiredService<LoginFormView>();
+        }
+
+        base.OnFrameworkInitializationCompleted();
+    }
+
+    private static void ConfigureServices(IServiceCollection services)
+    {
+        services.AddSingleton<IGreetingService, GreetingService>();
+        services.AddTransient<LoginFormViewModel>();
+        services.AddTransient<LoginFormView>(sp =>
+        {
+            var view = new LoginFormView();
+            view.DataContext = sp.GetRequiredService<LoginFormViewModel>();
+            return view;
+        });
+    }
+}
 ```
 
 ---
 
-## 📄 授權條款 (License)
+## 匯出的 Visual Studio 跨平台多專案結構 (Exported Solution Structure)
+
+```text
+{ProjectName}/
+├── {ProjectName}.slnx                      # Visual Studio 2022+ 現代化方案檔
+├── .editorconfig                           # 程式碼格式化規範
+├── .gitignore                              # Git 忽略清單
+│
+├── 📂 src
+│   ├── 📂 {ProjectName}.Shared             # 【跨平台核心共用類別庫】
+│   │   ├── {ProjectName}.Shared.csproj     # .NET 10 專案檔 (含 Avalonia, DI, Mvvm)
+│   │   ├── App.cs                          # 跨平台生命週期、DI 容器、全螢幕視窗配置
+│   │   ├── Config.cs                       # 全域組態（視窗尺寸、標題、版本與平台開關）
+│   │   ├── GlobalUsings.cs                 # 共享專案全域引用配置
+│   │   ├── 📂 Markup                       # C# Declarative UI Fluent 擴充庫
+│   │   │   └── AvaloniaMarkupExtensions.cs
+│   │   ├── 📂 Services                     # 服務層 (介面與實例)
+│   │   │   ├── IGreetingService.cs
+│   │   │   └── GreetingService.cs
+│   │   ├── 📂 ViewModels                   # 檢視模型層 (CommunityToolkit.Mvvm)
+│   │   │   └── {ViewModelClassName}.cs
+│   │   └── 📂 Views                        # 檢視層 (純 C# Markup 宣告式元件)
+│   │       └── {ViewClassName}.cs
+│   │
+│   ├── 📂 {ProjectName}.Desktop            # 【桌面端執行專案 (Windows/macOS/Linux)】
+│   │   ├── {ProjectName}.Desktop.csproj
+│   │   └── Program.cs                      # 桌面端載入點
+│   │
+│   └── 📂 {ProjectName}.Android            # 【行動端執行專案 (net10.0-android)】(可選)
+│       ├── {ProjectName}.Android.csproj
+│       ├── MainActivity.cs                 # AvaloniaMainActivity 載入點
+│       ├── SplashActivity.cs               # 啟動頁 Activity
+│       └── AndroidManifest.xml             # Android 應用程式清單
+```
+
+---
+
+## 授權條款 (License)
 
 本專案遵循 MIT License 授權協議。
