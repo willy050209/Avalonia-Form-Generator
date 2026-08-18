@@ -23,14 +23,17 @@ public sealed partial class TreeNodeViewModel : ObservableObject
 
     public string IconGlyph => Node.Type switch
     {
-        ControlType.Grid => "▦",
-        ControlType.Canvas => "🎨",
-        ControlType.StackPanel => "📑",
-        ControlType.Button => "🔘",
-        ControlType.TextBox => "📝",
-        ControlType.TextBlock => "🔤",
-        ControlType.CheckBox => "☑️",
-        _ => "📦"
+        ControlType.Grid => "Grd",
+        ControlType.Canvas => "Cvs",
+        ControlType.StackPanel => "Stk",
+        ControlType.Button => "Btn",
+        ControlType.TextBox => "Txt",
+        ControlType.TextBlock => "Lbl",
+        ControlType.CheckBox => "Chk",
+        ControlType.RadioButton => "Rad",
+        ControlType.ComboBox => "Cbo",
+        ControlType.Border => "Brd",
+        _ => "Ctl"
     };
 
     public TreeNodeViewModel(AstNode node)

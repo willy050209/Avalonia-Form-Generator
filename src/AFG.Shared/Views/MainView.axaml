@@ -5,6 +5,7 @@
              xmlns:vm="using:AFG.Shared.ViewModels"
              xmlns:views="using:AFG.Shared.Views"
              xmlns:controls="using:AFG.Shared.Controls"
+             xmlns:models="using:AFG.Shared.Models"
              mc:Ignorable="d" d:DesignWidth="1280" d:DesignHeight="800"
              x:Class="AFG.Shared.Views.MainView"
              x:DataType="vm:MainViewModel">
@@ -16,71 +17,46 @@
                 BorderBrush="#27272A"
                 BorderThickness="0,0,0,1"
                 Padding="12,8">
-            <Grid ColumnDefinitions="Auto, Auto, *, Auto">
+            <Grid ColumnDefinitions="Auto, Auto, Auto, *, Auto">
                 <!-- 檔案與專案操作 -->
                 <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="6">
-                    <Button Command="{Binding NewDocumentCommand}" ToolTip.Tip="建立新表單">
-                        <StackPanel Orientation="Horizontal" Spacing="4">
-                            <TextBlock Text="📄" />
-                            <TextBlock Text="新增" />
-                        </StackPanel>
-                    </Button>
-                    <Button Command="{Binding OpenDocumentCommand}" ToolTip.Tip="開啟 AFG 專案檔">
-                        <StackPanel Orientation="Horizontal" Spacing="4">
-                            <TextBlock Text="📂" />
-                            <TextBlock Text="開啟" />
-                        </StackPanel>
-                    </Button>
-                    <Button Command="{Binding SaveDocumentCommand}" ToolTip.Tip="儲存 AFG 專案檔">
-                        <StackPanel Orientation="Horizontal" Spacing="4">
-                            <TextBlock Text="💾" />
-                            <TextBlock Text="儲存" />
-                        </StackPanel>
-                    </Button>
-                    <Button Command="{Binding ExportFullProjectCommand}" ToolTip.Tip="匯出完整 Avalonia 專案原始碼">
-                        <StackPanel Orientation="Horizontal" Spacing="4">
-                            <TextBlock Text="🚀" />
-                            <TextBlock Text="匯出整包專案" />
-                        </StackPanel>
-                    </Button>
+                    <Button Command="{Binding NewDocumentCommand}" ToolTip.Tip="建立新表單" Content="新增" />
+                    <Button Command="{Binding OpenDocumentCommand}" ToolTip.Tip="開啟 AFG 專案檔" Content="開啟" />
+                    <Button Command="{Binding SaveDocumentCommand}" ToolTip.Tip="儲存 AFG 專案檔" Content="儲存" />
+                    <Button Command="{Binding ExportFullProjectCommand}" ToolTip.Tip="匯出完整跨平台 Avalonia 方案" Content="匯出整包專案" />
                 </StackPanel>
 
                 <!-- 畫布編輯與控制項工具 -->
                 <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6" Margin="16,0,0,0">
-                    <Button Command="{Binding AddSelectedToolboxItemCommand}" ToolTip.Tip="加入選取的工具箱控制項">
-                        <StackPanel Orientation="Horizontal" Spacing="4">
-                            <TextBlock Text="➕" />
-                            <TextBlock Text="加入控制項" />
-                        </StackPanel>
-                    </Button>
-                    <Button Command="{Binding DeleteSelectedNodeCommand}" ToolTip.Tip="刪除選取的控制項">
-                        <StackPanel Orientation="Horizontal" Spacing="4">
-                            <TextBlock Text="🗑️" />
-                            <TextBlock Text="刪除" />
-                        </StackPanel>
-                    </Button>
-                    <ToggleButton IsChecked="{Binding Canvas.SnapToGrid, Mode=TwoWay}" ToolTip.Tip="開啟/關閉網格吸附">
-                        <StackPanel Orientation="Horizontal" Spacing="4">
-                            <TextBlock Text="🧲" />
-                            <TextBlock Text="網格吸附" />
-                        </StackPanel>
-                    </ToggleButton>
+                    <Button Command="{Binding AddSelectedToolboxItemCommand}" ToolTip.Tip="加入選取的工具箱控制項" Content="加入控制項" />
+                    <Button Command="{Binding DeleteSelectedNodeCommand}" ToolTip.Tip="刪除選取的控制項" Content="刪除" />
+                    <ToggleButton IsChecked="{Binding Canvas.SnapToGrid, Mode=TwoWay}" ToolTip.Tip="開啟/關閉網格吸附" Content="網格吸附" />
+                </StackPanel>
+
+                <!-- 裝置解析度/長寬比與跨平台選項 -->
+                <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="10" Margin="16,0,0,0" VerticalAlignment="Center">
+                    <TextBlock Text="解析度/比例:" VerticalAlignment="Center" Foreground="#A1A1AA" FontSize="12" />
+                    <ComboBox ItemsSource="{Binding Canvas.AvailablePresets}"
+                              SelectedItem="{Binding Canvas.SelectedPreset, Mode=TwoWay}"
+                              Width="220"
+                              PlaceholderText="選擇裝置解析度與比例">
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate x:DataType="models:CanvasPreset">
+                                <TextBlock Text="{Binding}" FontSize="12" />
+                            </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                    </ComboBox>
+
+                    <CheckBox IsChecked="{Binding Canvas.IncludeMobileProject, Mode=TwoWay}"
+                              Content="包含行動端 (.Android)"
+                              ToolTip.Tip="勾選時將自動生成 .Android 跨平台專案"
+                              FontSize="12" />
                 </StackPanel>
 
                 <!-- 右側代碼生成操作 -->
-                <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="8">
-                    <Button Command="{Binding CopyViewCodeCommand}">
-                        <StackPanel Orientation="Horizontal" Spacing="4">
-                            <TextBlock Text="📋" />
-                            <TextBlock Text="複製 View C#" />
-                        </StackPanel>
-                    </Button>
-                    <Button Command="{Binding CopyVmCodeCommand}">
-                        <StackPanel Orientation="Horizontal" Spacing="4">
-                            <TextBlock Text="📋" />
-                            <TextBlock Text="複製 ViewModel C#" />
-                        </StackPanel>
-                    </Button>
+                <StackPanel Grid.Column="4" Orientation="Horizontal" Spacing="8">
+                    <Button Command="{Binding CopyViewCodeCommand}" Content="複製 View C#" />
+                    <Button Command="{Binding CopyVmCodeCommand}" Content="複製 ViewModel C#" />
                 </StackPanel>
             </Grid>
         </Border>
@@ -90,10 +66,10 @@
             <!-- 左側邊欄：工具箱與 DOM 樹 -->
             <Border Grid.Column="0" Background="#18181B" BorderBrush="#27272A" BorderThickness="0,0,1,0">
                 <TabControl>
-                    <TabItem Header="🧰 工具箱">
+                    <TabItem Header="工具箱">
                         <views:ToolboxView DataContext="{Binding Toolbox}" />
                     </TabItem>
-                    <TabItem Header="🌳 DOM 元件樹">
+                    <TabItem Header="元件樹">
                         <views:VisualTreeExplorerView DataContext="{Binding VisualTree}" />
                     </TabItem>
                 </TabControl>
@@ -126,7 +102,7 @@
                 <!-- 底部即時程式碼預覽區 -->
                 <Border Grid.Row="2" Background="#18181B">
                     <TabControl>
-                        <TabItem Header="📄 View (C# Markup)">
+                        <TabItem Header="View (C# Markup)">
                             <TextBox Text="{Binding GeneratedViewCode}"
                                      IsReadOnly="True"
                                      FontFamily="Consolas, Cascadia Code, Courier New"
@@ -136,7 +112,7 @@
                                      Background="#121214"
                                      Foreground="#E4E4E7" />
                         </TabItem>
-                        <TabItem Header="⚙️ ViewModel (CommunityToolkit.Mvvm)">
+                        <TabItem Header="ViewModel (CommunityToolkit.Mvvm)">
                             <TextBox Text="{Binding GeneratedVmCode}"
                                      IsReadOnly="True"
                                      FontFamily="Consolas, Cascadia Code, Courier New"
@@ -169,9 +145,9 @@
                     <TextBlock Text="{Binding Canvas.SelectedNode.Id, StringFormat='選取節點: {0}'}"
                                FontSize="11"
                                Foreground="#71717A" />
-                    <TextBlock Text="{Binding ValidationErrorCount, StringFormat='⚠️ 語法問題: {0}'}"
+                    <TextBlock Text="{Binding ValidationErrorCount, StringFormat='語法診斷問題: {0}'}"
                                FontSize="11"
-                               Foreground="{Binding ValidationErrorCount, Converter={x:Null}}" />
+                               Foreground="#71717A" />
                 </StackPanel>
 
                 <TextBlock Grid.Column="2"

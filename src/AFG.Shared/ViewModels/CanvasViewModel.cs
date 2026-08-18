@@ -21,6 +21,27 @@ public sealed partial class CanvasViewModel : ObservableObject
     [ObservableProperty]
     private double _gridSize = 8.0;
 
+    [ObservableProperty]
+    private bool _includeMobileProject = true;
+
+    public IReadOnlyList<CanvasPreset> AvailablePresets { get; } = CanvasPreset.Presets;
+
+    [ObservableProperty]
+    private CanvasPreset? _selectedPreset;
+
+    partial void OnSelectedPresetChanged(CanvasPreset? value)
+    {
+        if (value is not null)
+        {
+            Document = Document with
+            {
+                CanvasWidth = value.Width,
+                CanvasHeight = value.Height
+            };
+            DocumentChanged?.Invoke(Document);
+        }
+    }
+
     public ObservableCollection<GuideLine> ActiveGuideLines { get; } = [];
 
     public event Action<FormDocument>? DocumentChanged;

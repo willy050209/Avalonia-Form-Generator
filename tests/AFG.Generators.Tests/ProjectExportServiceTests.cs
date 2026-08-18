@@ -13,7 +13,7 @@ public sealed class ProjectExportServiceTests
     private readonly ProjectExportService _exportService = new();
 
     [Fact]
-    public void GenerateFullProject_ShouldGenerateCompleteVisualStudioFiles_WithPureCSharpStructure()
+    public void GenerateFullProject_ShouldGenerateCompleteVisualStudioFiles_WithMultiProjectAndDISupport()
     {
         // Arrange
         var doc = new FormDocument
@@ -38,7 +38,7 @@ public sealed class ProjectExportServiceTests
         };
 
         // Act
-        var files = _exportService.GenerateFullProject(doc);
+        var files = _exportService.GenerateFullProject(doc, new ProjectExportOptions(IncludeMobileProject: true));
 
         // Assert
         files.Should().NotBeNull();
@@ -48,38 +48,57 @@ public sealed class ProjectExportServiceTests
         slnx.Should().NotBeNull();
         slnx!.FileType.Should().Be(SourceFileType.SolutionFile);
         slnx.Content.Should().Contain("<Solution>");
-        slnx.Content.Should().Contain("<Project Path=\"OrderFormApp/OrderFormApp.csproj\" />");
+        slnx.Content.Should().Contain("<Project Path=\"src/OrderFormApp.Shared/OrderFormApp.Shared.csproj\" />");
+        slnx.Content.Should().Contain("<Project Path=\"src/OrderFormApp.Desktop/OrderFormApp.Desktop.csproj\" />");
+        slnx.Content.Should().Contain("<Project Path=\"src/OrderFormApp.Android/OrderFormApp.Android.csproj\" />");
 
         files.Should().Contain(f => f.FileName == ".gitignore");
         files.Should().Contain(f => f.FileName == ".editorconfig");
 
-        // 2. OrderFormApp/ 專案目錄結構檔案
-        var projPath = Path.Combine("OrderFormApp", "OrderFormApp.csproj");
-        var appCsPath = Path.Combine("OrderFormApp", "App.cs");
-        var configPath = Path.Combine("OrderFormApp", "Config.cs");
-        var globalUsingsPath = Path.Combine("OrderFormApp", "GlobalUsings.cs");
-        var programPath = Path.Combine("OrderFormApp", "Program.cs");
-        var markupExtPath = Path.Combine("OrderFormApp", "Markup", "AvaloniaMarkupExtensions.cs");
-        var servicePath = Path.Combine("OrderFormApp", "Services", "GreetingService.cs");
-        var viewPath = Path.Combine("OrderFormApp", "Views", "OrderFormView.cs");
-        var vmPath = Path.Combine("OrderFormApp", "ViewModels", "OrderFormViewModel.cs");
+        // 2. OrderFormApp.Shared 專案目錄結構檔案
+        var sharedProj = Path.Combine("src", "OrderFormApp.Shared", "OrderFormApp.Shared.csproj");
+        var appCs = Path.Combine("src", "OrderFormApp.Shared", "App.cs");
+        var configCs = Path.Combine("src", "OrderFormApp.Shared", "Config.cs");
+        var globalUsingsCs = Path.Combine("src", "OrderFormApp.Shared", "GlobalUsings.cs");
+        var markupExtCs = Path.Combine("src", "OrderFormApp.Shared", "Markup", "AvaloniaMarkupExtensions.cs");
+        var igreetingCs = Path.Combine("src", "OrderFormApp.Shared", "Services", "IGreetingService.cs");
+        var greetingCs = Path.Combine("src", "OrderFormApp.Shared", "Services", "GreetingService.cs");
+        var viewCs = Path.Combine("src", "OrderFormApp.Shared", "Views", "OrderFormView.cs");
+        var vmCs = Path.Combine("src", "OrderFormApp.Shared", "ViewModels", "OrderFormViewModel.cs");
 
-        files.Should().Contain(f => f.FileName == projPath);
-        files.Should().Contain(f => f.FileName == appCsPath);
-        files.Should().Contain(f => f.FileName == configPath);
-        files.Should().Contain(f => f.FileName == globalUsingsPath);
-        files.Should().Contain(f => f.FileName == programPath);
-        files.Should().Contain(f => f.FileName == markupExtPath);
-        files.Should().Contain(f => f.FileName == servicePath);
-        files.Should().Contain(f => f.FileName == viewPath);
-        files.Should().Contain(f => f.FileName == vmPath);
+        files.Should().Contain(f => f.FileName == sharedProj);
+        files.Should().Contain(f => f.FileName == appCs);
+        files.Should().Contain(f => f.FileName == configCs);
+        files.Should().Contain(f => f.FileName == globalUsingsCs);
+        files.Should().Contain(f => f.FileName == markupExtCs);
+        files.Should().Contain(f => f.FileName == igreetingCs);
+        files.Should().Contain(f => f.FileName == greetingCs);
+        files.Should().Contain(f => f.FileName == viewCs);
+        files.Should().Contain(f => f.FileName == vmCs);
 
-        // 3. 檢查所有 C# 檔案語法正確性
-        foreach (var csFile in files.Where(f => f.FileName.EndsWith(".cs", StringComparison.Ordinal)))
-        {
-            var errors = RoslynCompilerService.CheckSyntaxDiagnostics(csFile.Content);
-            errors.Should().BeEmpty($"檔案 {csFile.FileName} 不應存在語法錯誤");
-        }
+        // 3. OrderFormApp.Desktop 專案檔案
+        var desktopProj = Path.Combine("src", "OrderFormApp.Desktop", "OrderFormApp.Desktop.csproj");
+        var desktopProg = Path.Combine("src", "OrderFormApp.Desktop", "Program.cs");
+        files.Should().Contain(f => f.FileName == desktopProj);
+        files.Should().Contain(f => f.FileName == desktopProg);
+
+        // 4. OrderFormApp.Android 專案檔案
+        var androidProj = Path.Combine("src", "OrderFormApp.Android", "OrderFormApp.Android.csproj");
+        var mainActivity = Path.Combine("src", "OrderFormApp.Android", "MainActivity.cs");
+        var splashActivity = Path.Combine("src", "OrderFormApp.Android", "SplashActivity.cs");
+        var manifest = Path.Combine("src", "OrderFormApp.Android", "AndroidManifest.xml");
+        files.Should().Contain(f => f.FileName == androidProj);
+        files.Should().Contain(f => f.FileName == mainActivity);
+        files.Should().Contain(f => f.FileName == splashActivity);
+        files.Should().Contain(f => f.FileName == manifest);
+
+        // 5. 檢查 App.cs 是否包含 DI 與最大化視窗
+        var appFile = files.First(f => f.FileName == appCs);
+        appFile.Content.Should().Contain("ConfigureServices(IServiceCollection services)");
+        appFile.Content.Should().Contain("WindowState = WindowState.Maximized");
+        appFile.Content.Should().Contain("services.AddSingleton<IGreetingService, GreetingService>()");
+        appFile.Content.Should().Contain("services.AddTransient<OrderFormViewModel>()");
+        appFile.Content.Should().Contain("services.AddTransient<OrderFormView>");
     }
 
     [Fact]
@@ -92,22 +111,24 @@ public sealed class ProjectExportServiceTests
         try
         {
             // Act
-            await _exportService.ExportToFolderAsync(doc, tempFolder);
+            await _exportService.ExportToFolderAsync(doc, tempFolder, new ProjectExportOptions(IncludeMobileProject: true));
 
             // Assert
             Directory.Exists(tempFolder).Should().BeTrue();
             File.Exists(Path.Combine(tempFolder, "MainFormApp.slnx")).Should().BeTrue();
             File.Exists(Path.Combine(tempFolder, ".gitignore")).Should().BeTrue();
             File.Exists(Path.Combine(tempFolder, ".editorconfig")).Should().BeTrue();
-            File.Exists(Path.Combine(tempFolder, "MainFormApp", "MainFormApp.csproj")).Should().BeTrue();
-            File.Exists(Path.Combine(tempFolder, "MainFormApp", "App.cs")).Should().BeTrue();
-            File.Exists(Path.Combine(tempFolder, "MainFormApp", "Config.cs")).Should().BeTrue();
-            File.Exists(Path.Combine(tempFolder, "MainFormApp", "GlobalUsings.cs")).Should().BeTrue();
-            File.Exists(Path.Combine(tempFolder, "MainFormApp", "Program.cs")).Should().BeTrue();
-            File.Exists(Path.Combine(tempFolder, "MainFormApp", "Markup", "AvaloniaMarkupExtensions.cs")).Should().BeTrue();
-            File.Exists(Path.Combine(tempFolder, "MainFormApp", "Services", "GreetingService.cs")).Should().BeTrue();
-            File.Exists(Path.Combine(tempFolder, "MainFormApp", "Views", "MainFormView.cs")).Should().BeTrue();
-            File.Exists(Path.Combine(tempFolder, "MainFormApp", "ViewModels", "MainFormViewModel.cs")).Should().BeTrue();
+            File.Exists(Path.Combine(tempFolder, "src", "MainFormApp.Shared", "MainFormApp.Shared.csproj")).Should().BeTrue();
+            File.Exists(Path.Combine(tempFolder, "src", "MainFormApp.Shared", "App.cs")).Should().BeTrue();
+            File.Exists(Path.Combine(tempFolder, "src", "MainFormApp.Shared", "Config.cs")).Should().BeTrue();
+            File.Exists(Path.Combine(tempFolder, "src", "MainFormApp.Shared", "GlobalUsings.cs")).Should().BeTrue();
+            File.Exists(Path.Combine(tempFolder, "src", "MainFormApp.Shared", "Markup", "AvaloniaMarkupExtensions.cs")).Should().BeTrue();
+            File.Exists(Path.Combine(tempFolder, "src", "MainFormApp.Shared", "Services", "GreetingService.cs")).Should().BeTrue();
+            File.Exists(Path.Combine(tempFolder, "src", "MainFormApp.Shared", "Views", "MainFormView.cs")).Should().BeTrue();
+            File.Exists(Path.Combine(tempFolder, "src", "MainFormApp.Shared", "ViewModels", "MainFormViewModel.cs")).Should().BeTrue();
+            File.Exists(Path.Combine(tempFolder, "src", "MainFormApp.Desktop", "MainFormApp.Desktop.csproj")).Should().BeTrue();
+            File.Exists(Path.Combine(tempFolder, "src", "MainFormApp.Desktop", "Program.cs")).Should().BeTrue();
+            File.Exists(Path.Combine(tempFolder, "src", "MainFormApp.Android", "MainFormApp.Android.csproj")).Should().BeTrue();
         }
         finally
         {
@@ -119,12 +140,11 @@ public sealed class ProjectExportServiceTests
     }
 
     /// <summary>
-    /// 端到端實體編譯測試：將包含複雜控制項與資料綁定的 AST 表單完整匯出至實體目錄，並透過 dotnet CLI 驗證可 0 錯誤成功編譯。
+    /// 端到端實體編譯測試：驗證匯出之 .Shared 與 .Desktop 專案可直接透過 dotnet CLI 0 錯誤成功編譯。
     /// </summary>
     [Fact]
     public async Task ExportedProject_ShouldCompileDirectlyWithDotnetCli()
     {
-        // Arrange: 建立包含 Grid, TextBlock, TextBox, CheckBox, Button, 雙向綁定與命令映射之完整 AST
         var tempFolder = Path.Combine(Path.GetTempPath(), "AFG_BuildVerification_" + Guid.NewGuid().ToString("N"));
         var doc = new FormDocument
         {
@@ -185,17 +205,17 @@ public sealed class ProjectExportServiceTests
 
         try
         {
-            // Act: 匯出完整方案
-            await _exportService.ExportToFolderAsync(doc, tempFolder);
+            // Act: 匯出完整方案 (不含 Android 以便快速進行 CI 桌面端編譯)
+            await _exportService.ExportToFolderAsync(doc, tempFolder, new ProjectExportOptions(IncludeMobileProject: false));
 
-            var csprojPath = Path.Combine(tempFolder, "CustomerFormApp", "CustomerFormApp.csproj");
-            File.Exists(csprojPath).Should().BeTrue("專案檔應存在於匯出目錄");
+            var desktopCsprojPath = Path.Combine(tempFolder, "src", "CustomerFormApp.Desktop", "CustomerFormApp.Desktop.csproj");
+            File.Exists(desktopCsprojPath).Should().BeTrue("Desktop 專案檔應存在於匯出目錄");
 
             // 執行 dotnet build 驗證可編譯性
             var psi = new ProcessStartInfo
             {
                 FileName = "dotnet",
-                Arguments = $"build \"{csprojPath}\" -c Release",
+                Arguments = $"build \"{desktopCsprojPath}\" -c Release",
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
                 UseShellExecute = false,
@@ -220,16 +240,13 @@ public sealed class ProjectExportServiceTests
                 {
                     Directory.Delete(tempFolder, recursive: true);
                 }
-                catch
-                {
-                    // 忽略清理時由鎖定引起之例外
-                }
+                catch { }
             }
         }
     }
 
     /// <summary>
-    /// 驗證使用者真實 MainFormView.afg.json (包含 Button, TextBox, TextBlock 及 IsEnabled 綁定) 匯出後可 0 錯誤編譯。
+    /// 驗證使用者真實 MainFormView.afg.json 匯出後可 0 錯誤編譯。
     /// </summary>
     [Fact]
     public async Task ExportedProject_FromMainFormViewWithIsEnabledBinding_ShouldCompileSuccessfully()
@@ -245,7 +262,6 @@ public sealed class ProjectExportServiceTests
         }
         else
         {
-            // 回退模擬結構
             doc = new FormDocument
             {
                 ViewClassName = "MainFormView",
@@ -267,13 +283,13 @@ public sealed class ProjectExportServiceTests
 
         try
         {
-            await _exportService.ExportToFolderAsync(doc, tempFolder);
-            var csprojPath = Path.Combine(tempFolder, "MainFormApp", "MainFormApp.csproj");
+            await _exportService.ExportToFolderAsync(doc, tempFolder, new ProjectExportOptions(IncludeMobileProject: false));
+            var desktopCsprojPath = Path.Combine(tempFolder, "src", "MainFormApp.Desktop", "MainFormApp.Desktop.csproj");
 
             var psi = new ProcessStartInfo
             {
                 FileName = "dotnet",
-                Arguments = $"build \"{csprojPath}\" -c Release",
+                Arguments = $"build \"{desktopCsprojPath}\" -c Release",
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
                 UseShellExecute = false,

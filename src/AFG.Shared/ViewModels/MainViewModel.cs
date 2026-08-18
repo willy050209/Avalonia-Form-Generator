@@ -148,8 +148,9 @@ public sealed partial class MainViewModel : ObservableObject
 
         try
         {
-            await _exportService.ExportToFolderAsync(Canvas.Document, folder);
-            _notificationService?.Show("匯出成功", $"已成功將完整 Avalonia 專案匯出至 {folder}");
+            var options = new ProjectExportOptions(IncludeMobileProject: Canvas.IncludeMobileProject);
+            await _exportService.ExportToFolderAsync(Canvas.Document, folder, options);
+            _notificationService?.Show("匯出成功", $"已成功將完整 Avalonia 跨平台專案匯出至 {folder}");
         }
         catch (Exception ex)
         {

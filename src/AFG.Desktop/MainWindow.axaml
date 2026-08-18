@@ -5,9 +5,10 @@
         xmlns:views="using:AFG.Shared.Views"
         mc:Ignorable="d" d:DesignWidth="1280" d:DesignHeight="800"
         x:Class="AFG.Desktop.MainWindow"
-        Title="Avalonia Form Generator (AFG) - 視覺化 C# Markup 設計器"
-        Width="1280" Height="800"
-        MinWidth="900" MinHeight="600"
+        Title="Avalonia Form Generator (AFG)"
+        Width="1440" Height="900"
+        MinWidth="1024" MinHeight="700"
+        WindowState="Maximized"
         WindowStartupLocation="CenterScreen">
     
     <views:MainView x:Name="RootMainView" />

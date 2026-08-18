@@ -4,39 +4,62 @@ using AFG.Generators.CSharpMarkup;
 namespace AFG.Generators.ProjectExport;
 
 /// <summary>
-/// 產出符合 Visual Studio 2022+ 現代化解決方案與純 C# 宣告式架構 (含 .slnx, App.cs, Config.cs, GlobalUsings.cs, Services, ViewModels, Views) 之專案匯出服務。
+/// 專案匯出選項設定。
+/// </summary>
+public sealed record ProjectExportOptions(
+    bool IncludeMobileProject = true,
+    string? CustomProjectName = null);
+
+/// <summary>
+/// 產出具備相依性注入 (DI) 與跨平台多專案架構 (.Shared, .Desktop, 可選 .Android) 之 Avalonia 現代化方案匯出服務。
 /// </summary>
 public sealed class ProjectExportService(FormCodeGenerator? codeGenerator = null)
 {
     private readonly FormCodeGenerator _codeGenerator = codeGenerator ?? new FormCodeGenerator();
 
     /// <summary>
-    /// 生成包含 Visual Studio 現代化方案檔 (.slnx)、專案子資料夾、純 C# App 初始化與分層目錄之檔案集合。
+    /// 生成包含 Visual Studio 現代化方案檔 (.slnx)、.Shared 共用核心、.Desktop 桌面宿主及可選 .Android 行動端專案的檔案集合。
     /// </summary>
-    public IReadOnlyList<GeneratedSourceFile> GenerateFullProject(FormDocument document)
+    public IReadOnlyList<GeneratedSourceFile> GenerateFullProject(FormDocument document, ProjectExportOptions? options = null)
     {
         ArgumentNullException.ThrowIfNull(document);
+        options ??= new ProjectExportOptions();
 
         var result = _codeGenerator.GenerateAll(document);
         var files = new List<GeneratedSourceFile>();
 
-        var projectName = string.IsNullOrWhiteSpace(document.ViewClassName)
+        var rawName = string.IsNullOrWhiteSpace(document.ViewClassName)
             ? "GeneratedApp"
             : document.ViewClassName.Replace("View", "", StringComparison.Ordinal) + "App";
 
-        var projectDir = projectName;
+        var baseProjectName = string.IsNullOrWhiteSpace(options.CustomProjectName) ? rawName : options.CustomProjectName.Trim();
 
+        var sharedProjectName = $"{baseProjectName}.Shared";
+        var desktopProjectName = $"{baseProjectName}.Desktop";
+        var androidProjectName = $"{baseProjectName}.Android";
+
+        var sharedDir = Path.Combine("src", sharedProjectName);
+        var desktopDir = Path.Combine("src", desktopProjectName);
+        var androidDir = Path.Combine("src", androidProjectName);
+
+        // ==========================================
         // 1. 方案根目錄：Visual Studio 現代化方案檔 (.slnx)
-        var slnxContent = $"""
-        <Solution>
-          <Project Path="{projectName}/{projectName}.csproj" />
-        </Solution>
-        """;
-        files.Add(new GeneratedSourceFile($"{projectName}.slnx", slnxContent, SourceFileType.SolutionFile));
+        // ==========================================
+        var slnxBuilder = new StringBuilder();
+        slnxBuilder.AppendLine("<Solution>");
+        slnxBuilder.AppendLine($"  <Project Path=\"src/{sharedProjectName}/{sharedProjectName}.csproj\" />");
+        slnxBuilder.AppendLine($"  <Project Path=\"src/{desktopProjectName}/{desktopProjectName}.csproj\" />");
+        if (options.IncludeMobileProject)
+        {
+            slnxBuilder.AppendLine($"  <Project Path=\"src/{androidProjectName}/{androidProjectName}.csproj\" />");
+        }
+        slnxBuilder.AppendLine("</Solution>");
 
-        // 2. 方案根目錄：.gitignore 與 .editorconfig
+        files.Add(new GeneratedSourceFile($"{baseProjectName}.slnx", slnxBuilder.ToString().TrimEnd(), SourceFileType.SolutionFile));
+
+        // 方案根目錄：.gitignore 與 .editorconfig
         var gitignoreContent = """
-        ## Visual Studio
+        ## Visual Studio & .NET
         .vs/
         [Bb]in/
         [Oo]bj/
@@ -44,6 +67,9 @@ public sealed class ProjectExportService(FormCodeGenerator? codeGenerator = null
         *.suo
         *.userosscache
         *.sln.docstates
+        .idea/
+        *.apk
+        *.aab
         """;
         files.Add(new GeneratedSourceFile(".gitignore", gitignoreContent, SourceFileType.ProjectFile));
 
@@ -64,11 +90,12 @@ public sealed class ProjectExportService(FormCodeGenerator? codeGenerator = null
         """;
         files.Add(new GeneratedSourceFile(".editorconfig", editorconfigContent, SourceFileType.ProjectFile));
 
-        // 3. 專案檔：{projectName}/{projectName}.csproj
-        var csprojContent = $"""
+        // ==========================================
+        // 2. 共用核心專案：src/{ProjectName}.Shared/
+        // ==========================================
+        var sharedCsprojContent = $"""
         <Project Sdk="Microsoft.NET.Sdk">
           <PropertyGroup>
-            <OutputType>WinExe</OutputType>
             <TargetFramework>net10.0</TargetFramework>
             <Nullable>enable</Nullable>
             <ImplicitUsings>enable</ImplicitUsings>
@@ -79,31 +106,36 @@ public sealed class ProjectExportService(FormCodeGenerator? codeGenerator = null
 
           <ItemGroup>
             <PackageReference Include="Avalonia" Version="11.2.5" />
-            <PackageReference Include="Avalonia.Desktop" Version="11.2.5" />
             <PackageReference Include="Avalonia.Themes.Fluent" Version="11.2.5" />
             <PackageReference Include="Avalonia.Fonts.Inter" Version="11.2.5" />
             <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
+            <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.2" />
           </ItemGroup>
         </Project>
         """;
-        files.Add(new GeneratedSourceFile(Path.Combine(projectDir, $"{projectName}.csproj"), csprojContent, SourceFileType.ProjectFile));
+        files.Add(new GeneratedSourceFile(Path.Combine(sharedDir, $"{sharedProjectName}.csproj"), sharedCsprojContent, SourceFileType.ProjectFile));
 
-        // 4. 純 C# 應用程式初始化：App.cs
+        // App.cs（內建 DI 相依性注入與視窗最大化配置）
         var appCs = $$"""
         // <auto-generated />
+        using System;
         using Avalonia;
         using Avalonia.Controls;
         using Avalonia.Controls.ApplicationLifetimes;
         using Avalonia.Styling;
         using Avalonia.Themes.Fluent;
+        using Microsoft.Extensions.DependencyInjection;
+        using {{document.RootNamespace}}.Services;
 
         namespace {{document.RootNamespace}};
 
         /// <summary>
-        /// 應用程式初始化與跨平台 UI 生命週期配置。
+        /// 應用程式初始化、相依性注入 (DI) 與跨平台 UI 生命週期配置。
         /// </summary>
         public partial class App : Application
         {
+            public static IServiceProvider Services { get; private set; } = null!;
+
             public override void Initialize()
             {
                 Styles.Add(new FluentTheme());
@@ -112,33 +144,60 @@ public sealed class ProjectExportService(FormCodeGenerator? codeGenerator = null
 
             public override void OnFrameworkInitializationCompleted()
             {
+                // 配置相依性注入容器
+                var services = new ServiceCollection();
+                ConfigureServices(services);
+                Services = services.BuildServiceProvider();
+
+                // 桌面端生命週期 (視窗最大化啟動)
                 if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
                 {
-                    var view = new {{document.ViewClassName}}();
-                    view.DataContext = new {{document.ViewModelClassName}}();
-
+                    var mainView = Services.GetRequiredService<{{document.ViewClassName}}>();
                     desktop.MainWindow = new Window
                     {
                         Title = Config.AppTitle,
                         Width = Config.DefaultWindowWidth,
                         Height = Config.DefaultWindowHeight,
-                        Content = view
+                        WindowState = WindowState.Maximized,
+                        Content = mainView
                     };
+                }
+                // 行動端生命週期 (Android / iOS 單視圖呈現)
+                else if (ApplicationLifetime is ISingleViewApplicationLifetime singleView)
+                {
+                    singleView.MainView = Services.GetRequiredService<{{document.ViewClassName}}>();
                 }
 
                 base.OnFrameworkInitializationCompleted();
             }
+
+            private static void ConfigureServices(IServiceCollection services)
+            {
+                // 1. 註冊服務層 (Services)
+                services.AddSingleton<IGreetingService, GreetingService>();
+
+                // 2. 註冊檢視模型層 (ViewModels)
+                services.AddTransient<{{document.ViewModelClassName}}>();
+
+                // 3. 註冊檢視層 (Views) 並自動綁定 DataContext
+                services.AddTransient<{{document.ViewClassName}}>(sp =>
+                {
+                    var view = new {{document.ViewClassName}}();
+                    view.DataContext = sp.GetRequiredService<{{document.ViewModelClassName}}>();
+                    return view;
+                });
+            }
         }
         """;
-        files.Add(new GeneratedSourceFile(Path.Combine(projectDir, "App.cs"), appCs, SourceFileType.ProjectFile));
+        files.Add(new GeneratedSourceFile(Path.Combine(sharedDir, "App.cs"), appCs, SourceFileType.ProjectFile));
 
-        // 5. 全域靜態組態配置：Config.cs
+        // Config.cs
         var configCs = $$"""
         // <auto-generated />
         namespace {{document.RootNamespace}};
 
         /// <summary>
-        /// 全域靜態組態配置（視窗大小、標題、版本等）。
+        /// 全域靜態組態配置（視窗大小、標題、版本與目標平台等）。
         /// </summary>
         public static class Config
         {
@@ -146,11 +205,12 @@ public sealed class ProjectExportService(FormCodeGenerator? codeGenerator = null
             public const string Version = "1.0.0";
             public const double DefaultWindowWidth = {{document.CanvasWidth}};
             public const double DefaultWindowHeight = {{document.CanvasHeight}};
+            public const bool IsMobileSupported = {{(options.IncludeMobileProject ? "true" : "false")}};
         }
         """;
-        files.Add(new GeneratedSourceFile(Path.Combine(projectDir, "Config.cs"), configCs, SourceFileType.ProjectFile));
+        files.Add(new GeneratedSourceFile(Path.Combine(sharedDir, "Config.cs"), configCs, SourceFileType.ProjectFile));
 
-        // 6. 共享專案全域引用配置：GlobalUsings.cs
+        // GlobalUsings.cs
         var globalUsingsCs = $$"""
         // <auto-generated />
         global using System;
@@ -167,18 +227,97 @@ public sealed class ProjectExportService(FormCodeGenerator? codeGenerator = null
         global using Avalonia.Themes.Fluent;
         global using CommunityToolkit.Mvvm.ComponentModel;
         global using CommunityToolkit.Mvvm.Input;
+        global using Microsoft.Extensions.DependencyInjection;
         global using {{document.RootNamespace}};
         global using {{document.RootNamespace}}.Services;
         """;
-        files.Add(new GeneratedSourceFile(Path.Combine(projectDir, "GlobalUsings.cs"), globalUsingsCs, SourceFileType.ProjectFile));
+        files.Add(new GeneratedSourceFile(Path.Combine(sharedDir, "GlobalUsings.cs"), globalUsingsCs, SourceFileType.ProjectFile));
 
-        // 7. 桌面端程式載入點：Program.cs
-        var programCs = $$"""
+        // C# Declarative UI 擴充方法：Markup/AvaloniaMarkupExtensions.cs
+        files.Add(new GeneratedSourceFile(
+            Path.Combine(sharedDir, "Markup", "AvaloniaMarkupExtensions.cs"),
+            AvaloniaMarkupExtensionsSource.Code,
+            SourceFileType.ProjectFile));
+
+        // 服務層介面與實作：Services/IGreetingService.cs & GreetingService.cs
+        var iGreetingServiceCs = $$"""
+        // <auto-generated />
+        namespace {{document.RootNamespace}}.Services;
+
+        /// <summary>
+        /// 展示服務介面。
+        /// </summary>
+        public interface IGreetingService
+        {
+            string GetGreeting(string name);
+        }
+        """;
+        files.Add(new GeneratedSourceFile(Path.Combine(sharedDir, "Services", "IGreetingService.cs"), iGreetingServiceCs, SourceFileType.ProjectFile));
+
+        var greetingServiceCs = $$"""
+        // <auto-generated />
+        namespace {{document.RootNamespace}}.Services;
+
+        /// <summary>
+        /// 提供展示資料的服務實例。
+        /// </summary>
+        public sealed class GreetingService : IGreetingService
+        {
+            public string GetGreeting(string name) =>
+                string.IsNullOrWhiteSpace(name) ? "歡迎使用 Avalonia Declarative UI!" : $"你好, {name}!";
+        }
+        """;
+        files.Add(new GeneratedSourceFile(Path.Combine(sharedDir, "Services", "GreetingService.cs"), greetingServiceCs, SourceFileType.ProjectFile));
+
+        // 檢視層與檢視模型層：Views 與 ViewModels
+        var viewFile = result.Files.FirstOrDefault(f => f.FileType == SourceFileType.View);
+        if (viewFile is not null)
+        {
+            files.Add(new GeneratedSourceFile(
+                Path.Combine(sharedDir, "Views", viewFile.FileName),
+                viewFile.Content,
+                SourceFileType.View));
+        }
+
+        var vmFile = result.Files.FirstOrDefault(f => f.FileType == SourceFileType.ViewModel);
+        if (vmFile is not null)
+        {
+            files.Add(new GeneratedSourceFile(
+                Path.Combine(sharedDir, "ViewModels", vmFile.FileName),
+                vmFile.Content,
+                SourceFileType.ViewModel));
+        }
+
+        // ==========================================
+        // 3. 桌面端宿主專案：src/{ProjectName}.Desktop/
+        // ==========================================
+        var desktopCsprojContent = $"""
+        <Project Sdk="Microsoft.NET.Sdk">
+          <PropertyGroup>
+            <OutputType>WinExe</OutputType>
+            <TargetFramework>net10.0</TargetFramework>
+            <Nullable>enable</Nullable>
+            <ImplicitUsings>enable</ImplicitUsings>
+            <LangVersion>latest</LangVersion>
+            <RootNamespace>{document.RootNamespace}.Desktop</RootNamespace>
+            <NoWarn>$(NoWarn);NU1903</NoWarn>
+          </PropertyGroup>
+
+          <ItemGroup>
+            <ProjectReference Include="..\{sharedProjectName}\{sharedProjectName}.csproj" />
+            <PackageReference Include="Avalonia.Desktop" Version="11.2.5" />
+          </ItemGroup>
+        </Project>
+        """;
+        files.Add(new GeneratedSourceFile(Path.Combine(desktopDir, $"{desktopProjectName}.csproj"), desktopCsprojContent, SourceFileType.ProjectFile));
+
+        var desktopProgramCs = $$"""
         // <auto-generated />
         using System;
         using Avalonia;
+        using {{document.RootNamespace}};
 
-        namespace {{document.RootNamespace}};
+        namespace {{document.RootNamespace}}.Desktop;
 
         internal static class Program
         {
@@ -193,47 +332,96 @@ public sealed class ProjectExportService(FormCodeGenerator? codeGenerator = null
                     .LogToTrace();
         }
         """;
-        files.Add(new GeneratedSourceFile(Path.Combine(projectDir, "Program.cs"), programCs, SourceFileType.ProjectFile));
+        files.Add(new GeneratedSourceFile(Path.Combine(desktopDir, "Program.cs"), desktopProgramCs, SourceFileType.ProjectFile));
 
-        // 8. C# Declarative UI 擴充方法：Markup/AvaloniaMarkupExtensions.cs
-        files.Add(new GeneratedSourceFile(
-            Path.Combine(projectDir, "Markup", "AvaloniaMarkupExtensions.cs"),
-            AvaloniaMarkupExtensionsSource.Code,
-            SourceFileType.ProjectFile));
-
-        // 9. 服務層 / Model：Services/GreetingService.cs
-        var greetingServiceCs = $$"""
-        // <auto-generated />
-        namespace {{document.RootNamespace}}.Services;
-
-        /// <summary>
-        /// 提供展示資料的服務實例。
-        /// </summary>
-        public sealed class GreetingService
+        // ==========================================
+        // 4. 行動端宿主專案：src/{ProjectName}.Android/ (可選)
+        // ==========================================
+        if (options.IncludeMobileProject)
         {
-            public string GetGreeting(string name) =>
-                string.IsNullOrWhiteSpace(name) ? "歡迎使用 Avalonia Declarative UI!" : $"你好, {name}!";
-        }
-        """;
-        files.Add(new GeneratedSourceFile(Path.Combine(projectDir, "Services", "GreetingService.cs"), greetingServiceCs, SourceFileType.ProjectFile));
+            var androidCsprojContent = $"""
+            <Project Sdk="Microsoft.NET.Sdk">
+              <PropertyGroup>
+                <OutputType>Exe</OutputType>
+                <TargetFramework>net10.0-android</TargetFramework>
+                <SupportedOSPlatformVersion>21</SupportedOSPlatformVersion>
+                <Nullable>enable</Nullable>
+                <ImplicitUsings>enable</ImplicitUsings>
+                <LangVersion>latest</LangVersion>
+                <RootNamespace>{document.RootNamespace}.Android</RootNamespace>
+              </PropertyGroup>
 
-        // 10. 檢視層與檢視模型層：Views 與 ViewModels
-        var viewFile = result.Files.FirstOrDefault(f => f.FileType == SourceFileType.View);
-        if (viewFile is not null)
-        {
-            files.Add(new GeneratedSourceFile(
-                Path.Combine(projectDir, "Views", viewFile.FileName),
-                viewFile.Content,
-                SourceFileType.View));
-        }
+              <ItemGroup>
+                <ProjectReference Include="..\{sharedProjectName}\{sharedProjectName}.csproj" />
+                <PackageReference Include="Avalonia.Android" Version="11.2.5" />
+              </ItemGroup>
+            </Project>
+            """;
+            files.Add(new GeneratedSourceFile(Path.Combine(androidDir, $"{androidProjectName}.csproj"), androidCsprojContent, SourceFileType.ProjectFile));
 
-        var vmFile = result.Files.FirstOrDefault(f => f.FileType == SourceFileType.ViewModel);
-        if (vmFile is not null)
-        {
-            files.Add(new GeneratedSourceFile(
-                Path.Combine(projectDir, "ViewModels", vmFile.FileName),
-                vmFile.Content,
-                SourceFileType.ViewModel));
+            var mainActivityCs = $$"""
+            // <auto-generated />
+            using Android.App;
+            using Android.Content.PM;
+            using Avalonia;
+            using Avalonia.Android;
+            using {{document.RootNamespace}};
+
+            namespace {{document.RootNamespace}}.Android;
+
+            [Activity(
+                Label = "{{document.Title}}",
+                Theme = "@style/MyTheme.NoActionBar",
+                Icon = "@drawable/icon",
+                MainLauncher = true,
+                ConfigurationChanges = ConfigChanges.Orientation | ConfigChanges.ScreenSize | ConfigChanges.UiMode)]
+            public class MainActivity : AvaloniaMainActivity<App>
+            {
+                protected override AppBuilder CustomizeAppBuilder(AppBuilder builder)
+                {
+                    return base.CustomizeAppBuilder(builder)
+                        .WithInterFont();
+                }
+            }
+            """;
+            files.Add(new GeneratedSourceFile(Path.Combine(androidDir, "MainActivity.cs"), mainActivityCs, SourceFileType.ProjectFile));
+
+            var splashActivityCs = $$"""
+            // <auto-generated />
+            using Android.App;
+            using Android.Content;
+            using Android.OS;
+            using Avalonia;
+            using Avalonia.Android;
+            using {{document.RootNamespace}};
+
+            namespace {{document.RootNamespace}}.Android;
+
+            [Activity(
+                Theme = "@style/MyTheme.Splash",
+                MainLauncher = false,
+                NoHistory = true)]
+            public class SplashActivity : AvaloniaSplashActivity<App>
+            {
+                protected override void OnCreate(Bundle? savedInstanceState)
+                {
+                    base.OnCreate(savedInstanceState);
+                }
+            }
+            """;
+            files.Add(new GeneratedSourceFile(Path.Combine(androidDir, "SplashActivity.cs"), splashActivityCs, SourceFileType.ProjectFile));
+
+            var androidManifestXml = $$"""
+            <?xml version="1.0" encoding="utf-8"?>
+            <manifest xmlns:android="http://schemas.android.com/apk/res/android"
+                      package="com.afg.{{baseProjectName.ToLowerInvariant()}}"
+                      android:versionCode="1"
+                      android:versionName="1.0">
+              <uses-sdk android:minSdkVersion="21" android:targetSdkVersion="34" />
+              <application android:label="{{document.Title}}" android:theme="@style/MyTheme.NoActionBar" />
+            </manifest>
+            """;
+            files.Add(new GeneratedSourceFile(Path.Combine(androidDir, "AndroidManifest.xml"), androidManifestXml, SourceFileType.ProjectFile));
         }
 
         return files.ToImmutableList();
@@ -242,7 +430,7 @@ public sealed class ProjectExportService(FormCodeGenerator? codeGenerator = null
     /// <summary>
     /// 將完整專案檔案寫出至本機資料夾，並自動建立分層子資料夾階層。
     /// </summary>
-    public async Task ExportToFolderAsync(FormDocument document, string destinationDirectory, CancellationToken cancellationToken = default)
+    public async Task ExportToFolderAsync(FormDocument document, string destinationDirectory, ProjectExportOptions? options = null, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(document);
         ArgumentException.ThrowIfNullOrWhiteSpace(destinationDirectory);
@@ -252,7 +440,7 @@ public sealed class ProjectExportService(FormCodeGenerator? codeGenerator = null
             Directory.CreateDirectory(destinationDirectory);
         }
 
-        var files = GenerateFullProject(document);
+        var files = GenerateFullProject(document, options);
         foreach (var file in files)
         {
             var filePath = Path.Combine(destinationDirectory, file.FileName);

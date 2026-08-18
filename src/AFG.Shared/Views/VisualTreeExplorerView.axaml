@@ -9,7 +9,7 @@
 
     <Grid RowDefinitions="Auto, *">
         <TextBlock Grid.Row="0"
-                   Text="🌳 DOM 元件階層樹"
+                   Text="DOM 元件階層樹"
                    FontWeight="Bold"
                    FontSize="13"
                    Margin="8,8,8,6" />
@@ -22,7 +22,9 @@
             <TreeView.ItemTemplate>
                 <TreeDataTemplate x:DataType="vm:TreeNodeViewModel" ItemsSource="{Binding Children}">
                     <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,2">
-                        <TextBlock Text="{Binding IconGlyph}" FontSize="13" VerticalAlignment="Center" />
+                        <Border Background="#3F3F46" CornerRadius="3" Padding="3,1" VerticalAlignment="Center">
+                            <TextBlock Text="{Binding IconGlyph}" FontSize="9" FontWeight="Bold" Foreground="#38BDF8" />
+                        </Border>
                         <TextBlock Text="{Binding DisplayTitle}" FontSize="12" VerticalAlignment="Center" />
                     </StackPanel>
                 </TreeDataTemplate>

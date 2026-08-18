@@ -15,7 +15,6 @@
                 HorizontalAlignment="Center"
                 Margin="16">
             <StackPanel Spacing="10" HorizontalAlignment="Center">
-                <TextBlock Text="👆" FontSize="32" HorizontalAlignment="Center" />
                 <TextBlock Text="未選取控制項" FontWeight="Bold" FontSize="14" HorizontalAlignment="Center" />
                 <TextBlock Text="請在畫布或 DOM 樹中點選控制項以檢視與設定屬性。"
                            Foreground="#71717A"
@@ -44,7 +43,7 @@
                             Background="#DC2626"
                             CornerRadius="10"
                             Padding="6,2">
-                        <TextBlock Text="{Binding ValidationErrors.Count, StringFormat='⚠️ {0}'}"
+                        <TextBlock Text="{Binding ValidationErrors.Count, StringFormat='問題: {0}'}"
                                    FontSize="11"
                                    FontWeight="Bold"
                                    Foreground="White" />
@@ -55,7 +54,7 @@
             <!-- 屬性分頁 -->
             <TabControl Grid.Row="1" Margin="4,0,4,4">
                 <!-- 分頁 1: 外觀與文字 -->
-                <TabItem Header="🎨 外觀">
+                <TabItem Header="外觀">
                     <ScrollViewer VerticalScrollBarVisibility="Auto">
                         <StackPanel Spacing="10" Margin="6">
                             <StackPanel Spacing="4">
@@ -92,7 +91,7 @@
                 </TabItem>
 
                 <!-- 分頁 2: 尺寸與排版 -->
-                <TabItem Header="📐 排版">
+                <TabItem Header="排版">
                     <ScrollViewer VerticalScrollBarVisibility="Auto">
                         <StackPanel Spacing="10" Margin="6">
                             <!-- 尺寸 -->
@@ -161,17 +160,13 @@
                 </TabItem>
 
                 <!-- 分頁 3: MVVM 資料綁定 (Binding Builder) -->
-                <TabItem Header="🔗 綁定">
+                <TabItem Header="資料綁定">
                     <Grid RowDefinitions="Auto, *">
                         <Button Grid.Row="0"
                                 Command="{Binding AddBindingCommand}"
                                 Margin="4,6,4,6"
-                                HorizontalAlignment="Stretch">
-                            <StackPanel Orientation="Horizontal" Spacing="4" HorizontalAlignment="Center">
-                                <TextBlock Text="➕" />
-                                <TextBlock Text="新增資料綁定" />
-                            </StackPanel>
-                        </Button>
+                                Content="新增資料綁定"
+                                HorizontalAlignment="Stretch" />
 
                         <ScrollViewer Grid.Row="1">
                             <ItemsControl ItemsSource="{Binding Bindings}">
@@ -180,10 +175,10 @@
                                         <Border Background="#27272A" CornerRadius="6" Padding="8" Margin="0,3">
                                             <StackPanel Spacing="6">
                                                 <Grid ColumnDefinitions="*, Auto">
-                                                    <TextBlock Grid.Column="0" Text="資料綁定" FontWeight="SemiBold" FontSize="12" Foreground="#38BDF8" />
+                                                    <TextBlock Grid.Column="0" Text="資料綁定項目" FontWeight="SemiBold" FontSize="12" Foreground="#38BDF8" />
                                                     <Button Grid.Column="1"
-                                                            Content="❌"
-                                                            Padding="4,2"
+                                                            Content="刪除"
+                                                            Padding="6,2"
                                                             FontSize="10"
                                                             Command="{Binding $parent[views:InspectorView].((vm:InspectorViewModel)DataContext).RemoveBindingCommand}"
                                                             CommandParameter="{Binding}" />
@@ -215,17 +210,13 @@
                 </TabItem>
 
                 <!-- 分頁 4: 事件轉命令 (Event-to-Command) -->
-                <TabItem Header="⚡ 事件">
+                <TabItem Header="事件命令">
                     <Grid RowDefinitions="Auto, *">
                         <Button Grid.Row="0"
                                 Command="{Binding AddEventCommand}"
                                 Margin="4,6,4,6"
-                                HorizontalAlignment="Stretch">
-                            <StackPanel Orientation="Horizontal" Spacing="4" HorizontalAlignment="Center">
-                                <TextBlock Text="➕" />
-                                <TextBlock Text="新增事件命令" />
-                            </StackPanel>
-                        </Button>
+                                Content="新增事件命令"
+                                HorizontalAlignment="Stretch" />
 
                         <ScrollViewer Grid.Row="1">
                             <ItemsControl ItemsSource="{Binding Events}">
@@ -236,8 +227,8 @@
                                                 <Grid ColumnDefinitions="*, Auto">
                                                     <TextBlock Grid.Column="0" Text="事件命令映射" FontWeight="SemiBold" FontSize="12" Foreground="#F59E0B" />
                                                     <Button Grid.Column="1"
-                                                            Content="❌"
-                                                            Padding="4,2"
+                                                            Content="刪除"
+                                                            Padding="6,2"
                                                             FontSize="10"
                                                             Command="{Binding $parent[views:InspectorView].((vm:InspectorViewModel)DataContext).RemoveEventCommand}"
                                                             CommandParameter="{Binding}" />
