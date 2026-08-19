@@ -93,4 +93,30 @@ public sealed class MainViewModelTests
         // Assert
         vm.IsCodePanelVisible.Should().Be(!initialVisibility);
     }
+
+    [Fact]
+    public void MainViewModel_CustomResolutionDialog_ShouldApplyNewCanvasDimensions()
+    {
+        // Arrange
+        var vm = new MainViewModel();
+        vm.Canvas.CanvasWidth.Should().Be(800);
+        vm.Canvas.CanvasHeight.Should().Be(600);
+
+        // Act: 開啟對話框並輸入自訂寬高 (1440x900)
+        vm.OpenCustomResolutionDialogCommand.Execute(null);
+        vm.IsCustomResolutionDialogVisible.Should().BeTrue();
+        vm.CustomResolutionWidth.Should().Be(800);
+        vm.CustomResolutionHeight.Should().Be(600);
+
+        vm.CustomResolutionWidth = 1440;
+        vm.CustomResolutionHeight = 900;
+        vm.ApplyCustomResolutionCommand.Execute(null);
+
+        // Assert: 對話框關閉且畫布尺寸成功套用
+        vm.IsCustomResolutionDialogVisible.Should().BeFalse();
+        vm.Canvas.CanvasWidth.Should().Be(1440);
+        vm.Canvas.CanvasHeight.Should().Be(900);
+        vm.Canvas.Document.CanvasWidth.Should().Be(1440);
+        vm.Canvas.Document.CanvasHeight.Should().Be(900);
+    }
 }

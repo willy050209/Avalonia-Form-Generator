@@ -77,6 +77,9 @@
                         <MenuItem Header="Tablet 16:10 (800x1280)" Command="{Binding Canvas.SetCanvasSizeCommand}" CommandParameter="800x1280" />
                     </MenuItem>
                     <Separator />
+                    <MenuItem Header="自訂解析度..."
+                              Command="{Binding OpenCustomResolutionDialogCommand}" />
+                    <Separator />
                     <MenuItem Header="網格吸附 (Snap to Grid)"
                               ToggleType="CheckBox"
                               IsChecked="{Binding Canvas.SnapToGrid, Mode=TwoWay}" />
@@ -262,6 +265,56 @@
                            FontSize="11"
                            Foreground="#71717A" />
             </Grid>
+        </Border>
+
+        <!-- 自訂解析度對話框遮罩 (Custom Resolution Modal Dialog) -->
+        <Border Grid.Row="0" Grid.RowSpan="3"
+                IsVisible="{Binding IsCustomResolutionDialogVisible}"
+                Background="#80000000"
+                HorizontalAlignment="Stretch"
+                VerticalAlignment="Stretch"
+                ZIndex="999">
+            <Border Background="#1E1E24"
+                    BorderBrush="#3F3F46"
+                    BorderThickness="1"
+                    CornerRadius="8"
+                    Width="340"
+                    Padding="20"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center"
+                    BoxShadow="0 8 32 0 #80000000">
+                <StackPanel Spacing="16">
+                    <TextBlock Text="自訂畫布解析度" FontSize="15" FontWeight="Bold" Foreground="#F4F4F5" />
+
+                    <StackPanel Spacing="6">
+                        <TextBlock Text="寬度 (Width px):" FontSize="11" Foreground="#A1A1AA" />
+                        <NumericUpDown Value="{Binding CustomResolutionWidth, Mode=TwoWay}"
+                                       Minimum="200" Maximum="4000"
+                                       FormatString="0" />
+                    </StackPanel>
+
+                    <StackPanel Spacing="6">
+                        <TextBlock Text="高度 (Height px):" FontSize="11" Foreground="#A1A1AA" />
+                        <NumericUpDown Value="{Binding CustomResolutionHeight, Mode=TwoWay}"
+                                       Minimum="200" Maximum="4000"
+                                       FormatString="0" />
+                    </StackPanel>
+
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="10" Margin="0,8,0,0">
+                        <Button Content="取消"
+                                Command="{Binding CloseCustomResolutionDialogCommand}"
+                                Width="80"
+                                HorizontalContentAlignment="Center"
+                                Background="#27272A" />
+                        <Button Content="套用"
+                                Command="{Binding ApplyCustomResolutionCommand}"
+                                Width="80"
+                                HorizontalContentAlignment="Center"
+                                Background="#2563EB"
+                                Foreground="White" />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
         </Border>
     </Grid>
 </UserControl>

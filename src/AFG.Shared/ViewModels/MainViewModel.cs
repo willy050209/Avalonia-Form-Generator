@@ -40,6 +40,15 @@ public sealed partial class MainViewModel : ObservableObject
     [ObservableProperty]
     private bool _isCodePanelVisible;
 
+    [ObservableProperty]
+    private bool _isCustomResolutionDialogVisible;
+
+    [ObservableProperty]
+    private double _customResolutionWidth = 800;
+
+    [ObservableProperty]
+    private double _customResolutionHeight = 600;
+
     public MainViewModel(
         IFileDialogService? fileDialogService = null,
         IClipboardService? clipboardService = null,
@@ -105,6 +114,25 @@ public sealed partial class MainViewModel : ObservableObject
 
     [RelayCommand]
     private void ToggleCodePanel() => IsCodePanelVisible = !IsCodePanelVisible;
+
+    [RelayCommand]
+    private void OpenCustomResolutionDialog()
+    {
+        CustomResolutionWidth = Canvas.CanvasWidth;
+        CustomResolutionHeight = Canvas.CanvasHeight;
+        IsCustomResolutionDialogVisible = true;
+    }
+
+    [RelayCommand]
+    private void ApplyCustomResolution()
+    {
+        Canvas.CanvasWidth = CustomResolutionWidth;
+        Canvas.CanvasHeight = CustomResolutionHeight;
+        IsCustomResolutionDialogVisible = false;
+    }
+
+    [RelayCommand]
+    private void CloseCustomResolutionDialog() => IsCustomResolutionDialogVisible = false;
 
     [RelayCommand]
     private void NewDocument()
