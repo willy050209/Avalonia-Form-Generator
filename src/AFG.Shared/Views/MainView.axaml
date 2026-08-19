@@ -97,6 +97,13 @@
                                    FormatString="0"
                                    ToolTip.Tip="自訂畫布高度 (像素)" />
 
+                    <TextBlock Text="專案名稱:" VerticalAlignment="Center" Foreground="#A1A1AA" FontSize="11" />
+                    <TextBox Text="{Binding Canvas.ExportProjectName, Mode=TwoWay}"
+                             Width="120"
+                             FontSize="11"
+                             PlaceholderText="自訂專案名稱"
+                             ToolTip.Tip="自訂匯出方案與專案名稱 (.slnx, .Shared, .Desktop, .Android)" />
+
                     <CheckBox IsChecked="{Binding Canvas.IncludeMobileProject, Mode=TwoWay}"
                               Content="行動端 (.Android)"
                               ToolTip.Tip="勾選時將自動生成 .Android 跨平台專案"

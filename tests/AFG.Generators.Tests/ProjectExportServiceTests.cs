@@ -554,8 +554,8 @@ public sealed class ProjectExportServiceTests
         var files = _exportService.GenerateFullProject(doc, new ProjectExportOptions());
 
         // Assert
-        var bluetoothFile = files.FirstOrDefault(f => f.FileName.EndsWith(Path.Combine("Services", "BluetoothClient.cs")));
-        var serialPortFile = files.FirstOrDefault(f => f.FileName.EndsWith(Path.Combine("Services", "SerialPortService.cs")));
+        var bluetoothFile = files.FirstOrDefault(f => f.FileName.EndsWith(Path.Combine("Services", "BluetoothClient.cs"), StringComparison.Ordinal));
+        var serialPortFile = files.FirstOrDefault(f => f.FileName.EndsWith(Path.Combine("Services", "SerialPortService.cs"), StringComparison.Ordinal));
 
         bluetoothFile.Should().NotBeNull();
         bluetoothFile!.Content.Should().Contain("public class BluetoothClient");
@@ -564,5 +564,36 @@ public sealed class ProjectExportServiceTests
         serialPortFile.Should().NotBeNull();
         serialPortFile!.Content.Should().Contain("public class SerialPortService");
         serialPortFile.Content.Should().Contain("public event EventHandler<string>? DataReceived;");
+    }
+
+    [Fact]
+    public void GenerateFullProject_ShouldHonorCustomProjectName_WhenProvidedInOptionsOrDocument()
+    {
+        // Arrange
+        var doc = new FormDocument
+        {
+            ProjectName = "InventoryManagerApp",
+            ViewClassName = "InventoryView",
+            ViewModelClassName = "InventoryViewModel",
+            RootNode = new AstNode { Id = "root", Type = ControlType.Canvas }
+        };
+
+        // Act 1: 使用 Document 上的 ProjectName
+        var filesFromDoc = _exportService.GenerateFullProject(doc, new ProjectExportOptions(IncludeMobileProject: true));
+
+        // Assert 1
+        filesFromDoc.Should().Contain(f => f.FileName == "InventoryManagerApp.slnx");
+        filesFromDoc.Should().Contain(f => f.FileName == Path.Combine("src", "InventoryManagerApp.Shared", "InventoryManagerApp.Shared.csproj"));
+        filesFromDoc.Should().Contain(f => f.FileName == Path.Combine("src", "InventoryManagerApp.Desktop", "InventoryManagerApp.Desktop.csproj"));
+        filesFromDoc.Should().Contain(f => f.FileName == Path.Combine("src", "InventoryManagerApp.Android", "InventoryManagerApp.Android.csproj"));
+
+        // Act 2: 使用 Options 覆寫 CustomProjectName
+        var filesFromOption = _exportService.GenerateFullProject(doc, new ProjectExportOptions(CustomProjectName: "CustomPosSystem", IncludeMobileProject: false));
+
+        // Assert 2
+        filesFromOption.Should().Contain(f => f.FileName == "CustomPosSystem.slnx");
+        filesFromOption.Should().Contain(f => f.FileName == Path.Combine("src", "CustomPosSystem.Shared", "CustomPosSystem.Shared.csproj"));
+        filesFromOption.Should().Contain(f => f.FileName == Path.Combine("src", "CustomPosSystem.Desktop", "CustomPosSystem.Desktop.csproj"));
+        filesFromOption.Should().NotContain(f => f.FileName.Contains(".Android"));
     }
 }

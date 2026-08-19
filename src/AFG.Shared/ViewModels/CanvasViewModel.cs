@@ -38,6 +38,9 @@ public sealed partial class CanvasViewModel : ObservableObject
     private bool _includeLicense = true;
 
     [ObservableProperty]
+    private string _exportProjectName = "MainFormApp";
+
+    [ObservableProperty]
     private ToolboxItem? _activeDraggingItem;
 
     public HistoryManager History { get; } = new();
@@ -90,6 +93,20 @@ public sealed partial class CanvasViewModel : ObservableObject
         }
     }
 
+    partial void OnExportProjectNameChanged(string value)
+    {
+        var sanitized = string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+        if (Document.ProjectName != sanitized)
+        {
+            PushHistory();
+            Document = Document with
+            {
+                ProjectName = sanitized
+            };
+            DocumentChanged?.Invoke(Document);
+        }
+    }
+
     private void MatchOrSetCustomPreset()
     {
         var matched = AvailablePresets.FirstOrDefault(p => !p.IsCustom && Math.Abs(p.Width - Document.CanvasWidth) < 0.5 && Math.Abs(p.Height - Document.CanvasHeight) < 0.5);
@@ -106,6 +123,9 @@ public sealed partial class CanvasViewModel : ObservableObject
         _document = FormDocument.CreateDefault();
         CanvasWidth = _document.CanvasWidth;
         CanvasHeight = _document.CanvasHeight;
+        _exportProjectName = !string.IsNullOrWhiteSpace(_document.ProjectName)
+            ? _document.ProjectName
+            : "MainFormApp";
         MatchOrSetCustomPreset();
     }
 
@@ -122,6 +142,7 @@ public sealed partial class CanvasViewModel : ObservableObject
             Document = previous;
             CanvasWidth = previous.CanvasWidth;
             CanvasHeight = previous.CanvasHeight;
+            ExportProjectName = !string.IsNullOrWhiteSpace(previous.ProjectName) ? previous.ProjectName : "MainFormApp";
             MatchOrSetCustomPreset();
             ValidateSelection();
             DocumentChanged?.Invoke(Document);
@@ -137,6 +158,7 @@ public sealed partial class CanvasViewModel : ObservableObject
             Document = next;
             CanvasWidth = next.CanvasWidth;
             CanvasHeight = next.CanvasHeight;
+            ExportProjectName = !string.IsNullOrWhiteSpace(next.ProjectName) ? next.ProjectName : "MainFormApp";
             MatchOrSetCustomPreset();
             ValidateSelection();
             DocumentChanged?.Invoke(Document);
@@ -151,6 +173,11 @@ public sealed partial class CanvasViewModel : ObservableObject
         Document = doc;
         CanvasWidth = doc.CanvasWidth;
         CanvasHeight = doc.CanvasHeight;
+        ExportProjectName = !string.IsNullOrWhiteSpace(doc.ProjectName)
+            ? doc.ProjectName
+            : (doc.ViewClassName.EndsWith("View", StringComparison.OrdinalIgnoreCase)
+                ? doc.ViewClassName[..^4] + "App"
+                : doc.ViewClassName + "App");
         MatchOrSetCustomPreset();
         SelectedNodeIds.Clear();
         SelectedNode = null;

@@ -38,9 +38,11 @@ public sealed record FormProjectDefinition
     /// </summary>
     public static FormProjectDefinition FromSingleDocument(FormDocument doc) => new()
     {
-        ProjectName = doc.ViewClassName.EndsWith("View", StringComparison.OrdinalIgnoreCase)
-            ? doc.ViewClassName[..^4] + "App"
-            : doc.ViewClassName + "App",
+        ProjectName = !string.IsNullOrWhiteSpace(doc.ProjectName)
+            ? doc.ProjectName
+            : (doc.ViewClassName.EndsWith("View", StringComparison.OrdinalIgnoreCase)
+                ? doc.ViewClassName[..^4] + "App"
+                : doc.ViewClassName + "App"),
         RootNamespace = doc.RootNamespace,
         Title = doc.Title,
         InitialFormName = doc.ViewClassName,

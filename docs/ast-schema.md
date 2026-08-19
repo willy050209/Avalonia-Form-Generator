@@ -11,7 +11,8 @@
 ```json
 {
   "schemaVersion": "1.0",
-  "rootNamespace": "GeneratedApp.Views",
+  "projectName": "InventoryApp",
+  "rootNamespace": "InventoryApp.Views",
   "viewClassName": "UserFormView",
   "viewModelClassName": "UserFormViewModel",
   "title": "使用者表單",
@@ -34,6 +35,7 @@
 | 屬性名稱 | 型別 | 預設值 | 說明 |
 | :--- | :--- | :--- | :--- |
 | `schemaVersion` | `string` | `"1.0"` | AFG Schema 版本號 |
+| `projectName` | `string?` | `null` | 匯出方案與專案名稱（若未指定則自動由 `viewClassName` 推斷，例如 `MainFormApp`） |
 | `rootNamespace` | `string` | `"GeneratedApp.Views"` | 生成 C# 類別的命名空間 |
 | `viewClassName` | `string` | `"MainFormView"` | 生成的 View 類別名稱 |
 | `viewModelClassName` | `string` | `"MainFormViewModel"` | 生成的 ViewModel 類別名稱 |

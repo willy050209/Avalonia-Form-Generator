@@ -175,9 +175,10 @@ public sealed partial class MainViewModel : ObservableObject
         {
             var options = new ProjectExportOptions(
                 IncludeMobileProject: Canvas.IncludeMobileProject,
-                IncludeLicense: Canvas.IncludeLicense);
+                IncludeLicense: Canvas.IncludeLicense,
+                CustomProjectName: Canvas.ExportProjectName);
             await _exportService.ExportToFolderAsync(Canvas.Document, folder, options);
-            _notificationService?.Show("匯出成功", $"已成功將完整 Avalonia 跨平台專案匯出至 {folder}");
+            _notificationService?.Show("匯出成功", $"已成功將完整 Avalonia 跨平台專案「{Canvas.ExportProjectName}」匯出至 {folder}");
         }
         catch (Exception ex)
         {

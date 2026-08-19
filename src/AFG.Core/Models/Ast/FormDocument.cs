@@ -12,6 +12,11 @@ public sealed record FormDocument
     public string SchemaVersion { get; init; } = "1.0";
 
     /// <summary>
+    /// 匯出之方案與專案名稱（若為 null 則自動依 ViewClassName 推斷，例如 MainFormApp）。
+    /// </summary>
+    public string? ProjectName { get; init; }
+
+    /// <summary>
     /// 產生的 C# 類別命名空間。
     /// </summary>
     public string RootNamespace { get; init; } = "GeneratedApp.Views";
