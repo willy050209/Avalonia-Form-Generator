@@ -17,7 +17,7 @@
         <KeyBinding Gesture="Ctrl+Shift+E" Command="{Binding ExportFullProjectCommand}" />
     </UserControl.KeyBindings>
 
-    <Grid RowDefinitions="Auto, Auto, *, Auto">
+    <Grid RowDefinitions="Auto, *, Auto">
         <!-- 頂部選單列 (Menu Bar) -->
         <Border Grid.Row="0"
                 Background="#18181B"
@@ -103,84 +103,8 @@
             </Menu>
         </Border>
 
-        <!-- 頂部工具列 (精簡乾淨：裝置規格、畫布尺寸、吸附與工作區切換) -->
-        <Border Grid.Row="1"
-                Background="#202024"
-                BorderBrush="#27272A"
-                BorderThickness="0,0,0,1"
-                Padding="12,6">
-            <Grid ColumnDefinitions="*, Auto">
-                <!-- 工具列主體：裝置規格、畫布寬高、專案設定與吸附 (支援橫向自適應) -->
-                <ScrollViewer Grid.Column="0"
-                              HorizontalScrollBarVisibility="Auto"
-                              VerticalScrollBarVisibility="Disabled"
-                              Margin="0,0,12,0">
-                    <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                        <!-- 1. 裝置規格與畫布寬高群組 -->
-                        <TextBlock Text="裝置規格:" VerticalAlignment="Center" Foreground="#A1A1AA" FontSize="11" />
-                        <ComboBox ItemsSource="{Binding Canvas.AvailablePresets}"
-                                  SelectedItem="{Binding Canvas.SelectedPreset, Mode=TwoWay}"
-                                  Width="190"
-                                  PlaceholderText="選擇裝置解析度">
-                            <ComboBox.ItemTemplate>
-                                <DataTemplate x:DataType="models:CanvasPreset">
-                                    <TextBlock Text="{Binding}" FontSize="11" />
-                                </DataTemplate>
-                            </ComboBox.ItemTemplate>
-                        </ComboBox>
-
-                        <TextBlock Text="寬:" VerticalAlignment="Center" Foreground="#A1A1AA" FontSize="11" />
-                        <NumericUpDown Value="{Binding Canvas.CanvasWidth, Mode=TwoWay}"
-                                       Minimum="200" Maximum="4000"
-                                       Width="110"
-                                       FormatString="0"
-                                       ToolTip.Tip="自訂畫布寬度 (像素)" />
-
-                        <TextBlock Text="高:" VerticalAlignment="Center" Foreground="#A1A1AA" FontSize="11" />
-                        <NumericUpDown Value="{Binding Canvas.CanvasHeight, Mode=TwoWay}"
-                                       Minimum="200" Maximum="4000"
-                                       Width="110"
-                                       FormatString="0"
-                                       ToolTip.Tip="自訂畫布高度 (像素)" />
-
-                        <Rectangle Width="1" Height="16" Fill="#3F3F46" Margin="4,0" />
-
-                        <!-- 2. 專案匯出與跨平台設定群組 -->
-                        <TextBlock Text="專案名稱:" VerticalAlignment="Center" Foreground="#A1A1AA" FontSize="11" />
-                        <TextBox Text="{Binding Canvas.ExportProjectName, Mode=TwoWay}"
-                                 Width="120"
-                                 FontSize="11"
-                                 PlaceholderText="自訂專案名稱"
-                                 ToolTip.Tip="自訂匯出方案與專案名稱 (.slnx, .Shared, .Desktop, .Android)" />
-
-                        <CheckBox IsChecked="{Binding Canvas.IncludeMobileProject, Mode=TwoWay}"
-                                  Content="行動端 (.Android)"
-                                  ToolTip.Tip="勾選時將自動生成 .Android 跨平台專案"
-                                  FontSize="11" />
-
-                        <CheckBox IsChecked="{Binding Canvas.IncludeLicense, Mode=TwoWay}"
-                                  Content="授權 (LICENSE)"
-                                  ToolTip.Tip="勾選時將在匯出專案根目錄自動生成 MIT LICENSE 授權檔案"
-                                  FontSize="11" />
-
-                        <Rectangle Width="1" Height="16" Fill="#3F3F46" Margin="4,0" />
-
-                        <!-- 3. 編輯輔助 -->
-                        <ToggleButton IsChecked="{Binding Canvas.SnapToGrid, Mode=TwoWay}" ToolTip.Tip="開啟/關閉網格吸附" Content="網格吸附" />
-                    </StackPanel>
-                </ScrollViewer>
-
-                <!-- 面板摺疊開關 -->
-                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
-                    <ToggleButton IsChecked="{Binding IsLeftPanelVisible, Mode=TwoWay}" ToolTip.Tip="顯示/隱藏左側工具箱與元件樹" Content="工具箱" />
-                    <ToggleButton IsChecked="{Binding IsCodePanelVisible, Mode=TwoWay}" ToolTip.Tip="顯示/隱藏底部程式碼預覽" Content="程式碼" />
-                    <ToggleButton IsChecked="{Binding IsRightPanelVisible, Mode=TwoWay}" ToolTip.Tip="顯示/隱藏右側屬性檢查器" Content="屬性欄" />
-                </StackPanel>
-            </Grid>
-        </Border>
-
         <!-- 中間主工作區（支援左側、底部、右側面板摺疊展開） -->
-        <Grid Grid.Row="2" ColumnDefinitions="Auto, Auto, *, Auto, Auto">
+        <Grid Grid.Row="1" ColumnDefinitions="Auto, Auto, *, Auto, Auto">
             <!-- 左側邊欄：工具箱與 DOM 樹 -->
             <Border Grid.Column="0"
                     Width="260"
@@ -306,17 +230,29 @@
         </Grid>
 
         <!-- 底部狀態列 (Status Bar) -->
-        <Border Grid.Row="3"
+        <Border Grid.Row="2"
                 Background="#09090B"
                 BorderBrush="#27272A"
                 BorderThickness="0,1,0,0"
                 Padding="12,4">
             <Grid ColumnDefinitions="Auto, *, Auto">
-                <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="12">
+                <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="16">
                     <TextBlock Text="{Binding Canvas.SelectedNode.Id, StringFormat='選取節點: {0}'}"
                                FontSize="11"
                                Foreground="#71717A" />
-                    <TextBlock Text="{Binding ValidationErrorCount, StringFormat='語法診斷問題: {0}'}"
+                    <TextBlock Text="{Binding ValidationErrorCount, StringFormat='問題: {0}'}"
+                               FontSize="11"
+                               Foreground="#71717A" />
+                    <TextBlock Text="{Binding Canvas.SelectedPreset.Name, StringFormat='規格: {0}'}"
+                               FontSize="11"
+                               Foreground="#71717A" />
+                    <TextBlock Text="{Binding Canvas.CanvasWidth, StringFormat='寬: {0:0}px'}"
+                               FontSize="11"
+                               Foreground="#71717A" />
+                    <TextBlock Text="{Binding Canvas.CanvasHeight, StringFormat='高: {0:0}px'}"
+                               FontSize="11"
+                               Foreground="#71717A" />
+                    <TextBlock Text="{Binding Canvas.ExportProjectName, StringFormat='專案: {0}'}"
                                FontSize="11"
                                Foreground="#71717A" />
                 </StackPanel>
