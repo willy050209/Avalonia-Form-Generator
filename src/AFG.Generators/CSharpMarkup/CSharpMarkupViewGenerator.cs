@@ -193,38 +193,13 @@ public sealed class CSharpMarkupViewGenerator : ICodeGenerator
         // 4. 控制項專屬外觀與內容（若已有資料綁定則不輸出覆寫之常數值）
         var boundProps = new HashSet<string>(node.Bindings.Select(b => b.TargetProperty), StringComparer.Ordinal);
 
-        if (IsContentControl(node.Type))
+        if (!boundProps.Contains("Text") && !string.IsNullOrEmpty(node.Text))
         {
-            if (!boundProps.Contains("Content") && !boundProps.Contains("Text"))
-            {
-                var textOrContent = !string.IsNullOrEmpty(node.Content) ? node.Content : node.Text;
-                if (!string.IsNullOrEmpty(textOrContent))
-                {
-                    sb.AppendLine($"{innerIndent}.Content(\"{EscapeString(textOrContent)}\")");
-                }
-            }
+            sb.AppendLine($"{innerIndent}.Text(\"{EscapeString(node.Text)}\")");
         }
-        else if (IsTextControl(node.Type))
+        else if (!boundProps.Contains("Content") && !string.IsNullOrEmpty(node.Content))
         {
-            if (!boundProps.Contains("Text") && !boundProps.Contains("Content"))
-            {
-                var textOrContent = !string.IsNullOrEmpty(node.Text) ? node.Text : node.Content;
-                if (!string.IsNullOrEmpty(textOrContent))
-                {
-                    sb.AppendLine($"{innerIndent}.Text(\"{EscapeString(textOrContent)}\")");
-                }
-            }
-        }
-        else
-        {
-            if (!boundProps.Contains("Content") && !string.IsNullOrEmpty(node.Content))
-            {
-                sb.AppendLine($"{innerIndent}.Content(\"{EscapeString(node.Content)}\")");
-            }
-            if (!boundProps.Contains("Text") && !string.IsNullOrEmpty(node.Text))
-            {
-                sb.AppendLine($"{innerIndent}.Text(\"{EscapeString(node.Text)}\")");
-            }
+            sb.AppendLine($"{innerIndent}.Content(\"{EscapeString(node.Content)}\")");
         }
 
         if (!boundProps.Contains("Header") && !string.IsNullOrEmpty(node.Header))
@@ -330,18 +305,6 @@ public sealed class CSharpMarkupViewGenerator : ICodeGenerator
     {
         ControlType.DispatcherTimer or ControlType.BackgroundWorker or
         ControlType.BluetoothClient or ControlType.SerialPortService => true,
-        _ => false
-    };
-
-    private static bool IsContentControl(ControlType type) => type switch
-    {
-        ControlType.Button or ControlType.CheckBox or ControlType.RadioButton or ControlType.Border => true,
-        _ => false
-    };
-
-    private static bool IsTextControl(ControlType type) => type switch
-    {
-        ControlType.TextBlock or ControlType.TextBox => true,
         _ => false
     };
 

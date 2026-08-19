@@ -80,6 +80,36 @@ public sealed class CSharpMarkupViewGeneratorTests
     }
 
     [Fact]
+    public void Generate_WhenButtonHasText_ShouldGenerateTextCall()
+    {
+        // Arrange
+        var doc = new FormDocument
+        {
+            RootNamespace = "MyApp.Views",
+            ViewClassName = "ButtonView",
+            ViewModelClassName = "ButtonViewModel",
+            RootNode = new AstNode
+            {
+                Id = "btn",
+                Type = ControlType.Button,
+                Text = "Submit",
+                Width = 100,
+                Height = 30
+            }
+        };
+
+        // Act
+        var result = _generator.Generate(doc);
+
+        // Assert
+        result.Content.Should().Contain(".Text(\"Submit\")");
+        result.Content.Should().NotContain(".Content(\"Submit\")");
+
+        var syntaxDiagnostics = RoslynCompilerService.CheckSyntaxDiagnostics(result.Content);
+        syntaxDiagnostics.Should().BeEmpty();
+    }
+
+    [Fact]
     public void Generate_ShouldSupportReflectionBindings_WhenUseCompiledBindingsIsFalse()
     {
         // Arrange

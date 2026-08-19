@@ -37,7 +37,7 @@ public sealed class MainViewModelTests
         // Assert
         vm.GeneratedViewCode.Should().NotBeNullOrWhiteSpace();
         vm.GeneratedViewCode.Should().NotBe(initialViewCode);
-        vm.GeneratedViewCode.Should().Contain(".Content(\"Click Me\")");
+        vm.GeneratedViewCode.Should().Contain(".Text(\"Click Me\")");
     }
 
     [Fact]
