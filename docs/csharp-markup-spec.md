@@ -95,6 +95,29 @@ AFG 的 ViewModel 生成器嚴格遵循 `CommunityToolkit.Mvvm` 與 `Microsoft.E
    - **非同步命令 (預設)**：方法簽章為 `async Task ...Async()`，CommunityToolkit.Mvvm 自動擴展為 `IAsyncRelayCommand` 屬性。
    - **同步命令**：方法簽章為 `void ...()`，自動擴展為 `IRelayCommand` 屬性。
 
+3. **不可視元件與硬體通訊專屬回呼 (Callbacks)**：
+   - 自動在 ViewModel 建構子內進行事件掛載，無縫調用對應之 RelayCommand：
+     ```csharp
+     public partial class HardwareFormViewModel : ObservableObject
+     {
+         private readonly DispatcherTimer _pollTimer = new();
+         private readonly BackgroundWorker _taskWorker = new();
+         private readonly BluetoothClient _bleScanner = new();
+         private readonly SerialPortService _serialDevice = new();
+
+         public HardwareFormViewModel()
+         {
+             _pollTimer.Tick += (s, e) => OnTimerTickCommand.Execute(null);
+             _taskWorker.DoWork += (s, e) => PerformWorkCommand.Execute(null);
+             _bleScanner.DataReceived += (s, e) => OnBleDataCommand.Execute(null);
+             _serialDevice.DataReceived += (s, e) => OnSerialDataCommand.Execute(null);
+         }
+
+         [RelayCommand]
+         private async Task OnBleDataAsync() { ... }
+     }
+     ```
+
 ---
 
 ## 3. App.cs 容器註冊與多表單導航

@@ -31,7 +31,7 @@ graph LR
 | :--- | :--- | :--- |
 | **基礎控制項** | `Button`, `TextBox`, `TextBlock`, `CheckBox`, `RadioButton`, `ComboBox`, `DatePicker`, `Slider`, `ProgressBar` | 支援完整幾何、外觀、雙向/單向資料綁定與命令事件轉換 |
 | **版面配置容器** | `Canvas`, `StackPanel`, `Grid`, `Border`, `DockPanel`, `WrapPanel`, `ScrollViewer` | 支援巢狀拖曳放入、自動流式排版、列/欄定義與視覺樹精準選取 |
-| **非視覺 / 硬體元件** | `DispatcherTimer`, `BackgroundWorker`, `BluetoothClient`, `SerialPortService` | 自動註冊為 Singleton / Transient DI 服務並提供專屬識別標籤 |
+| **非視覺 / 硬體元件** | `DispatcherTimer`, `BackgroundWorker`, `BluetoothClient`, `SerialPortService` | 自動註冊為 DI 服務並提供專屬回呼事件（`Tick`, `DoWork`, `ProgressChanged`, `DataReceived` 等）自動掛載 |
 
 ---
 
@@ -138,7 +138,7 @@ dotnet build
 ```bash
 dotnet test
 ```
-> 目前包含 **63 / 63** 項單元與整合編譯測試，100% 全數通過，0 警告，0 錯誤。
+> 目前包含 **75 / 75** 項單元與整合編譯測試，100% 全數通過，0 警告，0 錯誤。
 
 ### 3. 啟動桌面設計器 (Run App)
 ```bash

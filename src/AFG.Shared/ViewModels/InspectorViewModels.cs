@@ -97,35 +97,19 @@ public sealed partial class EventItemViewModel : ObservableObject
     [ObservableProperty]
     private bool _isAsync = true;
 
-    public IReadOnlyList<string> AvailableEvents { get; } =
-    [
-        "Click",
-        "Tapped",
-        "DoubleTapped",
-        "PointerPressed",
-        "PointerReleased",
-        "PointerEntered",
-        "PointerExited",
-        "SelectionChanged",
-        "ValueChanged",
-        "TextChanged",
-        "KeyDown",
-        "KeyUp",
-        "GotFocus",
-        "LostFocus",
-        "Checked",
-        "Unchecked"
-    ];
+    [ObservableProperty]
+    private IReadOnlyList<string> _availableEvents = ControlEventCatalog.GetSupportedEvents(ControlType.Button);
 
     public EventMappingDefinition ToDefinition() => new(
         EventName: EventName.Trim(),
         CommandProperty: CommandProperty.Trim(),
         IsAsync: IsAsync);
 
-    public static EventItemViewModel FromDefinition(EventMappingDefinition def) => new()
+    public static EventItemViewModel FromDefinition(EventMappingDefinition def, ControlType controlType = ControlType.Button) => new()
     {
         EventName = def.EventName,
         CommandProperty = def.CommandProperty,
-        IsAsync = def.IsAsync
+        IsAsync = def.IsAsync,
+        AvailableEvents = ControlEventCatalog.GetSupportedEvents(controlType)
     };
 }

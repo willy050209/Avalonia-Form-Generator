@@ -60,7 +60,8 @@ public sealed class MvvmViewModelGenerator : ICodeGenerator
         }
 
         var nonVisualComponents = allNodes
-            .Where(n => n.Type is ControlType.DispatcherTimer or ControlType.BackgroundWorker)
+            .Where(n => n.Type is ControlType.DispatcherTimer or ControlType.BackgroundWorker
+                              or ControlType.BluetoothClient or ControlType.SerialPortService)
             .ToList();
 
         var sb = new StringBuilder();
@@ -77,7 +78,7 @@ public sealed class MvvmViewModelGenerator : ICodeGenerator
         sb.AppendLine("using CommunityToolkit.Mvvm.Input;");
 
         var services = document.InjectedServices ?? [];
-        if (services.Count > 0)
+        if (services.Count > 0 || nonVisualComponents.Any(c => c.Type is ControlType.BluetoothClient or ControlType.SerialPortService))
         {
             sb.AppendLine($"using {document.RootNamespace}.Services;");
         }
@@ -88,7 +89,7 @@ public sealed class MvvmViewModelGenerator : ICodeGenerator
         sb.AppendLine($"public partial class {document.ViewModelClassName} : ObservableObject");
         sb.AppendLine("{");
 
-        // 不可視元件宣告 (如 DispatcherTimer, BackgroundWorker)
+        // 不可視元件與硬體通訊宣告 (如 DispatcherTimer, BackgroundWorker, BluetoothClient, SerialPortService)
         if (nonVisualComponents.Count > 0)
         {
             foreach (var comp in nonVisualComponents)
@@ -102,11 +103,19 @@ public sealed class MvvmViewModelGenerator : ICodeGenerator
                 {
                     sb.AppendLine($"    private readonly BackgroundWorker {fieldName} = new();");
                 }
+                else if (comp.Type == ControlType.BluetoothClient)
+                {
+                    sb.AppendLine($"    private readonly BluetoothClient {fieldName} = new();");
+                }
+                else if (comp.Type == ControlType.SerialPortService)
+                {
+                    sb.AppendLine($"    private readonly SerialPortService {fieldName} = new();");
+                }
             }
             sb.AppendLine();
         }
 
-        // 服務欄位與建構子注入
+        // 服務欄位宣告
         if (services.Count > 0)
         {
             foreach (var svc in services)
@@ -115,23 +124,43 @@ public sealed class MvvmViewModelGenerator : ICodeGenerator
                 sb.AppendLine($"    private readonly {svc.InterfaceName}? {fieldName};");
             }
             sb.AppendLine();
+        }
 
+        // 建構子 (自動註冊不可視元件之專屬事件回呼與服務注入)
+        var nonVisualEvents = nonVisualComponents
+            .SelectMany(c => c.Events.Select(e => (Component: c, Event: e)))
+            .ToList();
+
+        var hasNonVisualEvents = nonVisualEvents.Count > 0;
+        var hasServices = services.Count > 0;
+
+        if (hasNonVisualEvents || hasServices)
+        {
             sb.AppendLine($"    public {document.ViewModelClassName}()");
             sb.AppendLine("    {");
-            sb.AppendLine("    }");
-            sb.AppendLine();
-
-            var ctorParams = string.Join(", ", services.Select(s => $"{s.InterfaceName} {ToCamelCase(s.InterfaceName.StartsWith('I') ? s.InterfaceName[1..] : s.InterfaceName)}"));
-            sb.AppendLine($"    public {document.ViewModelClassName}({ctorParams})");
-            sb.AppendLine("    {");
-            foreach (var svc in services)
+            foreach (var (comp, evt) in nonVisualEvents)
             {
-                var fieldName = ToPrivateFieldName(svc.InterfaceName.StartsWith('I') ? svc.InterfaceName[1..] : svc.InterfaceName);
-                var paramName = ToCamelCase(svc.InterfaceName.StartsWith('I') ? svc.InterfaceName[1..] : svc.InterfaceName);
-                sb.AppendLine($"        {fieldName} = {paramName};");
+                var fieldName = ToPrivateFieldName(string.IsNullOrWhiteSpace(comp.Name) ? comp.Type.ToString() : comp.Name);
+                var cmdName = NormalizeCommandName(evt.CommandProperty);
+                sb.AppendLine($"        {fieldName}.{evt.EventName} += (s, e) => {cmdName}.Execute(null);");
             }
             sb.AppendLine("    }");
             sb.AppendLine();
+
+            if (hasServices)
+            {
+                var ctorParams = string.Join(", ", services.Select(s => $"{s.InterfaceName} {ToCamelCase(s.InterfaceName.StartsWith('I') ? s.InterfaceName[1..] : s.InterfaceName)}"));
+                sb.AppendLine($"    public {document.ViewModelClassName}({ctorParams}) : this()");
+                sb.AppendLine("    {");
+                foreach (var svc in services)
+                {
+                    var fieldName = ToPrivateFieldName(svc.InterfaceName.StartsWith('I') ? svc.InterfaceName[1..] : svc.InterfaceName);
+                    var paramName = ToCamelCase(svc.InterfaceName.StartsWith('I') ? svc.InterfaceName[1..] : svc.InterfaceName);
+                    sb.AppendLine($"        {fieldName} = {paramName};");
+                }
+                sb.AppendLine("    }");
+                sb.AppendLine();
+            }
         }
 
         // 輸出屬性

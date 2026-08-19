@@ -122,6 +122,8 @@ public sealed record FormProjectDefinition
 
 ---
 
+---
+
 ## 4. 資料綁定與事件映射結構
 
 ### 4.1 `BindingDefinition`
@@ -130,7 +132,35 @@ public sealed record FormProjectDefinition
 - `customDataType`: 自訂 C# 型別（如 `string`, `int`, `decimal`, `bool`, `DateTime?`, `ObservableCollection<string>`）。若未指定則自動根據 TargetProperty 推斷。
 - `mode`: `default` | `oneWay` | `twoWay` | `oneTime` | `oneWayToSource`。
 
-### 4.2 `EventMappingDefinition`
-- `eventName`: View 事件名稱（如 `Click`, `Tapped`, `SelectionChanged`）。
-- `commandProperty`: ViewModel 端的 Command 屬性名稱（如 `SubmitCommand`）。
-- `isAsync`: `bool`（預設 `true`）。指定是否生成非同步 `async Task ...Async()` 方法或同步 `void ...()` 方法。
+### 4.2 `EventMappingDefinition` 與專屬事件目錄 (`ControlEventCatalog`)
+每個控制項僅提供其專屬支援的事件清單，防止無效事件映射：
+- **`Button`**：`Click`, `Tapped`, `DoubleTapped`, `PointerPressed`, `PointerReleased`, `KeyDown`, `KeyUp`
+- **`TextBox`**：`TextChanged`, `KeyDown`, `KeyUp`, `GotFocus`, `LostFocus`, `PointerPressed`
+- **`TextBlock`**：`Tapped`, `DoubleTapped`, `PointerPressed`, `PointerReleased`
+- **`CheckBox` / `RadioButton`**：`IsCheckedChanged`, `Checked`, `Unchecked`, `Click`
+- **`ComboBox`**：`SelectionChanged`, `DropDownOpened`, `DropDownClosed`
+- **`ListBox` / `DataGrid`**：`SelectionChanged`, `DoubleTapped`, `CellEditEnded`
+- **`DatePicker` / `TimePicker`**：`SelectedDateChanged` / `SelectedTimeChanged`
+- **`Slider` / `ProgressBar`**：`ValueChanged`
+- **`ScrollViewer`**：`ScrollChanged`, `PointerPressed`, `PointerReleased`
+- **`Border` / `Image` / 佈局容器**：`PointerPressed`, `PointerReleased`, `Tapped`, `DoubleTapped`
+
+#### 不可視元件與通訊硬體專屬回呼 (Callbacks)
+- **`DispatcherTimer`** (計時器)：
+  - `Tick`：定時觸發回呼。
+- **`BackgroundWorker`** (背景工作執行緒)：
+  - `DoWork`：背景工作執行回呼。
+  - `ProgressChanged`：工作進度回報回呼。
+  - `RunWorkerCompleted`：背景作業完成回呼。
+- **`BluetoothClient`** (跨平台低功耗藍牙 BLE)：
+  - `DeviceDiscovered`：發現周邊裝置回呼。
+  - `Connected`：連線成功建立回呼。
+  - `Disconnected`：連線中斷回呼。
+  - `DataReceived`：接收到藍牙特徵值傳輸資料回呼。
+- **`SerialPortService`** (序列埠 RS-232 / UART)：
+  - `DataReceived`：收到序列埠串流資料回呼。
+  - `ErrorReceived`：序列埠通訊錯誤回呼。
+  - `PinChanged`：Pin 狀態訊號變更回呼。
+
+- `commandProperty`: ViewModel 端的 Command 屬性名稱（如 `SubmitCommand`, `OnDataReceivedCommand`）。
+- `isAsync`: `bool`（預設 `true`）。指定是否生成非同步 `async Task ...Async()` 方法或同步 `void ...()` 方法。不可視元件事件將在 ViewModel 建構子內自動訂閱並調用對應之 RelayCommand。

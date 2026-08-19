@@ -81,9 +81,9 @@
   - **資料型別 (C# DataType)**：提供常見型別下拉選單（`string`, `bool`, `double`, `int`, `DateTime?`, `ObservableCollection<string>` 等）。
   - **綁定模式 (Mode)**：下拉切換 `Default`, `TwoWay`, `OneWay`, `OneWayToSource`, `OneTime`。
 - **「事件命令」分頁**：
-  - **事件名稱 (EventName)**：提供豐富的 Avalonia 事件下拉選單（`Click`, `Tapped`, `DoubleTapped`, `PointerPressed`, `PointerReleased`, `SelectionChanged`, `ValueChanged`, `TextChanged`, `KeyDown`, `KeyUp`, `GotFocus`, `LostFocus`, `Checked`, `Unchecked` 等），防止拼字錯誤。
+  - **智慧專屬事件下拉選單 (EventName)**：系統依據所選元件類型自動過濾僅顯示該控制項或硬體通訊元件支援的專屬事件（例如 Button 僅顯示 `Click` / `Tapped` 等；Slider 僅顯示 `ValueChanged`；BluetoothClient 專屬提供 `DeviceDiscovered`, `Connected`, `Disconnected`, `DataReceived` 回呼；SerialPortService 專屬提供 `DataReceived`, `ErrorReceived`, `PinChanged` 回呼；BackgroundWorker 提供 `DoWork`, `ProgressChanged`, `RunWorkerCompleted` 回呼；DispatcherTimer 提供 `Tick` 回呼），徹底消除拼寫與無效事件錯誤。
   - **ViewModel Command 名稱**：指定映射的 ViewModel RelayCommand 方法。
-  - **非同步開關**：勾選後將自動在 ViewModel 產出 `async Task ...Async()` 簽章。
+  - **非同步開關**：勾選後將自動在 ViewModel 產出 `async Task ...Async()` 簽章，不可視元件與硬體通訊事件將在 ViewModel 建構子內自動訂閱掛載。
 
 ### 2.6 即時預覽與跨平台方案匯出 (即時反應式預覽與專案匯出)
 - **即時反應式預覽**：底部預覽區直連 AST 與生成引擎，無論畫布新增、刪除、移動控制項或修改資料綁定，皆能**零延遲即時更新** View (C# Markup) 與 ViewModel (CommunityToolkit.Mvvm) 程式碼。

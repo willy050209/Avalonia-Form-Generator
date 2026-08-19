@@ -530,4 +530,39 @@ public sealed class ProjectExportServiceTests
             }
         }
     }
+
+    [Fact]
+    public void GenerateFullProject_ShouldGenerateBluetoothAndSerialPortServices_WhenPresentInAst()
+    {
+        // Arrange
+        var doc = new FormDocument
+        {
+            ViewClassName = "CommsView",
+            ViewModelClassName = "CommsViewModel",
+            RootNode = new AstNode
+            {
+                Id = "root",
+                Type = ControlType.Canvas,
+                Children = [
+                    new AstNode { Id = "ble", Name = "BleClient", Type = ControlType.BluetoothClient },
+                    new AstNode { Id = "com", Name = "ComPort", Type = ControlType.SerialPortService }
+                ]
+            }
+        };
+
+        // Act
+        var files = _exportService.GenerateFullProject(doc, new ProjectExportOptions());
+
+        // Assert
+        var bluetoothFile = files.FirstOrDefault(f => f.FileName.EndsWith(Path.Combine("Services", "BluetoothClient.cs")));
+        var serialPortFile = files.FirstOrDefault(f => f.FileName.EndsWith(Path.Combine("Services", "SerialPortService.cs")));
+
+        bluetoothFile.Should().NotBeNull();
+        bluetoothFile!.Content.Should().Contain("public class BluetoothClient");
+        bluetoothFile.Content.Should().Contain("public event EventHandler<byte[]>? DataReceived;");
+
+        serialPortFile.Should().NotBeNull();
+        serialPortFile!.Content.Should().Contain("public class SerialPortService");
+        serialPortFile.Content.Should().Contain("public event EventHandler<string>? DataReceived;");
+    }
 }

@@ -201,4 +201,80 @@ public sealed class MvvmViewModelGeneratorTests
         propertyOccurrences.Should().Be(1);
         commandOccurrences.Should().Be(1);
     }
+
+    [Fact]
+    public void Generate_ShouldSupportNonVisualHardwareComponents_AndRegisterEventCallbacks()
+    {
+        // Arrange
+        var doc = new FormDocument
+        {
+            RootNamespace = "HardwareApp.ViewModels",
+            ViewModelClassName = "HardwareFormViewModel",
+            RootNode = new AstNode
+            {
+                Id = "root",
+                Type = ControlType.Canvas,
+                Children = [
+                    new AstNode
+                    {
+                        Id = "tmr",
+                        Name = "PollTimer",
+                        Type = ControlType.DispatcherTimer,
+                        Events = [new EventMappingDefinition { EventName = "Tick", CommandProperty = "OnTimerTickCommand", IsAsync = true }]
+                    },
+                    new AstNode
+                    {
+                        Id = "bgw",
+                        Name = "TaskWorker",
+                        Type = ControlType.BackgroundWorker,
+                        Events = [
+                            new EventMappingDefinition { EventName = "DoWork", CommandProperty = "PerformWorkCommand", IsAsync = true },
+                            new EventMappingDefinition { EventName = "RunWorkerCompleted", CommandProperty = "WorkCompletedCommand", IsAsync = false }
+                        ]
+                    },
+                    new AstNode
+                    {
+                        Id = "ble",
+                        Name = "BleScanner",
+                        Type = ControlType.BluetoothClient,
+                        Events = [new EventMappingDefinition { EventName = "DataReceived", CommandProperty = "OnBleDataCommand", IsAsync = true }]
+                    },
+                    new AstNode
+                    {
+                        Id = "com",
+                        Name = "SerialDevice",
+                        Type = ControlType.SerialPortService,
+                        Events = [new EventMappingDefinition { EventName = "DataReceived", CommandProperty = "OnSerialDataCommand", IsAsync = true }]
+                    }
+                ]
+            }
+        };
+
+        // Act
+        var result = _generator.Generate(doc);
+
+        // Assert
+        result.Content.Should().Contain("private readonly DispatcherTimer _pollTimer = new();");
+        result.Content.Should().Contain("private readonly BackgroundWorker _taskWorker = new();");
+        result.Content.Should().Contain("private readonly BluetoothClient _bleScanner = new();");
+        result.Content.Should().Contain("private readonly SerialPortService _serialDevice = new();");
+
+        // 驗證建構子內的事件回呼掛載
+        result.Content.Should().Contain("public HardwareFormViewModel()");
+        result.Content.Should().Contain("_pollTimer.Tick += (s, e) => OnTimerTickCommand.Execute(null);");
+        result.Content.Should().Contain("_taskWorker.DoWork += (s, e) => PerformWorkCommand.Execute(null);");
+        result.Content.Should().Contain("_taskWorker.RunWorkerCompleted += (s, e) => WorkCompletedCommand.Execute(null);");
+        result.Content.Should().Contain("_bleScanner.DataReceived += (s, e) => OnBleDataCommand.Execute(null);");
+        result.Content.Should().Contain("_serialDevice.DataReceived += (s, e) => OnSerialDataCommand.Execute(null);");
+
+        // 驗證生成的 Commands
+        result.Content.Should().Contain("private async Task OnTimerTickAsync()");
+        result.Content.Should().Contain("private async Task PerformWorkAsync()");
+        result.Content.Should().Contain("private void WorkCompleted()");
+        result.Content.Should().Contain("private async Task OnBleDataAsync()");
+        result.Content.Should().Contain("private async Task OnSerialDataAsync()");
+
+        var diagnostics = RoslynCompilerService.CheckSyntaxDiagnostics(result.Content);
+        diagnostics.Should().BeEmpty();
+    }
 }

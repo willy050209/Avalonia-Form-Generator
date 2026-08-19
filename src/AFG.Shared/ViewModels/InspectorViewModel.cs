@@ -2,6 +2,7 @@
 using CoreBindingMode = AFG.Core.Enums.BindingMode;
 using CoreHorizontalAlignment = AFG.Core.Enums.HorizontalAlignment;
 using CoreVerticalAlignment = AFG.Core.Enums.VerticalAlignment;
+using CoreControlType = AFG.Core.Enums.ControlType;
 
 namespace AFG.Shared.ViewModels;
 
@@ -191,7 +192,7 @@ public sealed partial class InspectorViewModel : ObservableObject
         Events.Clear();
         foreach (var e in node.Events)
         {
-            var item = EventItemViewModel.FromDefinition(e);
+            var item = EventItemViewModel.FromDefinition(e, node.Type);
             item.PropertyChanged += (_, _) => ApplyChanges();
             Events.Add(item);
         }
@@ -210,6 +211,7 @@ public sealed partial class InspectorViewModel : ObservableObject
                 "TextBox" => "Text",
                 "CheckBox" or "RadioButton" => "IsChecked",
                 "Slider" or "ProgressBar" => "Value",
+                "ComboBox" or "ListBox" or "DataGrid" => "ItemsSource",
                 _ => "IsEnabled"
             },
             ViewModelProperty = $"{NodeName}Property"
@@ -231,9 +233,14 @@ public sealed partial class InspectorViewModel : ObservableObject
     [RelayCommand]
     private void AddEvent()
     {
+        var nodeType = _currentNode?.Type ?? CoreControlType.Button;
+        var supported = ControlEventCatalog.GetSupportedEvents(nodeType);
+        var defaultEvt = ControlEventCatalog.GetDefaultEvent(nodeType);
+
         var item = new EventItemViewModel
         {
-            EventName = "Click",
+            AvailableEvents = supported,
+            EventName = defaultEvt,
             CommandProperty = $"{NodeName}Command"
         };
         item.PropertyChanged += (_, _) => ApplyChanges();
