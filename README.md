@@ -69,9 +69,8 @@ graph LR
 
 3. **相依性注入與跨平台多專案生成 (`AFG.Generators`)**
    - **全面整合 `Microsoft.Extensions.DependencyInjection`**：在 `App.cs` 配置 `ServiceCollection` / `ServiceProvider`，自動註冊 Services、ViewModels 與 Views，支援 ViewModel 建構子相依性注入。
-   - **跨平台多專案方案結構**：一鍵產出 `.slnx` 方案，包含 `.Shared` 跨平台共用庫、`.Desktop` 桌面端進入點、以及可選的 `.Android` 行動端專案。
    - **純 C# Markup 宣告式 UI**：無 AXAML 依賴，採用 Fluent Method Chaining 鏈式調用，型別安全且編譯即時檢查。
-   - **啟動視窗預設最大化**：桌面端與匯出專案啟動時均設定 `WindowState = WindowState.Maximized`。
+   - **可配置視窗尺寸**：依設計器與解析度規格生成標準視窗尺寸 (`Width` / `Height`)。
    - **Roslyn 格式化與記憶體編譯診斷**：使用 Roslyn 語法樹標準化縮排，並在記憶體中編譯檢查，即時提供語法警告。
 
 4. **專案檔保存與載入 (`.afg.json`)**
@@ -258,7 +257,6 @@ public partial class App : Application
                 Title = Config.AppTitle,
                 Width = Config.DefaultWindowWidth,
                 Height = Config.DefaultWindowHeight,
-                WindowState = WindowState.Maximized,
                 Content = mainView
             };
         }

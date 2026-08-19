@@ -242,7 +242,6 @@ public sealed class ProjectExportService(FormCodeGenerator? codeGenerator = null
                     s_mainWindow = new Window
                     {
                         Title = Config.AppTitle,
-                        WindowState = WindowState.Maximized,
                         Width = Config.DefaultWindowWidth,
                         Height = Config.DefaultWindowHeight,
                         Content = initialView

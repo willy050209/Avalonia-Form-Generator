@@ -94,10 +94,12 @@ public sealed class ProjectExportServiceTests
         files.Should().Contain(f => f.FileName == splashActivity);
         files.Should().Contain(f => f.FileName == manifest);
 
-        // 5. 檢查 App.cs 是否包含 DI 與最大化視窗
+        // 5. 檢查 App.cs 是否包含 DI 與預設視窗尺寸配置
         var appFile = files.First(f => f.FileName == appCs);
         appFile.Content.Should().Contain("ConfigureServices(IServiceCollection services)");
-        appFile.Content.Should().Contain("WindowState = WindowState.Maximized");
+        appFile.Content.Should().NotContain("WindowState = WindowState.Maximized");
+        appFile.Content.Should().Contain("Width = Config.DefaultWindowWidth");
+        appFile.Content.Should().Contain("Height = Config.DefaultWindowHeight");
         appFile.Content.Should().Contain("services.AddSingleton<IGreetingService, GreetingService>()");
         appFile.Content.Should().Contain("services.AddTransient<OrderFormViewModel>()");
         appFile.Content.Should().Contain("services.AddTransient<OrderFormView>");

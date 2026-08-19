@@ -143,7 +143,6 @@ public partial class App : Application
                 Title = Config.AppTitle,
                 Width = Config.DefaultWindowWidth,
                 Height = Config.DefaultWindowHeight,
-                WindowState = WindowState.Maximized,
                 Content = initialView
             };
             desktop.MainWindow = s_mainWindow;
