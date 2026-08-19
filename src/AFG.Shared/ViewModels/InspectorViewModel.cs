@@ -141,11 +141,7 @@ public sealed partial class InspectorViewModel : ObservableObject
             return;
         }
 
-        if (node is not null && _currentNode is not null && node.Id == _currentNode.Id)
-        {
-            _currentNode = node;
-            return;
-        }
+        var isSameNode = node is not null && _currentNode is not null && node.Id == _currentNode.Id;
 
         _isUpdating = true;
         _currentNode = node;
@@ -198,20 +194,23 @@ public sealed partial class InspectorViewModel : ObservableObject
         Source = node.Source ?? string.Empty;
         Stretch = node.Stretch;
 
-        Bindings.Clear();
-        foreach (var b in node.Bindings)
+        if (!isSameNode)
         {
-            var item = BindingItemViewModel.FromDefinition(b);
-            item.PropertyChanged += (_, _) => ApplyChanges();
-            Bindings.Add(item);
-        }
+            Bindings.Clear();
+            foreach (var b in node.Bindings)
+            {
+                var item = BindingItemViewModel.FromDefinition(b);
+                item.PropertyChanged += (_, _) => ApplyChanges();
+                Bindings.Add(item);
+            }
 
-        Events.Clear();
-        foreach (var e in node.Events)
-        {
-            var item = EventItemViewModel.FromDefinition(e, node.Type);
-            item.PropertyChanged += (_, _) => ApplyChanges();
-            Events.Add(item);
+            Events.Clear();
+            foreach (var e in node.Events)
+            {
+                var item = EventItemViewModel.FromDefinition(e, node.Type);
+                item.PropertyChanged += (_, _) => ApplyChanges();
+                Events.Add(item);
+            }
         }
 
         ValidateCurrentNode();

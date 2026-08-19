@@ -64,4 +64,40 @@ public sealed class InspectorTests
         updatedNode!.Text.Should().Be("Hello World");
         updatedNode.Name.Should().Be("UsernameInput");
     }
+
+    [Fact]
+    public void LoadNode_WhenSameNodeUpdatedWithNewDimensions_ShouldSynchronizeCoordinatesAndDimensions()
+    {
+        // Arrange
+        var initialNode = new AstNode
+        {
+            Id = "btn1",
+            Name = "SubmitBtn",
+            Type = ControlType.Button,
+            Width = 100,
+            Height = 35,
+            CanvasLeft = 50,
+            CanvasTop = 60
+        };
+
+        var inspector = new InspectorViewModel();
+        inspector.LoadNode(initialNode);
+
+        var resizedNode = initialNode with
+        {
+            Width = 220,
+            Height = 80,
+            CanvasLeft = 80,
+            CanvasTop = 90
+        };
+
+        // Act
+        inspector.LoadNode(resizedNode);
+
+        // Assert
+        inspector.Width.Should().Be(220);
+        inspector.Height.Should().Be(80);
+        inspector.CanvasLeft.Should().Be(80);
+        inspector.CanvasTop.Should().Be(90);
+    }
 }

@@ -139,4 +139,40 @@ public sealed class MainViewModelTests
         vm.IsProjectNameDialogVisible.Should().BeFalse();
         vm.Canvas.ExportProjectName.Should().Be("PosSystem");
     }
+
+    [Fact]
+    public void CanvasResizeNode_ShouldSynchronouslyUpdateInspectorCoordinatesAndDimensions()
+    {
+        // Arrange
+        var vm = new MainViewModel();
+        var node = new AstNode
+        {
+            Id = "testBtn",
+            Name = "MyButton",
+            Type = ControlType.Button,
+            Width = 120,
+            Height = 35,
+            CanvasLeft = 100,
+            CanvasTop = 150
+        };
+
+        var rootWithNode = AstTreeOperations.AddChild(vm.Canvas.Document.RootNode, vm.Canvas.Document.RootNode.Id, node);
+        vm.Canvas.Document = vm.Canvas.Document with { RootNode = rootWithNode };
+        vm.Canvas.SelectNode("testBtn");
+
+        // 驗證初始檢查器屬性
+        vm.Inspector.Width.Should().Be(120);
+        vm.Inspector.Height.Should().Be(35);
+        vm.Inspector.CanvasLeft.Should().Be(100);
+        vm.Inspector.CanvasTop.Should().Be(150);
+
+        // Act: 模擬使用者使用 8 點縮放控制項變更尺寸與座標（自動吸附至 8px 網格）
+        vm.Canvas.ResizeNode("testBtn", newWidth: 264, newHeight: 96, newLeft: 80, newTop: 120);
+
+        // Assert: 屬性檢查器面板同步即時更新
+        vm.Inspector.Width.Should().Be(264);
+        vm.Inspector.Height.Should().Be(96);
+        vm.Inspector.CanvasLeft.Should().Be(80);
+        vm.Inspector.CanvasTop.Should().Be(120);
+    }
 }
