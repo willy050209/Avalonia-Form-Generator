@@ -109,11 +109,11 @@
             </Menu>
         </Border>
 
-        <!-- 中間主工作區（支援左側、底部、右側面板摺疊展開） -->
-        <Grid Grid.Row="1" ColumnDefinitions="Auto, Auto, *, Auto, Auto">
+        <!-- 中間主工作區（支援左側、底部、右側面板摺疊展開與自由拖曳調整大小） -->
+        <Grid Grid.Row="1" x:Name="MainWorkspaceGrid" ColumnDefinitions="260, Auto, *, Auto, 320">
             <!-- 左側邊欄：工具箱與 DOM 樹 -->
             <Border Grid.Column="0"
-                    Width="260"
+                    MinWidth="160"
                     IsVisible="{Binding IsLeftPanelVisible}"
                     Background="#18181B"
                     BorderBrush="#27272A"
@@ -129,13 +129,13 @@
             </Border>
 
             <GridSplitter Grid.Column="1"
-                          Width="4"
+                          Width="5"
                           IsVisible="{Binding IsLeftPanelVisible}"
                           Background="#27272A"
                           ResizeDirection="Columns" />
 
             <!-- 中央區塊：設計畫布與即時程式碼預覽 -->
-            <Grid Grid.Column="2" x:Name="CenterGrid" RowDefinitions="*, Auto, Auto">
+            <Grid Grid.Column="2" x:Name="CenterGrid" RowDefinitions="*, Auto, 240">
                 <!-- 視覺畫布區 (ScrollViewer) -->
                 <ScrollViewer Grid.Row="0"
                               HorizontalScrollBarVisibility="Auto"
@@ -155,14 +155,15 @@
                 </ScrollViewer>
 
                 <GridSplitter Grid.Row="1"
-                              Height="4"
+                              Height="5"
                               IsVisible="{Binding IsCodePanelVisible}"
                               Background="#27272A"
                               ResizeDirection="Rows" />
 
-                <!-- 底部即時程式碼預覽區 -->
+                <!-- 底部即時程式碼預覽區 (可由 GridSplitter 自由調整拉伸高度) -->
                 <Border Grid.Row="2"
-                        Height="240"
+                        MinHeight="100"
+                        VerticalAlignment="Stretch"
                         IsVisible="{Binding IsCodePanelVisible}"
                         Background="#18181B"
                         BorderBrush="#27272A"
@@ -219,14 +220,14 @@
             </Grid>
 
             <GridSplitter Grid.Column="3"
-                          Width="4"
+                          Width="5"
                           IsVisible="{Binding IsRightPanelVisible}"
                           Background="#27272A"
                           ResizeDirection="Columns" />
 
             <!-- 右側邊欄：完整屬性與事件檢查器 (Inspector) -->
             <Border Grid.Column="4"
-                    Width="320"
+                    MinWidth="220"
                     IsVisible="{Binding IsRightPanelVisible}"
                     Background="#18181B"
                     BorderBrush="#27272A"
