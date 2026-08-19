@@ -1,4 +1,4 @@
-// filepath: src/AFG.Generators/ProjectExport/ProjectExportService.cs
+﻿// filepath: src/AFG.Generators/ProjectExport/ProjectExportService.cs
 using System.Collections.Immutable;
 using System.Text;
 using AFG.Core.Models.Ast;
@@ -235,7 +235,7 @@ public sealed class ProjectExportService(FormCodeGenerator? codeGenerator = null
                 ConfigureServices(services);
                 Services = services.BuildServiceProvider();
 
-                // 桌面端生命週期 (視窗最大化啟動)
+                // 桌面端生命週期 
                 if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
                 {
                     var initialView = Services.GetRequiredService<{{initialDoc.ViewClassName}}>();
@@ -244,7 +244,6 @@ public sealed class ProjectExportService(FormCodeGenerator? codeGenerator = null
                         Title = Config.AppTitle,
                         Width = Config.DefaultWindowWidth,
                         Height = Config.DefaultWindowHeight,
-                        WindowState = WindowState.Maximized,
                         Content = initialView
                     };
                     desktop.MainWindow = s_mainWindow;
