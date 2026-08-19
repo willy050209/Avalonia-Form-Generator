@@ -1,5 +1,6 @@
 // filepath: src/AFG.Shared/ViewModels/CanvasViewModel.cs
 using System.Collections.Generic;
+using System.Globalization;
 using AFG.Core.Enums;
 using AFG.Shared.History;
 
@@ -53,6 +54,57 @@ public sealed partial class CanvasViewModel : ObservableObject
 
     [ObservableProperty]
     private CanvasPreset? _selectedPreset;
+
+    [RelayCommand]
+    public void ApplyPreset(CanvasPreset? preset)
+    {
+        if (preset is not null)
+        {
+            SelectedPreset = preset;
+        }
+    }
+
+    [RelayCommand]
+    public void SetCanvasSize(string? sizeStr)
+    {
+        if (string.IsNullOrWhiteSpace(sizeStr)) return;
+        var parts = sizeStr.Split('x', 'X');
+        if (parts.Length == 2 && double.TryParse(parts[0], CultureInfo.InvariantCulture, out var w) && double.TryParse(parts[1], CultureInfo.InvariantCulture, out var h))
+        {
+            CanvasWidth = w;
+            CanvasHeight = h;
+        }
+    }
+
+    public bool UseCompiledBindings
+    {
+        get => Document.UseCompiledBindings;
+        set
+        {
+            if (Document.UseCompiledBindings != value)
+            {
+                PushHistory();
+                Document = Document with { UseCompiledBindings = value };
+                OnPropertyChanged();
+                DocumentChanged?.Invoke(Document);
+            }
+        }
+    }
+
+    public bool EnableDependencyInjection
+    {
+        get => Document.EnableDependencyInjection;
+        set
+        {
+            if (Document.EnableDependencyInjection != value)
+            {
+                PushHistory();
+                Document = Document with { EnableDependencyInjection = value };
+                OnPropertyChanged();
+                DocumentChanged?.Invoke(Document);
+            }
+        }
+    }
 
     partial void OnSelectedPresetChanged(CanvasPreset? value)
     {
@@ -144,6 +196,8 @@ public sealed partial class CanvasViewModel : ObservableObject
             CanvasHeight = previous.CanvasHeight;
             ExportProjectName = !string.IsNullOrWhiteSpace(previous.ProjectName) ? previous.ProjectName : "MainFormApp";
             MatchOrSetCustomPreset();
+            OnPropertyChanged(nameof(UseCompiledBindings));
+            OnPropertyChanged(nameof(EnableDependencyInjection));
             ValidateSelection();
             DocumentChanged?.Invoke(Document);
             SelectionChanged?.Invoke(SelectedNode);
@@ -160,6 +214,8 @@ public sealed partial class CanvasViewModel : ObservableObject
             CanvasHeight = next.CanvasHeight;
             ExportProjectName = !string.IsNullOrWhiteSpace(next.ProjectName) ? next.ProjectName : "MainFormApp";
             MatchOrSetCustomPreset();
+            OnPropertyChanged(nameof(UseCompiledBindings));
+            OnPropertyChanged(nameof(EnableDependencyInjection));
             ValidateSelection();
             DocumentChanged?.Invoke(Document);
             SelectionChanged?.Invoke(SelectedNode);
@@ -179,6 +235,8 @@ public sealed partial class CanvasViewModel : ObservableObject
                 ? doc.ViewClassName[..^4] + "App"
                 : doc.ViewClassName + "App");
         MatchOrSetCustomPreset();
+        OnPropertyChanged(nameof(UseCompiledBindings));
+        OnPropertyChanged(nameof(EnableDependencyInjection));
         SelectedNodeIds.Clear();
         SelectedNode = null;
         ActiveGuideLines.Clear();

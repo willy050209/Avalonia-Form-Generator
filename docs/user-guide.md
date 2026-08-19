@@ -55,20 +55,21 @@
 - **「屬性欄」**：顯示或隱藏右側屬性檢查器。
 隱藏側邊欄後，中央設計畫布會自動佔滿可用視窗空間。
 
-### 2.4 裝置解析度與長寬比配置
-在頂部工具列中央：
-1. **預設解析度切換**：下拉選單提供多種主流規格：
-   - `Phone 9:19.5 (Modern Flagship)` (390 x 844)
-   - `Phone 9:20 (Android Standard)` (412 x 915)
-   - `Phone 9:16 (Classic Mobile)` (360 x 640)
-   - `Phone FHD+ 9:20` (1080 x 2400)
-   - `Tablet 3:4 (iPad Standard)` (768 x 1024)
-   - `Tablet 16:10` (800 x 1280)
-   - `Desktop 1080p / 720p / Standard`
-2. **自訂解析度輸入**：直接在「寬:」與「高:」數值框輸入任意像素數值，畫布將即時自適應調整。
-3. **跨平台行動端開關**：勾選「包含行動端 (.Android)」可在匯出時同時生成 Android 宿主專案。
-4. **專案名稱自訂**：在頂部工具列「專案名稱」輸入框中可自由指定匯出方案與專案名稱（例如 `InventoryApp`、`SmartPos`），匯出時將自動命名方案檔 (`InventoryApp.slnx`)、核心專案 (`InventoryApp.Shared.csproj`)、桌面端 (`InventoryApp.Desktop.csproj`) 與行動端 (`InventoryApp.Android.csproj`)，並同步配置 C# 命名空間。
-5. **授權文件開關**：勾選「包含授權 (LICENSE)」可在匯出專案根目錄自動生成 MIT License 授權檔案。
+### 2.4 選單列與工具列功能整合 (Menu Bar & Toolbar Integration)
+在頂部選單列中，除了「檔案」、「編輯」、「排版對齊」、「檢視」外，新增整合選單標籤：
+- **「裝置與規格(_D)」**：
+  - **桌面端解析度**：快速切換 Desktop 1080p, 720p, Standard (800x600), Small (960x600)。
+  - **行動手機解析度**：快速切換 Phone 9:19.5 (390x844), 9:20 (412x915), 9:16 (360x640), FHD+ 9:20 (1080x2400)。
+  - **平板電腦解析度**：快速切換 iPad Standard (768x1024), Tablet 16:10 (800x1280)。
+  - **網格吸附 (Snap to Grid)**：快速開啟或關閉 8px 網格吸附。
+- **「專案與架構(_P)」**：
+  - **包含行動端專案 (.Android)**：即時開關匯出時是否產出 Android 宿主專案。
+  - **包含授權文件 (LICENSE)**：開關匯出時是否產出 MIT License。
+  - **使用強型別編譯綁定 (Compiled Bindings)**：切換 C# Markup 產出模式（Lambda 編譯綁定或 nameof 字串綁定）。
+  - **啟用相依性注入架構 (Dependency Injection)**：控制是否生成 DI 容器與服務注入機制。
+  - **匯出完整跨平台專案... (`Ctrl+Shift+E`)**。
+
+在頂部工具列 (Toolbar) 亦提供直觀的視覺化下拉選單、數值輸入框、專案名稱自訂輸入與面板摺疊切換。
 
 ### 2.5 設定控制項屬性、顏色、資料綁定與事件命令
 在右側 **「屬性檢查器」** 中：

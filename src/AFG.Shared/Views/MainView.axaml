@@ -59,6 +59,47 @@
                     <MenuItem Header="複製 View C# Markup" Command="{Binding CopyViewCodeCommand}" />
                     <MenuItem Header="複製 ViewModel C#" Command="{Binding CopyVmCodeCommand}" />
                 </MenuItem>
+                <MenuItem Header="裝置與規格(_D)">
+                    <MenuItem Header="桌面端解析度">
+                        <MenuItem Header="Desktop 1080p (1920x1080, 16:9)" Command="{Binding Canvas.SetCanvasSizeCommand}" CommandParameter="1920x1080" />
+                        <MenuItem Header="Desktop 720p (1280x720, 16:9)" Command="{Binding Canvas.SetCanvasSizeCommand}" CommandParameter="1280x720" />
+                        <MenuItem Header="Desktop Standard (800x600, 4:3)" Command="{Binding Canvas.SetCanvasSizeCommand}" CommandParameter="800x600" />
+                        <MenuItem Header="Desktop Small (960x600, 16:10)" Command="{Binding Canvas.SetCanvasSizeCommand}" CommandParameter="960x600" />
+                    </MenuItem>
+                    <MenuItem Header="行動手機解析度">
+                        <MenuItem Header="Phone 9:19.5 (390x844, Modern Flagship)" Command="{Binding Canvas.SetCanvasSizeCommand}" CommandParameter="390x844" />
+                        <MenuItem Header="Phone 9:20 (412x915, Android Standard)" Command="{Binding Canvas.SetCanvasSizeCommand}" CommandParameter="412x915" />
+                        <MenuItem Header="Phone 9:16 (360x640, Classic Mobile)" Command="{Binding Canvas.SetCanvasSizeCommand}" CommandParameter="360x640" />
+                        <MenuItem Header="Phone FHD+ 9:20 (1080x2400)" Command="{Binding Canvas.SetCanvasSizeCommand}" CommandParameter="1080x2400" />
+                    </MenuItem>
+                    <MenuItem Header="平板電腦解析度">
+                        <MenuItem Header="Tablet 3:4 (768x1024, iPad Standard)" Command="{Binding Canvas.SetCanvasSizeCommand}" CommandParameter="768x1024" />
+                        <MenuItem Header="Tablet 16:10 (800x1280)" Command="{Binding Canvas.SetCanvasSizeCommand}" CommandParameter="800x1280" />
+                    </MenuItem>
+                    <Separator />
+                    <MenuItem Header="網格吸附 (Snap to Grid)"
+                              ToggleType="CheckBox"
+                              IsChecked="{Binding Canvas.SnapToGrid, Mode=TwoWay}" />
+                </MenuItem>
+                <MenuItem Header="專案與架構(_P)">
+                    <MenuItem Header="包含行動端專案 (.Android)"
+                              ToggleType="CheckBox"
+                              IsChecked="{Binding Canvas.IncludeMobileProject, Mode=TwoWay}" />
+                    <MenuItem Header="包含授權文件 (LICENSE)"
+                              ToggleType="CheckBox"
+                              IsChecked="{Binding Canvas.IncludeLicense, Mode=TwoWay}" />
+                    <Separator />
+                    <MenuItem Header="使用強型別編譯綁定 (Compiled Bindings)"
+                              ToggleType="CheckBox"
+                              IsChecked="{Binding Canvas.UseCompiledBindings, Mode=TwoWay}" />
+                    <MenuItem Header="啟用相依性注入架構 (Dependency Injection)"
+                              ToggleType="CheckBox"
+                              IsChecked="{Binding Canvas.EnableDependencyInjection, Mode=TwoWay}" />
+                    <Separator />
+                    <MenuItem Header="匯出完整跨平台專案..."
+                              Command="{Binding ExportFullProjectCommand}"
+                              InputGesture="Ctrl+Shift+E" />
+                </MenuItem>
             </Menu>
         </Border>
 
