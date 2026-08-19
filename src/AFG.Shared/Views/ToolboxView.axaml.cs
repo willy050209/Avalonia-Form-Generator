@@ -5,6 +5,7 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.VisualTree;
+using AFG.Shared.Controls;
 using AFG.Shared.Models;
 using AFG.Shared.ViewModels;
 
@@ -25,11 +26,11 @@ public partial class ToolboxView : UserControl
         var listBox = this.FindControl<ListBox>("ToolboxListBox");
         if (listBox is not null)
         {
-            // 使用 Bubble 策略監聽，確保不干擾 ListBox 原生的選擇處理流程
-            listBox.AddHandler(InputElement.PointerPressedEvent, OnListBoxPointerPressed, RoutingStrategies.Bubble);
-            listBox.AddHandler(InputElement.PointerMovedEvent, OnListBoxPointerMoved, RoutingStrategies.Bubble);
-            listBox.AddHandler(InputElement.PointerReleasedEvent, OnListBoxPointerReleased, RoutingStrategies.Bubble);
-            listBox.AddHandler(InputElement.PointerCaptureLostEvent, OnListBoxPointerCaptureLost, RoutingStrategies.Bubble);
+            // 使用 Tunnel 策略及時捕獲滑鼠交互
+            listBox.AddHandler(InputElement.PointerPressedEvent, OnListBoxPointerPressed, RoutingStrategies.Tunnel);
+            listBox.AddHandler(InputElement.PointerMovedEvent, OnListBoxPointerMoved, RoutingStrategies.Tunnel);
+            listBox.AddHandler(InputElement.PointerReleasedEvent, OnListBoxPointerReleased, RoutingStrategies.Tunnel);
+            listBox.AddHandler(InputElement.PointerCaptureLostEvent, OnListBoxPointerCaptureLost, RoutingStrategies.Tunnel);
             listBox.DoubleTapped += OnListBoxDoubleTapped;
         }
     }
@@ -46,20 +47,22 @@ public partial class ToolboxView : UserControl
             var listBoxItem = visual?.FindAncestorOfType<ListBoxItem>();
             _dragCandidateItem = listBoxItem?.DataContext as ToolboxItem;
 
-            if (_dragCandidateItem is not null && DataContext is ToolboxViewModel vm)
+            if (_dragCandidateItem is not null)
             {
-                // 立即切換選取項目，確保 ViewModel 與 UI 狀態即時同步
-                if (vm.SelectedItem != _dragCandidateItem)
+                if (DataContext is ToolboxViewModel vm && vm.SelectedItem != _dragCandidateItem)
                 {
                     vm.SelectedItem = _dragCandidateItem;
                 }
+
+                // 捕獲滑鼠指標，確保拖曳跨出工具箱以及在畫布上釋放時，能完整接收 PointerMoved 與 PointerReleased
+                e.Pointer.Capture(this);
             }
         }
     }
 
     private void OnListBoxPointerMoved(object? sender, PointerEventArgs e)
     {
-        if (!_isPointerDown || _dragCandidateItem is null || _isDragging)
+        if (!_isPointerDown || _dragCandidateItem is null)
         {
             return;
         }
@@ -68,17 +71,34 @@ public partial class ToolboxView : UserControl
         var delta = currentPos - _pointerDownPos;
 
         // 僅當移動距離超過門檻值時才判定為開始拖曳
-        if (Math.Abs(delta.X) > DragThreshold || Math.Abs(delta.Y) > DragThreshold)
+        if (!_isDragging && (Math.Abs(delta.X) > DragThreshold || Math.Abs(delta.Y) > DragThreshold))
         {
             _isDragging = true;
-            var dragItem = _dragCandidateItem;
             if (DataContext is ToolboxViewModel vm)
             {
-                vm.StartDrag(dragItem);
+                vm.StartDrag(_dragCandidateItem);
             }
+        }
 
-            // 釋放工具箱捕獲，讓畫布能順暢接收後續的 PointerMoved 與 PointerReleased 事件
-            e.Pointer.Capture(null);
+        if (_isDragging)
+        {
+            var topLevel = TopLevel.GetTopLevel(this);
+            var canvas = topLevel?.FindControl<DesignCanvas>("MainDesignCanvas")
+                         ?? this.FindAncestorOfType<MainView>()?.FindControl<DesignCanvas>("MainDesignCanvas");
+
+            if (canvas is not null)
+            {
+                var canvasPos = e.GetPosition(canvas);
+                var canvasBounds = new Rect(0, 0, canvas.Bounds.Width, canvas.Bounds.Height);
+                if (canvasBounds.Contains(canvasPos))
+                {
+                    Cursor = new Cursor(StandardCursorType.DragCopy);
+                }
+                else
+                {
+                    Cursor = new Cursor(StandardCursorType.Hand);
+                }
+            }
         }
     }
 
@@ -86,13 +106,31 @@ public partial class ToolboxView : UserControl
     {
         if (_isPointerDown)
         {
-            var bounds = new Rect(0, 0, Bounds.Width, Bounds.Height);
-            var releasePos = e.GetPosition(this);
+            e.Pointer.Capture(null);
+            Cursor = Cursor.Default;
 
-            if (_isDragging)
+            if (_isDragging && _dragCandidateItem is not null)
             {
-                // 若滑鼠釋放點仍在工具箱範圍內，判定為取消拖曳
-                if (bounds.Contains(releasePos) && DataContext is ToolboxViewModel vm)
+                var topLevel = TopLevel.GetTopLevel(this);
+                var canvas = topLevel?.FindControl<DesignCanvas>("MainDesignCanvas")
+                             ?? this.FindAncestorOfType<MainView>()?.FindControl<DesignCanvas>("MainDesignCanvas");
+
+                if (canvas is not null && canvas.ViewModel is not null)
+                {
+                    var canvasPos = e.GetPosition(canvas);
+                    var canvasBounds = new Rect(0, 0, canvas.Bounds.Width, canvas.Bounds.Height);
+
+                    // 若釋放在畫布內部或周邊範圍內，精確加入控制項
+                    if (canvasBounds.Contains(canvasPos) ||
+                        (canvasPos.X >= 0 && canvasPos.Y >= 0 && canvasPos.X <= canvas.Bounds.Width + 60 && canvasPos.Y <= canvas.Bounds.Height + 60))
+                    {
+                        var dropX = Math.Clamp(canvasPos.X, 0, Math.Max(0, canvas.Bounds.Width - 100));
+                        var dropY = Math.Clamp(canvasPos.Y, 0, Math.Max(0, canvas.Bounds.Height - 40));
+                        canvas.ViewModel.AddControlFromToolbox(_dragCandidateItem, dropX, dropY);
+                    }
+                }
+
+                if (DataContext is ToolboxViewModel vm)
                 {
                     vm.EndDrag();
                 }
@@ -110,9 +148,14 @@ public partial class ToolboxView : UserControl
 
     private void OnListBoxPointerCaptureLost(object? sender, PointerCaptureLostEventArgs e)
     {
+        if (_isDragging && DataContext is ToolboxViewModel vm)
+        {
+            vm.EndDrag();
+        }
         _isPointerDown = false;
         _dragCandidateItem = null;
         _isDragging = false;
+        Cursor = Cursor.Default;
     }
 
     private void OnListBoxDoubleTapped(object? sender, RoutedEventArgs e)
