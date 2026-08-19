@@ -29,7 +29,7 @@ graph LR
 
 | 分類 | 支援項目 | 說明 |
 | :--- | :--- | :--- |
-| **基礎控制項** | `Button`, `TextBox`, `TextBlock`, `CheckBox`, `RadioButton`, `ComboBox`, `DatePicker`, `Slider`, `ProgressBar` | 支援完整幾何、外觀、雙向/單向資料綁定與命令事件轉換 |
+| **基礎控制項** | `Button`, `TextBox`, `TextBlock`, `CheckBox`, `RadioButton`, `ComboBox`, `DatePicker`, `Slider`, `ProgressBar`, `PictureBox` | 支援完整幾何、外觀、雙向/單向資料綁定、影像來源 (Source/ImageLocation) 與縮放模式 (Stretch/SizeMode) 與命令事件轉換 |
 | **版面配置容器** | `Canvas`, `StackPanel`, `Grid`, `Border`, `DockPanel`, `WrapPanel`, `ScrollViewer` | 支援巢狀拖曳放入、自動流式排版、列/欄定義與視覺樹精準選取 |
 | **非視覺 / 硬體元件** | `DispatcherTimer`, `BackgroundWorker`, `BluetoothClient`, `SerialPortService` | 自動註冊為 DI 服務並提供專屬回呼事件（`Tick`, `DoWork`, `ProgressChanged`, `DataReceived` 等）自動掛載 |
 

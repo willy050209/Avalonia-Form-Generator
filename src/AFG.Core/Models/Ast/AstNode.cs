@@ -69,6 +69,8 @@ public sealed record AstNode
     public CornerRadiusModel? CornerRadius { get; init; }
     public string? ItemsSource { get; init; }
     public string? SelectedItem { get; init; }
+    public string? Source { get; init; }
+    public Stretch? Stretch { get; init; }
 
     // --- 擴充自訂屬性 ---
     public ImmutableDictionary<string, string> CustomProperties { get; init; } = ImmutableDictionary<string, string>.Empty;

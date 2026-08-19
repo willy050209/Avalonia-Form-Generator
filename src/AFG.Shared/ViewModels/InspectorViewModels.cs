@@ -38,6 +38,8 @@ public sealed partial class BindingItemViewModel : ObservableObject
         "SelectedIndex",
         "Header",
         "Watermark",
+        "Source",
+        "Stretch",
         "Background",
         "Foreground"
     ];
@@ -49,6 +51,8 @@ public sealed partial class BindingItemViewModel : ObservableObject
         "double",
         "decimal",
         "bool",
+        "Avalonia.Media.IImage",
+        "Avalonia.Media.Stretch",
         "DateTime?",
         "ObservableCollection<string>",
         "ObservableCollection<object>",
@@ -64,6 +68,8 @@ public sealed partial class BindingItemViewModel : ObservableObject
             "SelectedIndex" => "int",
             "ItemsSource" => "ObservableCollection<string>",
             "SelectedItem" => "string?",
+            "Source" => "Avalonia.Media.IImage?",
+            "Stretch" => "Avalonia.Media.Stretch",
             _ => "string"
         };
     }

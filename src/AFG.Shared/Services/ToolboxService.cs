@@ -18,6 +18,7 @@ public static class ToolboxService
         new("DatePicker", "常用控制項", ControlType.DatePicker, "Dtp", 200, 32),
         new("Slider", "常用控制項", ControlType.Slider, "Sld", 180, 30),
         new("ProgressBar", "常用控制項", ControlType.ProgressBar, "Prg", 180, 20),
+        new("PictureBox", "常用控制項", ControlType.PictureBox, "Pic", 200, 150, "PictureBox"),
         new("Border", "常用控制項", ControlType.Border, "Brd", 200, 150),
 
         // 佈局容器

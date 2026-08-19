@@ -153,6 +153,41 @@ public sealed class DesignCanvas : Grid
             case ControlType.ProgressBar:
                 control = new ProgressBar { Minimum = 0, Maximum = 100, Value = 60 };
                 break;
+            case ControlType.PictureBox or ControlType.Image:
+                var picBorder = new Border
+                {
+                    Background = new SolidColorBrush(Color.FromArgb(25, 255, 255, 255)),
+                    BorderBrush = new SolidColorBrush(Color.FromArgb(90, 255, 255, 255)),
+                    BorderThickness = new Thickness(1),
+                    CornerRadius = new CornerRadius(4)
+                };
+                var picPanel = new StackPanel
+                {
+                    VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center,
+                    HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center,
+                    Spacing = 4
+                };
+                picPanel.Children.Add(new TextBlock
+                {
+                    Text = "PictureBox",
+                    FontSize = 12,
+                    FontWeight = FontWeight.SemiBold,
+                    Foreground = new SolidColorBrush(Color.Parse("#A1A1AA")),
+                    HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center
+                });
+                var sourceText = !string.IsNullOrWhiteSpace(node.Source)
+                    ? node.Source
+                    : (!string.IsNullOrWhiteSpace(node.Text) ? node.Text : (!string.IsNullOrWhiteSpace(node.Content) ? node.Content : "(無影像來源)"));
+                picPanel.Children.Add(new TextBlock
+                {
+                    Text = sourceText,
+                    FontSize = 10,
+                    Foreground = new SolidColorBrush(Color.Parse("#71717A")),
+                    HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center
+                });
+                picBorder.Child = picPanel;
+                control = picBorder;
+                break;
             case ControlType.Border:
                 var border = new Border
                 {

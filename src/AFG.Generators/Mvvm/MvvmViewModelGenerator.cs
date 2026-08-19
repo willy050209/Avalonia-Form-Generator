@@ -247,6 +247,8 @@ public sealed class MvvmViewModelGenerator : ICodeGenerator
         "SelectedIndex" or "Count" => "int",
         "ItemsSource" => "ObservableCollection<string>",
         "SelectedItem" => "string?",
+        "Source" => "Avalonia.Media.IImage?",
+        "Stretch" => "Avalonia.Media.Stretch",
         _ => "string"
     };
 
@@ -267,6 +269,7 @@ public sealed class MvvmViewModelGenerator : ICodeGenerator
         {
             "Text" => !string.IsNullOrEmpty(node.Text) ? $"\"{EscapeString(node.Text)}\"" : null,
             "Content" => !string.IsNullOrEmpty(node.Content) ? $"\"{EscapeString(node.Content)}\"" : null,
+            "Source" => !string.IsNullOrEmpty(node.Source) ? $"\"{EscapeString(node.Source)}\"" : null,
             "IsChecked" when node.IsChecked.HasValue => node.IsChecked.Value ? "true" : "false",
             "Value" when node.Value.HasValue => node.Value.Value.ToString(System.Globalization.CultureInfo.InvariantCulture),
             _ => null

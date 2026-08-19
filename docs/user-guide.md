@@ -80,13 +80,13 @@
 ### 2.5 設定控制項屬性、顏色、資料綁定與事件命令
 在右側 **「屬性檢查器」** 中：
 - **流暢輸入與焦點保護**：在編輯 ViewModel 屬性名稱或 Command 命令名稱時，系統具備防重入與焦點保護機制，連續打字輸入絕不丟失鍵盤焦點。
-- **「外觀」分頁**：支援設定名稱 (x:Name)、標題 (Content)、文字 (Text)、提示文字 (PlaceholderText)、背景色 (Background) 與前景色 (Foreground)（支援 `#RRGGBB` 色碼或顏色名稱）。
+- **「外觀」分頁**：支援設定名稱 (x:Name)、標題 (Content)、文字 (Text)、提示文字 (PlaceholderText)、影像來源 (Source / ImageLocation，支援檔案路徑、URL 或資源名稱)、縮放模式 (Stretch / SizeMode，支援 None, Fill, Uniform, UniformToFill)、背景色 (Background) 與前景色 (Foreground)（支援 `#RRGGBB` 色碼或顏色名稱）。
 - **「排版」分頁**：設定寬度、高度、Canvas 座標、Grid 網格座標、對齊方式與外距 Margin。
 - **「資料綁定」分頁**：
-  - **View 屬性 (TargetProperty)**：提供下拉選單（`Text`, `Content`, `IsChecked`, `Value`, `IsEnabled`, `IsVisible`, `ItemsSource`, `SelectedItem`, `SelectedIndex`, `Header` 等），選取時自動同步推斷合適的 C# 資料型別，徹底避免手動打字拼錯。
+  - **View 屬性 (TargetProperty)**：提供下拉選單（`Text`, `Content`, `IsChecked`, `Value`, `IsEnabled`, `IsVisible`, `Source`, `Stretch`, `ItemsSource`, `SelectedItem`, `SelectedIndex`, `Header` 等），選取時自動同步推斷合適的 C# 資料型別，徹底避免手動打字拼錯。
   - **ViewModel 屬性名稱**：指定綁定的 ViewModel 屬性。
   - **文字連動綁定 (TextBox 綁定至 TextBlock)**：只要將 `TextBox` 的 `Text` 屬性（TwoWay 模式）與 `TextBlock` 的 `Text` 屬性（OneWay 或 Default 模式）指定為**同一個 ViewModel 屬性名稱**（例如 `UserName`），在執行期於文字輸入框打字時，標籤文字就會即時同步更新呈現！
-  - **資料型別 (C# DataType)**：提供常見型別下拉選單（`string`, `bool`, `double`, `int`, `DateTime?`, `ObservableCollection<string>` 等）。
+  - **資料型別 (C# DataType)**：提供常見型別下拉選單（`string`, `bool`, `double`, `int`, `Avalonia.Media.IImage`, `Avalonia.Media.Stretch`, `DateTime?`, `ObservableCollection<string>` 等）。
   - **綁定模式 (Mode)**：下拉切換 `Default`, `TwoWay`, `OneWay`, `OneWayToSource`, `OneTime`。
 - **「事件命令」分頁**：
   - **智慧專屬事件下拉選單 (EventName)**：系統依據所選元件類型自動過濾僅顯示該控制項或硬體通訊元件支援的專屬事件（例如 Button 僅顯示 `Click` / `Tapped` 等；Slider 僅顯示 `ValueChanged`；BluetoothClient 專屬提供 `DeviceDiscovered`, `Connected`, `Disconnected`, `DataReceived` 回呼；SerialPortService 專屬提供 `DataReceived`, `ErrorReceived`, `PinChanged` 回呼；BackgroundWorker 提供 `DoWork`, `ProgressChanged`, `RunWorkerCompleted` 回呼；DispatcherTimer 提供 `Tick` 回呼），徹底消除拼寫與無效事件錯誤。

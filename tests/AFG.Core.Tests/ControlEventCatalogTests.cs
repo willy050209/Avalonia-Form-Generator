@@ -105,9 +105,28 @@ public sealed class ControlEventCatalogTests
         defaultEvt.Should().Be(expectedEvent);
     }
 
+    [Fact]
+    public void GetSupportedEvents_ForPictureBox_ShouldContainWinFormsPictureBoxEvents()
+    {
+        // Act
+        var events = ControlEventCatalog.GetSupportedEvents(ControlType.PictureBox);
+
+        // Assert
+        events.Should().Contain("Click");
+        events.Should().Contain("DoubleClick");
+        events.Should().Contain("DoubleTapped");
+        events.Should().Contain("LoadCompleted");
+        events.Should().Contain("SizeModeChanged");
+        events.Should().NotContain("TextChanged");
+        events.Should().NotContain("DoWork");
+    }
+
     [Theory]
     [InlineData(ControlType.Button, "Click", true)]
     [InlineData(ControlType.Button, "ValueChanged", false)]
+    [InlineData(ControlType.PictureBox, "Click", true)]
+    [InlineData(ControlType.PictureBox, "LoadCompleted", true)]
+    [InlineData(ControlType.PictureBox, "DoWork", false)]
     [InlineData(ControlType.BluetoothClient, "DataReceived", true)]
     [InlineData(ControlType.BluetoothClient, "Click", false)]
     [InlineData(ControlType.BackgroundWorker, "DoWork", true)]

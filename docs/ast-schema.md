@@ -118,20 +118,18 @@ public sealed record FormProjectDefinition
 
 ### 支援之控制項類型 (`ControlType`)
 
-- **基本控制項**：`Button`, `TextBox`, `TextBlock`, `CheckBox`, `RadioButton`, `ComboBox`, `ListBox`, `DatePicker`, `TimePicker`, `Slider`, `ProgressBar`, `DataGrid`, `Image`, `Border`。
+- **基本控制項**：`Button`, `TextBox`, `TextBlock`, `CheckBox`, `RadioButton`, `ComboBox`, `ListBox`, `DatePicker`, `TimePicker`, `Slider`, `ProgressBar`, `DataGrid`, `Image`, `PictureBox`, `Border`。
 - **佈局容器**：`Canvas`, `Grid`, `StackPanel`, `DockPanel`, `WrapPanel`, `ScrollViewer`。
 - **不可視元件與通訊服務**：`DispatcherTimer`, `BackgroundWorker`, `BluetoothClient`, `SerialPortService`。
-
----
 
 ---
 
 ## 4. 資料綁定與事件映射結構
 
 ### 4.1 `BindingDefinition`
-- `targetProperty`: View 端屬性（如 `Text`, `IsEnabled`, `IsChecked`, `Value`, `Width`, `Height`, `Opacity`, `Background`, `Foreground`）。
-- `viewModelProperty`: ViewModel 端屬性名稱（如 `Username`, `CanSubmit`, `TotalAmount`, `ItemsList`）。
-- `customDataType`: 自訂 C# 型別（如 `string`, `int`, `decimal`, `bool`, `DateTime?`, `ObservableCollection<string>`）。若未指定則自動根據 TargetProperty 推斷。
+- `targetProperty`: View 端屬性（如 `Text`, `IsEnabled`, `IsChecked`, `Value`, `Width`, `Height`, `Opacity`, `Source`, `Stretch`, `Background`, `Foreground`）。
+- `viewModelProperty`: ViewModel 端屬性名稱（如 `Username`, `CanSubmit`, `TotalAmount`, `ItemsList`, `UserProfileImage`）。
+- `customDataType`: 自訂 C# 型別（如 `string`, `int`, `decimal`, `bool`, `Avalonia.Media.IImage`, `Avalonia.Media.Stretch`, `DateTime?`, `ObservableCollection<string>`）。若未指定則自動根據 TargetProperty 推斷。
 - `mode`: `default` | `oneWay` | `twoWay` | `oneTime` | `oneWayToSource`。
 
 ### 4.2 `EventMappingDefinition` 與專屬事件目錄 (`ControlEventCatalog`)
@@ -145,7 +143,8 @@ public sealed record FormProjectDefinition
 - **`DatePicker` / `TimePicker`**：`SelectedDateChanged` / `SelectedTimeChanged`
 - **`Slider` / `ProgressBar`**：`ValueChanged`
 - **`ScrollViewer`**：`ScrollChanged`, `PointerPressed`, `PointerReleased`
-- **`Border` / `Image` / 佈局容器**：`PointerPressed`, `PointerReleased`, `Tapped`, `DoubleTapped`
+- **`PictureBox`** (圖片方塊 / Image)：`Click`, `DoubleClick`, `Tapped`, `DoubleTapped`, `PointerPressed`, `PointerReleased`, `LoadCompleted`, `SizeModeChanged`
+- **`Border` / 佈局容器**：`PointerPressed`, `PointerReleased`, `Tapped`, `DoubleTapped`
 
 #### 不可視元件與通訊硬體專屬回呼 (Callbacks)
 - **`DispatcherTimer`** (計時器)：

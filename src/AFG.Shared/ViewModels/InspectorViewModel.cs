@@ -106,6 +106,12 @@ public sealed partial class InspectorViewModel : ObservableObject
     [ObservableProperty]
     private double? _value;
 
+    [ObservableProperty]
+    private string _source = string.Empty;
+
+    [ObservableProperty]
+    private Core.Enums.Stretch? _stretch = Core.Enums.Stretch.Uniform;
+
     public ObservableCollection<BindingItemViewModel> Bindings { get; } = [];
     public ObservableCollection<EventItemViewModel> Events { get; } = [];
     public ObservableCollection<ValidationError> ValidationErrors { get; } = [];
@@ -118,6 +124,15 @@ public sealed partial class InspectorViewModel : ObservableObject
 
     public IReadOnlyList<CoreBindingMode> BindingModeOptions { get; } =
         Enum.GetValues<CoreBindingMode>();
+
+    public IReadOnlyList<Core.Enums.Stretch?> StretchOptions { get; } =
+    [
+        null,
+        Core.Enums.Stretch.None,
+        Core.Enums.Stretch.Fill,
+        Core.Enums.Stretch.Uniform,
+        Core.Enums.Stretch.UniformToFill
+    ];
 
     public void LoadNode(AstNode? node)
     {
@@ -180,6 +195,8 @@ public sealed partial class InspectorViewModel : ObservableObject
         Foreground = node.Foreground;
         IsChecked = node.IsChecked;
         Value = node.Value;
+        Source = node.Source ?? string.Empty;
+        Stretch = node.Stretch;
 
         Bindings.Clear();
         foreach (var b in node.Bindings)
@@ -296,6 +313,8 @@ public sealed partial class InspectorViewModel : ObservableObject
                 Foreground = string.IsNullOrWhiteSpace(Foreground) ? null : Foreground.Trim(),
                 IsChecked = IsChecked,
                 Value = Value,
+                Source = string.IsNullOrWhiteSpace(Source) ? null : Source.Trim(),
+                Stretch = Stretch,
                 Bindings = Bindings.Select(b => b.ToDefinition()).ToImmutableList(),
                 Events = Events.Select(e => e.ToDefinition()).ToImmutableList()
             };
@@ -327,6 +346,8 @@ public sealed partial class InspectorViewModel : ObservableObject
     partial void OnContentChanged(string value) => ApplyChanges();
     partial void OnHeaderChanged(string value) => ApplyChanges();
     partial void OnWatermarkChanged(string value) => ApplyChanges();
+    partial void OnSourceChanged(string value) => ApplyChanges();
+    partial void OnStretchChanged(Core.Enums.Stretch? value) => ApplyChanges();
     partial void OnWidthChanged(double? value) => ApplyChanges();
     partial void OnHeightChanged(double? value) => ApplyChanges();
     partial void OnCanvasLeftChanged(double? value) => ApplyChanges();

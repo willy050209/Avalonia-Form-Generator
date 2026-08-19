@@ -26,7 +26,8 @@ public static class ControlEventCatalog
             [ControlType.Slider] = ["ValueChanged"],
             [ControlType.ProgressBar] = ["ValueChanged"],
             [ControlType.DataGrid] = ["SelectionChanged", "DoubleTapped", "CellEditEnded"],
-            [ControlType.Image] = ["Tapped", "DoubleTapped", "PointerPressed", "PointerReleased"],
+            [ControlType.Image] = ["Click", "DoubleClick", "Tapped", "DoubleTapped", "PointerPressed", "PointerReleased", "LoadCompleted"],
+            [ControlType.PictureBox] = ["Click", "DoubleClick", "Tapped", "DoubleTapped", "PointerPressed", "PointerReleased", "LoadCompleted", "SizeModeChanged"],
             [ControlType.Border] = ["PointerPressed", "PointerReleased", "Tapped", "DoubleTapped"],
 
             // 佈局容器
@@ -64,7 +65,7 @@ public static class ControlEventCatalog
     /// </summary>
     public static string GetDefaultEvent(ControlType controlType) => controlType switch
     {
-        ControlType.Button => "Click",
+        ControlType.Button or ControlType.PictureBox or ControlType.Image => "Click",
         ControlType.TextBox => "TextChanged",
         ControlType.CheckBox or ControlType.RadioButton => "IsCheckedChanged",
         ControlType.ComboBox or ControlType.ListBox or ControlType.DataGrid => "SelectionChanged",

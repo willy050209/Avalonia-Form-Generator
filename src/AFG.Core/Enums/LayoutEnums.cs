@@ -65,3 +65,29 @@ public enum NodeAlignmentType
     AlignVerticalCenter,
     AlignBottom
 }
+
+/// <summary>
+/// 影像縮放拉伸模式（對應 Windows Forms PictureBox SizeMode）。
+/// </summary>
+public enum Stretch
+{
+    /// <summary>
+    /// 原始大小不拉伸（對應 WinForms Normal / CenterImage）。
+    /// </summary>
+    None,
+
+    /// <summary>
+    /// 填滿拉伸變形（對應 WinForms StretchImage）。
+    /// </summary>
+    Fill,
+
+    /// <summary>
+    /// 等比例縮放以容納於範圍內（對應 WinForms Zoom）。
+    /// </summary>
+    Uniform,
+
+    /// <summary>
+    /// 等比例縮放並填滿剪裁。
+    /// </summary>
+    UniformToFill
+}

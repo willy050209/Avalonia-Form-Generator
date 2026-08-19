@@ -134,6 +134,45 @@ public sealed class AfgSerializerTests
     }
 
     [Fact]
+    public void Roundtrip_PictureBoxNode_ShouldPreserveSourceAndStretch()
+    {
+        // Arrange
+        var doc = new FormDocument
+        {
+            RootNode = new AstNode
+            {
+                Id = "root",
+                Type = ControlType.Canvas,
+                Children = [
+                    new AstNode
+                    {
+                        Id = "pic",
+                        Name = "ProductPhoto",
+                        Type = ControlType.PictureBox,
+                        Width = 320,
+                        Height = 240,
+                        Source = "images/product.png",
+                        Stretch = Stretch.Uniform
+                    }
+                ]
+            }
+        };
+
+        // Act
+        var json = AfgSerializer.SerializeDocument(doc);
+        var result = AfgSerializer.DeserializeDocument(json);
+
+        // Assert
+        var child = result.RootNode.Children[0];
+        child.Type.Should().Be(ControlType.PictureBox);
+        child.Name.Should().Be("ProductPhoto");
+        child.Width.Should().Be(320);
+        child.Height.Should().Be(240);
+        child.Source.Should().Be("images/product.png");
+        child.Stretch.Should().Be(Stretch.Uniform);
+    }
+
+    [Fact]
     public void DeserializeDocument_ShouldThrowArgumentNullException_WhenInputIsNull()
     {
         var act = () => AfgSerializer.DeserializeDocument(null!);

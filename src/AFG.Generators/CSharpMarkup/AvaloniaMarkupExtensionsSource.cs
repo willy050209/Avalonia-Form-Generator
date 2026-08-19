@@ -408,6 +408,31 @@ public static class AvaloniaMarkupExtensionsSource
             control.Bind(SelectingItemsControl.SelectedIndexProperty, new Binding { Mode = mode });
             return control;
         }
+
+        // 5. 影像控制項 (Image / PictureBox) 專屬擴充
+        public static Image Source(this Image img, IImage? source) { img.Source = source; return img; }
+        public static Image Source(this Image img, string path, BindingMode mode = BindingMode.Default)
+        {
+            img.Bind(Image.SourceProperty, new Binding(path) { Mode = mode });
+            return img;
+        }
+        public static Image Source<TVm>(this Image img, Func<TVm, object?> expr, BindingMode mode = BindingMode.Default)
+        {
+            img.Bind(Image.SourceProperty, new Binding { Mode = mode });
+            return img;
+        }
+
+        public static Image Stretch(this Image img, Stretch stretch) { img.Stretch = stretch; return img; }
+        public static Image Stretch(this Image img, string path, BindingMode mode = BindingMode.Default)
+        {
+            img.Bind(Image.StretchProperty, new Binding(path) { Mode = mode });
+            return img;
+        }
+        public static Image Stretch<TVm>(this Image img, Func<TVm, object?> expr, BindingMode mode = BindingMode.Default)
+        {
+            img.Bind(Image.StretchProperty, new Binding { Mode = mode });
+            return img;
+        }
     }
     """;
 }

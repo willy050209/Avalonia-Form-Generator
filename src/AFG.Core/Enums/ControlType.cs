@@ -20,6 +20,7 @@ public enum ControlType
     ProgressBar,
     DataGrid,
     Image,
+    PictureBox,
     Border,
 
     // 佈局容器

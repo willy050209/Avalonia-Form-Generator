@@ -61,7 +61,8 @@ public sealed class CSharpMarkupViewGenerator : ICodeGenerator
         var innerIndent = new string(' ', (indentLevel + 1) * 4);
         var sb = new StringBuilder();
 
-        sb.AppendLine($"new {node.Type}()");
+        var controlTypeName = node.Type == ControlType.PictureBox ? "Image" : node.Type.ToString();
+        sb.AppendLine($"new {controlTypeName}()");
 
         // 1. 幾何與佈局屬性
         if (node.Width.HasValue)
@@ -258,6 +259,16 @@ public sealed class CSharpMarkupViewGenerator : ICodeGenerator
         if (!string.IsNullOrWhiteSpace(node.Foreground))
         {
             sb.AppendLine($"{innerIndent}.Foreground(Brush.Parse(\"{EscapeString(node.Foreground)}\"))");
+        }
+
+        if (!boundProps.Contains("Source") && !string.IsNullOrWhiteSpace(node.Source))
+        {
+            sb.AppendLine($"{innerIndent}.Source(\"{EscapeString(node.Source)}\")");
+        }
+
+        if (!boundProps.Contains("Stretch") && node.Stretch.HasValue)
+        {
+            sb.AppendLine($"{innerIndent}.Stretch(Stretch.{node.Stretch.Value})");
         }
 
         // 5. MVVM 綁定配置 (一律傳遞明確的 BindingMode 列舉參數，並標準化 ViewModel 屬性名稱為 PascalCase)

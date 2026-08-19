@@ -77,6 +77,18 @@
                                 <TextBox Text="{Binding Watermark, Mode=TwoWay}" />
                             </StackPanel>
 
+                            <StackPanel Spacing="4">
+                                <TextBlock Text="影像來源 (Source / ImageLocation)" FontSize="11" Foreground="#A1A1AA" />
+                                <TextBox Text="{Binding Source, Mode=TwoWay}" PlaceholderText="例如: assets/logo.png 或 URL" />
+                            </StackPanel>
+
+                            <StackPanel Spacing="4">
+                                <TextBlock Text="縮放模式 (Stretch / SizeMode)" FontSize="11" Foreground="#A1A1AA" />
+                                <ComboBox ItemsSource="{Binding StretchOptions}"
+                                          SelectedItem="{Binding Stretch, Mode=TwoWay}"
+                                          HorizontalAlignment="Stretch" />
+                            </StackPanel>
+
                             <Grid ColumnDefinitions="*, *" Margin="0,4">
                                 <CheckBox Grid.Column="0" Content="啟用 (IsEnabled)" IsChecked="{Binding IsEnabled, Mode=TwoWay}" />
                                 <CheckBox Grid.Column="1" Content="可見 (IsVisible)" IsChecked="{Binding IsVisible, Mode=TwoWay}" />

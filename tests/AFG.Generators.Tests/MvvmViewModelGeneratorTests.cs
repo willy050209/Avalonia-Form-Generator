@@ -277,4 +277,45 @@ public sealed class MvvmViewModelGeneratorTests
         var diagnostics = RoslynCompilerService.CheckSyntaxDiagnostics(result.Content);
         diagnostics.Should().BeEmpty();
     }
+
+    [Fact]
+    public void Generate_ForPictureBox_ShouldInferImageSourceProperty()
+    {
+        // Arrange
+        var doc = new FormDocument
+        {
+            RootNamespace = "MyApp.ViewModels",
+            ViewModelClassName = "ImageViewerViewModel",
+            RootNode = new AstNode
+            {
+                Id = "root",
+                Type = ControlType.Canvas,
+                Children = [
+                    new AstNode
+                    {
+                        Id = "pic",
+                        Name = "PhotoDisplay",
+                        Type = ControlType.PictureBox,
+                        Bindings = [
+                            new BindingDefinition { TargetProperty = "Source", ViewModelProperty = "UserProfileImage" }
+                        ],
+                        Events = [
+                            new EventMappingDefinition { EventName = "Click", CommandProperty = "ChangeImageCommand", IsAsync = true }
+                        ]
+                    }
+                ]
+            }
+        };
+
+        // Act
+        var result = _generator.Generate(doc);
+
+        // Assert
+        result.Content.Should().Contain("private Avalonia.Media.IImage? _userProfileImage;");
+        result.Content.Should().Contain("public partial class ImageViewerViewModel : ObservableObject");
+        result.Content.Should().Contain("private async Task ChangeImageAsync()");
+
+        var diagnostics = RoslynCompilerService.CheckSyntaxDiagnostics(result.Content);
+        diagnostics.Should().BeEmpty();
+    }
 }

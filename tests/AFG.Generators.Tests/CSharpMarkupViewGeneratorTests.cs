@@ -172,6 +172,53 @@ public sealed class CSharpMarkupViewGeneratorTests
     }
 
     [Fact]
+    public void Generate_ForPictureBox_ShouldGenerateImageWithSourceAndStretch()
+    {
+        // Arrange
+        var doc = new FormDocument
+        {
+            RootNamespace = "MyApp.Views",
+            ViewClassName = "PhotoView",
+            ViewModelClassName = "PhotoViewModel",
+            UseCompiledBindings = true,
+            RootNode = new AstNode
+            {
+                Id = "root",
+                Type = ControlType.Canvas,
+                Children = [
+                    new AstNode
+                    {
+                        Id = "pic1",
+                        Name = "AvatarPictureBox",
+                        Type = ControlType.PictureBox,
+                        Width = 200,
+                        Height = 150,
+                        Source = "assets/avatar.png",
+                        Stretch = Stretch.Uniform,
+                        Events = [
+                            new EventMappingDefinition { EventName = "Click", CommandProperty = "SelectPhotoCommand" }
+                        ]
+                    }
+                ]
+            }
+        };
+
+        // Act
+        var result = _generator.Generate(doc);
+
+        // Assert
+        result.Content.Should().Contain("new Image()");
+        result.Content.Should().Contain(".Width(200)");
+        result.Content.Should().Contain(".Height(150)");
+        result.Content.Should().Contain(".Source(\"assets/avatar.png\")");
+        result.Content.Should().Contain(".Stretch(Stretch.Uniform)");
+        result.Content.Should().Contain(".Command((PhotoViewModel vm) => vm.SelectPhotoCommand)");
+
+        var syntaxDiagnostics = RoslynCompilerService.CheckSyntaxDiagnostics(result.Content);
+        syntaxDiagnostics.Should().BeEmpty();
+    }
+
+    [Fact]
     public void Generate_ShouldThrowArgumentNullException_WhenDocumentIsNull()
     {
         var act = () => _generator.Generate(null!);
