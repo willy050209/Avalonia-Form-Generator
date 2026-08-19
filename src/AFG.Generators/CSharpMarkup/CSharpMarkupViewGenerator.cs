@@ -18,6 +18,7 @@ public sealed class CSharpMarkupViewGenerator : ICodeGenerator
         sb.AppendLine();
         sb.AppendLine("using System;");
         sb.AppendLine("using System.ComponentModel;");
+        sb.AppendLine("using System.Linq.Expressions;");
         sb.AppendLine("using Avalonia;");
         sb.AppendLine("using Avalonia.Controls;");
         sb.AppendLine("using Avalonia.Data;");

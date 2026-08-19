@@ -219,6 +219,88 @@ public sealed class CSharpMarkupViewGeneratorTests
     }
 
     [Fact]
+    public void AvaloniaMarkupExtensionsSource_Code_ShouldHaveNoSyntaxErrors()
+    {
+        var diagnostics = RoslynCompilerService.CheckSyntaxDiagnostics(AvaloniaMarkupExtensionsSource.Code);
+        diagnostics.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Generate_WithAllControlsCompiledBindings_ShouldProduceValidLambdaExpressions()
+    {
+        // Arrange
+        var doc = new FormDocument
+        {
+            RootNamespace = "MyApp.Views",
+            ViewClassName = "ComplexFormView",
+            ViewModelClassName = "ComplexFormViewModel",
+            UseCompiledBindings = true,
+            RootNode = new AstNode
+            {
+                Id = "root",
+                Type = ControlType.StackPanel,
+                Children = [
+                    new AstNode
+                    {
+                        Id = "tb",
+                        Type = ControlType.TextBox,
+                        Bindings = [new BindingDefinition { TargetProperty = "Text", ViewModelProperty = "Username", Mode = BindingMode.TwoWay }]
+                    },
+                    new AstNode
+                    {
+                        Id = "chk",
+                        Type = ControlType.CheckBox,
+                        Bindings = [new BindingDefinition { TargetProperty = "IsChecked", ViewModelProperty = "IsActive", Mode = BindingMode.TwoWay }]
+                    },
+                    new AstNode
+                    {
+                        Id = "sld",
+                        Type = ControlType.Slider,
+                        Bindings = [new BindingDefinition { TargetProperty = "Value", ViewModelProperty = "VolumeLevel", Mode = BindingMode.TwoWay }]
+                    },
+                    new AstNode
+                    {
+                        Id = "cbo",
+                        Type = ControlType.ComboBox,
+                        Bindings = [
+                            new BindingDefinition { TargetProperty = "ItemsSource", ViewModelProperty = "AvailableOptions" },
+                            new BindingDefinition { TargetProperty = "SelectedItem", ViewModelProperty = "SelectedOption", Mode = BindingMode.TwoWay }
+                        ]
+                    },
+                    new AstNode
+                    {
+                        Id = "pic",
+                        Type = ControlType.PictureBox,
+                        Bindings = [
+                            new BindingDefinition { TargetProperty = "Source", ViewModelProperty = "ProfilePhoto" },
+                            new BindingDefinition { TargetProperty = "Stretch", ViewModelProperty = "PhotoStretch" }
+                        ],
+                        Events = [
+                            new EventMappingDefinition { EventName = "Click", CommandProperty = "UpdatePhotoCommand" }
+                        ]
+                    }
+                ]
+            }
+        };
+
+        // Act
+        var result = _generator.Generate(doc);
+
+        // Assert
+        result.Content.Should().Contain(".Text((ComplexFormViewModel vm) => vm.Username, BindingMode.TwoWay)");
+        result.Content.Should().Contain(".IsChecked((ComplexFormViewModel vm) => vm.IsActive, BindingMode.TwoWay)");
+        result.Content.Should().Contain(".Value((ComplexFormViewModel vm) => vm.VolumeLevel, BindingMode.TwoWay)");
+        result.Content.Should().Contain(".ItemsSource((ComplexFormViewModel vm) => vm.AvailableOptions, BindingMode.Default)");
+        result.Content.Should().Contain(".SelectedItem((ComplexFormViewModel vm) => vm.SelectedOption, BindingMode.TwoWay)");
+        result.Content.Should().Contain(".Source((ComplexFormViewModel vm) => vm.ProfilePhoto, BindingMode.Default)");
+        result.Content.Should().Contain(".Stretch((ComplexFormViewModel vm) => vm.PhotoStretch, BindingMode.Default)");
+        result.Content.Should().Contain(".Command((ComplexFormViewModel vm) => vm.UpdatePhotoCommand)");
+
+        var syntaxDiagnostics = RoslynCompilerService.CheckSyntaxDiagnostics(result.Content);
+        syntaxDiagnostics.Should().BeEmpty();
+    }
+
+    [Fact]
     public void Generate_ShouldThrowArgumentNullException_WhenDocumentIsNull()
     {
         var act = () => _generator.Generate(null!);
