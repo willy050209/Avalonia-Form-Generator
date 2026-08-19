@@ -439,8 +439,9 @@ public sealed class ProjectExportServiceTests
 
         try
         {
+            var def = FormProjectDefinition.FromSingleDocument(doc);
             await _exportService.ExportToFolderAsync(doc, tempFolder, new ProjectExportOptions(IncludeMobileProject: false));
-            var desktopCsprojPath = Path.Combine(tempFolder, "src", "MainFormApp.Desktop", "MainFormApp.Desktop.csproj");
+            var desktopCsprojPath = Path.Combine(tempFolder, "src", $"{def.ProjectName}.Desktop", $"{def.ProjectName}.Desktop.csproj");
 
             var psi = new ProcessStartInfo
             {
