@@ -85,6 +85,9 @@
                               IsChecked="{Binding Canvas.SnapToGrid, Mode=TwoWay}" />
                 </MenuItem>
                 <MenuItem Header="專案與架構(_P)">
+                    <MenuItem Header="自訂專案名稱..."
+                              Command="{Binding OpenProjectNameDialogCommand}" />
+                    <Separator />
                     <MenuItem Header="包含行動端專案 (.Android)"
                               ToggleType="CheckBox"
                               IsChecked="{Binding Canvas.IncludeMobileProject, Mode=TwoWay}" />
@@ -308,6 +311,52 @@
                                 Background="#27272A" />
                         <Button Content="套用"
                                 Command="{Binding ApplyCustomResolutionCommand}"
+                                Width="80"
+                                HorizontalContentAlignment="Center"
+                                Background="#2563EB"
+                                Foreground="White" />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+        </Border>
+
+        <!-- 自訂專案名稱對話框遮罩 (Custom Project Name Modal Dialog) -->
+        <Border Grid.Row="0" Grid.RowSpan="3"
+                IsVisible="{Binding IsProjectNameDialogVisible}"
+                Background="#80000000"
+                HorizontalAlignment="Stretch"
+                VerticalAlignment="Stretch"
+                ZIndex="999">
+            <Border Background="#1E1E24"
+                    BorderBrush="#3F3F46"
+                    BorderThickness="1"
+                    CornerRadius="8"
+                    Width="360"
+                    Padding="20"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center"
+                    BoxShadow="0 8 32 0 #80000000">
+                <StackPanel Spacing="16">
+                    <TextBlock Text="自訂匯出專案名稱" FontSize="15" FontWeight="Bold" Foreground="#F4F4F5" />
+                    <TextBlock Text="設定匯出之 Visual Studio 方案檔 (.slnx)、核心類別庫 (.Shared) 與桌面/行動端專案名稱。"
+                               FontSize="11"
+                               Foreground="#71717A"
+                               TextWrapping="Wrap" />
+
+                    <StackPanel Spacing="6">
+                        <TextBlock Text="專案名稱 (Project Name):" FontSize="11" Foreground="#A1A1AA" />
+                        <TextBox Text="{Binding CustomProjectNameInput, Mode=TwoWay}"
+                                 PlaceholderText="例如: InventoryApp, SmartPos" />
+                    </StackPanel>
+
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="10" Margin="0,8,0,0">
+                        <Button Content="取消"
+                                Command="{Binding CloseProjectNameDialogCommand}"
+                                Width="80"
+                                HorizontalContentAlignment="Center"
+                                Background="#27272A" />
+                        <Button Content="確定"
+                                Command="{Binding ApplyProjectNameCommand}"
                                 Width="80"
                                 HorizontalContentAlignment="Center"
                                 Background="#2563EB"

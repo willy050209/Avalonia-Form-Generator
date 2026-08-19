@@ -119,4 +119,24 @@ public sealed class MainViewModelTests
         vm.Canvas.Document.CanvasWidth.Should().Be(1440);
         vm.Canvas.Document.CanvasHeight.Should().Be(900);
     }
+
+    [Fact]
+    public void MainViewModel_ProjectNameDialog_ShouldApplyCustomProjectName()
+    {
+        // Arrange
+        var vm = new MainViewModel();
+        vm.Canvas.ExportProjectName.Should().Be("MainFormApp");
+
+        // Act: 開啟專案名稱對話框並輸入新名稱 "PosSystem"
+        vm.OpenProjectNameDialogCommand.Execute(null);
+        vm.IsProjectNameDialogVisible.Should().BeTrue();
+        vm.CustomProjectNameInput.Should().Be("MainFormApp");
+
+        vm.CustomProjectNameInput = "PosSystem";
+        vm.ApplyProjectNameCommand.Execute(null);
+
+        // Assert: 對話框關閉且專案名稱成功套用
+        vm.IsProjectNameDialogVisible.Should().BeFalse();
+        vm.Canvas.ExportProjectName.Should().Be("PosSystem");
+    }
 }

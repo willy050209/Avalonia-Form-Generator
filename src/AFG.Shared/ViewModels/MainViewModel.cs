@@ -49,6 +49,12 @@ public sealed partial class MainViewModel : ObservableObject
     [ObservableProperty]
     private double _customResolutionHeight = 600;
 
+    [ObservableProperty]
+    private bool _isProjectNameDialogVisible;
+
+    [ObservableProperty]
+    private string _customProjectNameInput = "MainFormApp";
+
     public MainViewModel(
         IFileDialogService? fileDialogService = null,
         IClipboardService? clipboardService = null,
@@ -133,6 +139,26 @@ public sealed partial class MainViewModel : ObservableObject
 
     [RelayCommand]
     private void CloseCustomResolutionDialog() => IsCustomResolutionDialogVisible = false;
+
+    [RelayCommand]
+    private void OpenProjectNameDialog()
+    {
+        CustomProjectNameInput = Canvas.ExportProjectName;
+        IsProjectNameDialogVisible = true;
+    }
+
+    [RelayCommand]
+    private void ApplyProjectName()
+    {
+        if (!string.IsNullOrWhiteSpace(CustomProjectNameInput))
+        {
+            Canvas.ExportProjectName = CustomProjectNameInput.Trim();
+        }
+        IsProjectNameDialogVisible = false;
+    }
+
+    [RelayCommand]
+    private void CloseProjectNameDialog() => IsProjectNameDialogVisible = false;
 
     [RelayCommand]
     private void NewDocument()
