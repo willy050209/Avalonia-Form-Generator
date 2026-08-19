@@ -71,10 +71,56 @@ public sealed class CSharpMarkupViewGeneratorTests
         result.Content.Should().Contain(".RowDefinitions(\"Auto\", \"*\")");
         result.Content.Should().Contain(".ColumnDefinitions(\"200\", \"*\")");
         result.Content.Should().Contain(".Content(\"Login\")");
-        result.Content.Should().Contain(".Command(nameof(LoginFormViewModel.LoginCommand))");
-        result.Content.Should().Contain(".Text(nameof(LoginFormViewModel.Username), BindingMode.TwoWay)");
+        result.Content.Should().Contain(".Command((LoginFormViewModel vm) => vm.LoginCommand)");
+        result.Content.Should().Contain(".Text((LoginFormViewModel vm) => vm.Username, BindingMode.TwoWay)");
 
         // 語法樹診斷檢查
+        var syntaxDiagnostics = RoslynCompilerService.CheckSyntaxDiagnostics(result.Content);
+        syntaxDiagnostics.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Generate_ShouldSupportReflectionBindings_WhenUseCompiledBindingsIsFalse()
+    {
+        // Arrange
+        var doc = new FormDocument
+        {
+            RootNamespace = "MyApp.Views",
+            ViewClassName = "ReflectionBindingView",
+            ViewModelClassName = "ReflectionBindingViewModel",
+            UseCompiledBindings = false,
+            RootNode = new AstNode
+            {
+                Id = "root",
+                Type = ControlType.StackPanel,
+                Children = [
+                    new AstNode
+                    {
+                        Id = "tb",
+                        Type = ControlType.TextBox,
+                        Bindings = [
+                            new BindingDefinition { TargetProperty = "Text", ViewModelProperty = "Title", Mode = BindingMode.TwoWay }
+                        ]
+                    },
+                    new AstNode
+                    {
+                        Id = "btn",
+                        Type = ControlType.Button,
+                        Events = [
+                            new EventMappingDefinition { EventName = "Click", CommandProperty = "SaveCommand" }
+                        ]
+                    }
+                ]
+            }
+        };
+
+        // Act
+        var result = _generator.Generate(doc);
+
+        // Assert
+        result.Content.Should().Contain(".Text(nameof(ReflectionBindingViewModel.Title), BindingMode.TwoWay)");
+        result.Content.Should().Contain(".Command(nameof(ReflectionBindingViewModel.SaveCommand))");
+
         var syntaxDiagnostics = RoslynCompilerService.CheckSyntaxDiagnostics(result.Content);
         syntaxDiagnostics.Should().BeEmpty();
     }

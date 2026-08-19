@@ -33,8 +33,8 @@ Content = new Canvas()
     );
 ```
 
-### 1.2 強型別編譯綁定 (Compiled / Lambda Bindings) 模式
-當 `FormDocument.UseCompiledBindings == true` 時，生成器會產出強型別 Lambda 表達式：
+### 1.2 強型別編譯綁定 (Compiled / Lambda Bindings) 模式 (預設模式)
+AFG 預設採用強型別 Lambda 編譯綁定 (`FormDocument.UseCompiledBindings == true`)，生成具備 IDE 型別檢查與編譯期驗證之語法：
 ```csharp
 Content = new Canvas()
     .Children(

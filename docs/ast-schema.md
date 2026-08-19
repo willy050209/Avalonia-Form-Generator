@@ -43,7 +43,7 @@
 | `canvasWidth` | `double` | `800.0` | 設計畫布寬度 (px) |
 | `canvasHeight` | `double` | `600.0` | 設計畫布高度 (px) |
 | `enableDependencyInjection` | `bool` | `true` | 是否在此表單啟用相依性注入架構配置 |
-| `useCompiledBindings` | `bool` | `false` | 是否生成強型別編譯綁定 (Compiled / Lambda Bindings) 語法 |
+| `useCompiledBindings` | `bool` | `true` | 是否生成強型別編譯綁定 (Compiled / Lambda Bindings) 語法（預設為 true） |
 | `injectedServices` | `Array<ServiceDependencyDefinition>` | `[]` | 注入至此 ViewModel 的自訂服務相依性清單 |
 | `rootNode` | `AstNode` | *(Canvas 根節點)* | 頂層容器節點 |
 

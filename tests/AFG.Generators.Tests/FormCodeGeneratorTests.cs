@@ -123,8 +123,8 @@ public sealed class FormCodeGeneratorTests
         var vmFile = result.Files.First(f => f.FileType == SourceFileType.ViewModel);
 
         // 驗證 View 包含兩者對同一個 ViewModel 屬性的綁定
-        viewFile.Content.Should().Contain(".Text(nameof(SyncFormViewModel.InputMessage), BindingMode.TwoWay)");
-        viewFile.Content.Should().Contain(".Text(nameof(SyncFormViewModel.InputMessage), BindingMode.OneWay)");
+        viewFile.Content.Should().Contain(".Text((SyncFormViewModel vm) => vm.InputMessage, BindingMode.TwoWay)");
+        viewFile.Content.Should().Contain(".Text((SyncFormViewModel vm) => vm.InputMessage, BindingMode.OneWay)");
 
         // 驗證 ViewModel 包含該屬性並初始賦值
         vmFile.Content.Should().Contain("[ObservableProperty]");
@@ -176,9 +176,9 @@ public sealed class FormCodeGeneratorTests
         var viewFile = result.Files.First(f => f.FileType == SourceFileType.View);
         var vmFile = result.Files.First(f => f.FileType == SourceFileType.ViewModel);
 
-        // 驗證 View 產生的代碼使用標準化 PascalCase
-        viewFile.Content.Should().Contain(".Text(nameof(CaseFormViewModel.UserName), BindingMode.TwoWay)");
-        viewFile.Content.Should().Contain(".Command(nameof(CaseFormViewModel.SubmitCommand))");
+        // 驗證 View 產生的代碼使用標準化 PascalCase 與強型別 Lambda 綁定
+        viewFile.Content.Should().Contain(".Text((CaseFormViewModel vm) => vm.UserName, BindingMode.TwoWay)");
+        viewFile.Content.Should().Contain(".Command((CaseFormViewModel vm) => vm.SubmitCommand)");
 
         // 驗證 ViewModel 產生的欄位與方法亦使用標準化名稱
         vmFile.Content.Should().Contain("private string _userName = \"Test User\";");

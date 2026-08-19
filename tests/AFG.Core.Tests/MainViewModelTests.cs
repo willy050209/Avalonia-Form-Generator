@@ -59,7 +59,7 @@ public sealed class MainViewModelTests
         vm.Canvas.UpdateNodeProperties(updatedNode);
 
         // Assert
-        vm.GeneratedViewCode.Should().Contain(".Text(nameof(MainFormViewModel.UserName), BindingMode.TwoWay)");
+        vm.GeneratedViewCode.Should().Contain(".Text((MainFormViewModel vm) => vm.UserName, BindingMode.TwoWay)");
         vm.GeneratedVmCode.Should().Contain("private string _userName = string.Empty;");
     }
 

@@ -306,6 +306,70 @@ public static class AvaloniaMarkupExtensionsSource
         {
             if (control is TextBlock tb) tb.Bind(TextBlock.TextProperty, new Binding { Mode = mode });
             else if (control is TextBox txt) txt.Bind(TextBox.TextProperty, new Binding { Mode = mode });
+            else if (control is ContentControl cc) cc.Bind(ContentControl.ContentProperty, new Binding { Mode = mode });
+            return control;
+        }
+
+        public static T Content<T, TVm>(this T control, Func<TVm, object?> expr, BindingMode mode = BindingMode.Default) where T : Control
+        {
+            if (control is ContentControl cc) cc.Bind(ContentControl.ContentProperty, new Binding { Mode = mode });
+            else if (control is TextBlock tb) tb.Bind(TextBlock.TextProperty, new Binding { Mode = mode });
+            else if (control is TextBox txt) txt.Bind(TextBox.TextProperty, new Binding { Mode = mode });
+            return control;
+        }
+
+        public static T IsChecked<T, TVm>(this T control, Func<TVm, object?> expr, BindingMode mode = BindingMode.Default) where T : Control
+        {
+            if (control is ToggleButton tb) tb.Bind(ToggleButton.IsCheckedProperty, new Binding { Mode = mode });
+            return control;
+        }
+
+        public static T Value<T, TVm>(this T control, Func<TVm, object?> expr, BindingMode mode = BindingMode.Default) where T : Control
+        {
+            if (control is RangeBase rb) rb.Bind(RangeBase.ValueProperty, new Binding { Mode = mode });
+            return control;
+        }
+
+        public static T IsEnabled<T, TVm>(this T control, Func<TVm, object?> expr, BindingMode mode = BindingMode.Default) where T : Control
+        {
+            control.Bind(InputElement.IsEnabledProperty, new Binding { Mode = mode });
+            return control;
+        }
+
+        public static T IsVisible<T, TVm>(this T control, Func<TVm, object?> expr, BindingMode mode = BindingMode.Default) where T : Control
+        {
+            control.Bind(Visual.IsVisibleProperty, new Binding { Mode = mode });
+            return control;
+        }
+
+        public static T Width<T, TVm>(this T control, Func<TVm, object?> expr, BindingMode mode = BindingMode.Default) where T : Control
+        {
+            control.Bind(Layoutable.WidthProperty, new Binding { Mode = mode });
+            return control;
+        }
+
+        public static T Height<T, TVm>(this T control, Func<TVm, object?> expr, BindingMode mode = BindingMode.Default) where T : Control
+        {
+            control.Bind(Layoutable.HeightProperty, new Binding { Mode = mode });
+            return control;
+        }
+
+        public static T Opacity<T, TVm>(this T control, Func<TVm, object?> expr, BindingMode mode = BindingMode.Default) where T : Control
+        {
+            control.Bind(Visual.OpacityProperty, new Binding { Mode = mode });
+            return control;
+        }
+
+        public static T FontSize<T, TVm>(this T control, Func<TVm, object?> expr, BindingMode mode = BindingMode.Default) where T : Control
+        {
+            if (control is TemplatedControl tc) tc.Bind(TemplatedControl.FontSizeProperty, new Binding { Mode = mode });
+            else if (control is TextBlock tb) tb.Bind(TextBlock.FontSizeProperty, new Binding { Mode = mode });
+            return control;
+        }
+
+        public static T Header<T, TVm>(this T control, Func<TVm, object?> expr, BindingMode mode = BindingMode.Default) where T : Control
+        {
+            if (control is HeaderedContentControl hcc) hcc.Bind(HeaderedContentControl.HeaderProperty, new Binding { Mode = mode });
             return control;
         }
 
@@ -315,15 +379,33 @@ public static class AvaloniaMarkupExtensionsSource
             return control;
         }
 
+        public static T ItemsSource<T, TVm>(this T control, Func<TVm, object?> expr, BindingMode mode = BindingMode.Default) where T : ItemsControl
+        {
+            control.Bind(ItemsControl.ItemsSourceProperty, new Binding { Mode = mode });
+            return control;
+        }
+
         public static T SelectedItem<T>(this T control, string path, BindingMode mode) where T : SelectingItemsControl
         {
             control.Bind(SelectingItemsControl.SelectedItemProperty, new Binding(path) { Mode = mode });
             return control;
         }
 
+        public static T SelectedItem<T, TVm>(this T control, Func<TVm, object?> expr, BindingMode mode = BindingMode.Default) where T : SelectingItemsControl
+        {
+            control.Bind(SelectingItemsControl.SelectedItemProperty, new Binding { Mode = mode });
+            return control;
+        }
+
         public static T SelectedIndex<T>(this T control, string path, BindingMode mode) where T : SelectingItemsControl
         {
             control.Bind(SelectingItemsControl.SelectedIndexProperty, new Binding(path) { Mode = mode });
+            return control;
+        }
+
+        public static T SelectedIndex<T, TVm>(this T control, Func<TVm, object?> expr, BindingMode mode = BindingMode.Default) where T : SelectingItemsControl
+        {
+            control.Bind(SelectingItemsControl.SelectedIndexProperty, new Binding { Mode = mode });
             return control;
         }
     }
