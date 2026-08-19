@@ -331,6 +331,38 @@ public sealed class CSharpMarkupViewGeneratorTests
     }
 
     [Fact]
+    public void Generate_WhenNodeHasAutoSizeTrue_ShouldOmitFixedWidthAndHeight()
+    {
+        // Arrange
+        var doc = new FormDocument
+        {
+            RootNamespace = "MyApp.Views",
+            ViewClassName = "AutoSizeFormView",
+            ViewModelClassName = "AutoSizeFormViewModel",
+            RootNode = new AstNode
+            {
+                Id = "btn",
+                Type = ControlType.Button,
+                Text = "Very Long Dynamic Content Button",
+                Width = 200,
+                Height = 40,
+                AutoSize = true
+            }
+        };
+
+        // Act
+        var result = _generator.Generate(doc);
+
+        // Assert
+        result.Content.Should().Contain(".Text(\"Very Long Dynamic Content Button\")");
+        result.Content.Should().NotContain(".Width(200)");
+        result.Content.Should().NotContain(".Height(40)");
+
+        var syntaxDiagnostics = RoslynCompilerService.CheckSyntaxDiagnostics(result.Content);
+        syntaxDiagnostics.Should().BeEmpty();
+    }
+
+    [Fact]
     public void Generate_ShouldThrowArgumentNullException_WhenDocumentIsNull()
     {
         var act = () => _generator.Generate(null!);

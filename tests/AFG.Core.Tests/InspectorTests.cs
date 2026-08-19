@@ -100,4 +100,93 @@ public sealed class InspectorTests
         inspector.CanvasLeft.Should().Be(80);
         inspector.CanvasTop.Should().Be(90);
     }
+
+    [Fact]
+    public void LoadNode_WhenDispatcherTimerSelected_ShouldEnableTimerCapabilitiesAndDisableImageCapabilities()
+    {
+        // Arrange
+        var timerNode = new AstNode
+        {
+            Id = "tmr1",
+            Name = "ClockTimer",
+            Type = ControlType.DispatcherTimer,
+            Interval = 500
+        };
+
+        var inspector = new InspectorViewModel();
+
+        // Act
+        inspector.LoadNode(timerNode);
+
+        // Assert
+        inspector.IsTimerSupported.Should().BeTrue();
+        inspector.IsImageSupported.Should().BeFalse();
+        inspector.IsTextSupported.Should().BeFalse();
+        inspector.IsVisualControl.Should().BeFalse();
+        inspector.Interval.Should().Be(500);
+
+        // Update interval
+        AstNode? updated = null;
+        inspector.NodeUpdated += n => updated = n;
+        inspector.Interval = 250;
+
+        updated.Should().NotBeNull();
+        updated!.Interval.Should().Be(250);
+    }
+
+    [Fact]
+    public void LoadNode_WhenPictureBoxSelected_ShouldEnableImageCapabilitiesAndDisableTimerCapabilities()
+    {
+        // Arrange
+        var picNode = new AstNode
+        {
+            Id = "pic1",
+            Name = "LogoImage",
+            Type = ControlType.PictureBox,
+            Source = "assets/logo.png",
+            Stretch = Stretch.UniformToFill
+        };
+
+        var inspector = new InspectorViewModel();
+
+        // Act
+        inspector.LoadNode(picNode);
+
+        // Assert
+        inspector.IsImageSupported.Should().BeTrue();
+        inspector.IsTimerSupported.Should().BeFalse();
+        inspector.IsTextSupported.Should().BeFalse();
+        inspector.IsVisualControl.Should().BeTrue();
+        inspector.Source.Should().Be("assets/logo.png");
+        inspector.Stretch.Should().Be(Stretch.UniformToFill);
+    }
+
+    [Fact]
+    public void LoadNode_WhenButtonSelected_ShouldEnableAutoSizeCapabilityAndHandleAutoSizeChanges()
+    {
+        // Arrange
+        var btnNode = new AstNode
+        {
+            Id = "btn1",
+            Name = "SubmitBtn",
+            Type = ControlType.Button,
+            AutoSize = false
+        };
+
+        var inspector = new InspectorViewModel();
+        inspector.LoadNode(btnNode);
+
+        // Assert
+        inspector.IsAutoSizeSupported.Should().BeTrue();
+        inspector.AutoSize.Should().BeFalse();
+
+        // Act
+        AstNode? updated = null;
+        inspector.NodeUpdated += n => updated = n;
+        inspector.AutoSize = true;
+
+        // Assert
+        updated.Should().NotBeNull();
+        updated!.AutoSize.Should().BeTrue();
+    }
 }

@@ -4,39 +4,49 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="using:AFG.Shared.ViewModels"
              xmlns:views="using:AFG.Shared.Views"
-             mc:Ignorable="d" d:DesignWidth="320" d:DesignHeight="700"
+             xmlns:models="using:AFG.Core.Models.Ast"
+             mc:Ignorable="d" d:DesignWidth="300" d:DesignHeight="700"
              x:Class="AFG.Shared.Views.InspectorView"
              x:DataType="vm:InspectorViewModel">
 
-    <Grid>
-        <!-- 未選取控制項時的提示 -->
+    <Grid Background="#18181B">
+        <!-- 未選取節點之空狀態提示 -->
         <Border IsVisible="{Binding !HasSelectedNode}"
-                VerticalAlignment="Center"
                 HorizontalAlignment="Center"
-                Margin="16">
-            <StackPanel Spacing="10" HorizontalAlignment="Center">
-                <TextBlock Text="未選取控制項" FontWeight="Bold" FontSize="14" HorizontalAlignment="Center" />
-                <TextBlock Text="請在畫布或 DOM 樹中點選控制項以檢視與設定屬性。"
+                VerticalAlignment="Center"
+                Padding="16">
+            <StackPanel Spacing="8" HorizontalAlignment="Center">
+                <TextBlock Text="未選取任何控制項"
                            Foreground="#71717A"
+                           FontWeight="Medium"
+                           HorizontalAlignment="Center" />
+                <TextBlock Text="請在畫布或樹狀結構中選取控制項以編輯屬性"
+                           Foreground="#52525B"
+                           FontSize="11"
                            TextWrapping="Wrap"
-                           TextAlignment="Center"
-                           FontSize="12" />
+                           TextAlignment="Center" />
             </StackPanel>
         </Border>
 
-        <!-- 選取控制項時的屬性編輯器 -->
+        <!-- 已選取節點之屬性與事件編輯面板 -->
         <Grid IsVisible="{Binding HasSelectedNode}" RowDefinitions="Auto, *">
-            <!-- 頂部選取節點識別資訊 -->
+            <!-- 標頭：控制項類型與識別碼 -->
             <Border Grid.Row="0"
                     Background="#27272A"
-                    CornerRadius="6"
                     Padding="10,8"
-                    Margin="8,8,8,4">
+                    BorderBrush="#3F3F46"
+                    BorderThickness="0,0,0,1">
                 <Grid ColumnDefinitions="*, Auto">
-                    <StackPanel Grid.Column="0">
-                        <TextBlock Text="{Binding ControlType}" FontWeight="Bold" FontSize="14" Foreground="#38BDF8" />
-                        <TextBlock Text="{Binding NodeId, StringFormat='ID: {0}'}" FontSize="10" Foreground="#A1A1AA" />
+                    <StackPanel Grid.Column="0" Spacing="2">
+                        <TextBlock Text="{Binding ControlType}"
+                                   FontWeight="Bold"
+                                   FontSize="14"
+                                   Foreground="#38BDF8" />
+                        <TextBlock Text="{Binding NodeId, StringFormat='ID: {0}'}"
+                                   FontSize="10"
+                                   Foreground="#71717A" />
                     </StackPanel>
+
                     <!-- 驗證警示徽章 -->
                     <Border Grid.Column="1"
                             IsVisible="{Binding ValidationErrors.Count}"
@@ -62,39 +72,73 @@
                                 <TextBox Text="{Binding NodeName, Mode=TwoWay}" />
                             </StackPanel>
 
-                            <StackPanel Spacing="4">
+                            <!-- 內容 / 標籤 (Content) - 僅適用於 ContentControl -->
+                            <StackPanel Spacing="4" IsVisible="{Binding IsContentSupported}">
                                 <TextBlock Text="內容 / 標籤 (Content)" FontSize="11" Foreground="#A1A1AA" />
                                 <TextBox Text="{Binding Content, Mode=TwoWay}" />
                             </StackPanel>
 
-                            <StackPanel Spacing="4">
+                            <!-- 文字 (Text) - 僅適用於支援文字之控制項 -->
+                            <StackPanel Spacing="4" IsVisible="{Binding IsTextSupported}">
                                 <TextBlock Text="文字 (Text)" FontSize="11" Foreground="#A1A1AA" />
                                 <TextBox Text="{Binding Text, Mode=TwoWay}" />
                             </StackPanel>
 
-                            <StackPanel Spacing="4">
+                            <!-- 標題 (Header) - 僅適用於 HeaderedContentControl -->
+                            <StackPanel Spacing="4" IsVisible="{Binding IsHeaderSupported}">
+                                <TextBlock Text="標題 (Header)" FontSize="11" Foreground="#A1A1AA" />
+                                <TextBox Text="{Binding Header, Mode=TwoWay}" />
+                            </StackPanel>
+
+                            <!-- 提示文字 (Watermark) - 僅適用於 TextBox 等輸入項 -->
+                            <StackPanel Spacing="4" IsVisible="{Binding IsWatermarkSupported}">
                                 <TextBlock Text="提示文字 (Watermark)" FontSize="11" Foreground="#A1A1AA" />
                                 <TextBox Text="{Binding Watermark, Mode=TwoWay}" />
                             </StackPanel>
 
-                            <StackPanel Spacing="4">
+                            <!-- 計時器間隔 (Interval ms) - 僅適用於 DispatcherTimer -->
+                            <StackPanel Spacing="4" IsVisible="{Binding IsTimerSupported}">
+                                <TextBlock Text="觸發間隔 (Interval 毫秒)" FontSize="11" Foreground="#38BDF8" FontWeight="SemiBold" />
+                                <NumericUpDown Value="{Binding Interval, Mode=TwoWay}" Minimum="1" Maximum="86400000" Increment="100" />
+                            </StackPanel>
+
+                            <!-- 影像來源 (Source) - 僅適用於 PictureBox / Image -->
+                            <StackPanel Spacing="4" IsVisible="{Binding IsImageSupported}">
                                 <TextBlock Text="影像來源 (Source / ImageLocation)" FontSize="11" Foreground="#A1A1AA" />
                                 <TextBox Text="{Binding Source, Mode=TwoWay}" PlaceholderText="例如: assets/logo.png 或 URL" />
                             </StackPanel>
 
-                            <StackPanel Spacing="4">
+                            <!-- 縮放模式 (Stretch) - 僅適用於 PictureBox / Image -->
+                            <StackPanel Spacing="4" IsVisible="{Binding IsImageSupported}">
                                 <TextBlock Text="縮放模式 (Stretch / SizeMode)" FontSize="11" Foreground="#A1A1AA" />
                                 <ComboBox ItemsSource="{Binding StretchOptions}"
                                           SelectedItem="{Binding Stretch, Mode=TwoWay}"
                                           HorizontalAlignment="Stretch" />
                             </StackPanel>
 
-                            <Grid ColumnDefinitions="*, *" Margin="0,4">
+                            <!-- 選取狀態 (IsChecked) - 僅適用於 CheckBox / RadioButton -->
+                            <StackPanel Spacing="4" IsVisible="{Binding IsCheckableSupported}">
+                                <CheckBox Content="選中狀態 (IsChecked)" IsChecked="{Binding IsChecked, Mode=TwoWay}" />
+                            </StackPanel>
+
+                            <!-- 數值 (Value) - 僅適用於 Slider / ProgressBar -->
+                            <StackPanel Spacing="4" IsVisible="{Binding IsValueSupported}">
+                                <TextBlock Text="數值 (Value)" FontSize="11" Foreground="#A1A1AA" />
+                                <NumericUpDown Value="{Binding Value, Mode=TwoWay}" Minimum="0" Maximum="1000" />
+                            </StackPanel>
+
+                            <!-- 自動調整尺寸 (AutoSize) -->
+                            <StackPanel Spacing="4" IsVisible="{Binding IsAutoSizeSupported}">
+                                <CheckBox Content="自動依文字調整尺寸 (AutoSize)" IsChecked="{Binding AutoSize, Mode=TwoWay}" />
+                            </StackPanel>
+
+                            <Grid ColumnDefinitions="*, *" Margin="0,4" IsVisible="{Binding IsVisualControl}">
                                 <CheckBox Grid.Column="0" Content="啟用 (IsEnabled)" IsChecked="{Binding IsEnabled, Mode=TwoWay}" />
                                 <CheckBox Grid.Column="1" Content="可見 (IsVisible)" IsChecked="{Binding IsVisible, Mode=TwoWay}" />
                             </Grid>
 
-                            <Grid ColumnDefinitions="*, *" Margin="0,2">
+                            <!-- 顏色配置 -->
+                            <Grid ColumnDefinitions="*, *" Margin="0,2" IsVisible="{Binding IsVisualControl}">
                                 <StackPanel Grid.Column="0" Margin="0,0,4,0" Spacing="4">
                                     <TextBlock Text="背景色 (Background)" FontSize="11" Foreground="#A1A1AA" />
                                     <TextBox Text="{Binding Background, Mode=TwoWay}" PlaceholderText="#RRGGBB 或顏色名" />
@@ -105,7 +149,14 @@
                                 </StackPanel>
                             </Grid>
 
-                            <StackPanel Spacing="4">
+                            <!-- 字體大小 -->
+                            <StackPanel Spacing="4" IsVisible="{Binding IsTextSupported}">
+                                <TextBlock Text="字體大小 (FontSize)" FontSize="11" Foreground="#A1A1AA" />
+                                <NumericUpDown Value="{Binding FontSize, Mode=TwoWay}" Minimum="6" Maximum="120" />
+                            </StackPanel>
+
+                            <!-- 不透明度 -->
+                            <StackPanel Spacing="4" IsVisible="{Binding IsVisualControl}">
                                 <TextBlock Text="{Binding Opacity, StringFormat='不透明度: {0:P0}'}" FontSize="11" Foreground="#A1A1AA" />
                                 <Slider Minimum="0" Maximum="1" Value="{Binding Opacity, Mode=TwoWay}" />
                             </StackPanel>
@@ -114,18 +165,18 @@
                 </TabItem>
 
                 <!-- 分頁 2: 尺寸與排版 -->
-                <TabItem Header="排版">
+                <TabItem Header="排版" IsVisible="{Binding IsGeometrySupported}">
                     <ScrollViewer VerticalScrollBarVisibility="Auto">
                         <StackPanel Spacing="10" Margin="6">
                             <!-- 尺寸 -->
                             <Grid ColumnDefinitions="*, *" Margin="0,2">
                                 <StackPanel Grid.Column="0" Margin="0,0,4,0" Spacing="4">
                                     <TextBlock Text="寬度 (Width)" FontSize="11" Foreground="#A1A1AA" />
-                                    <NumericUpDown Value="{Binding Width, Mode=TwoWay}" Minimum="0" Maximum="4000" />
+                                    <NumericUpDown Value="{Binding Width, Mode=TwoWay}" IsEnabled="{Binding !AutoSize}" Minimum="0" Maximum="4000" />
                                 </StackPanel>
                                 <StackPanel Grid.Column="1" Margin="4,0,0,0" Spacing="4">
                                     <TextBlock Text="高度 (Height)" FontSize="11" Foreground="#A1A1AA" />
-                                    <NumericUpDown Value="{Binding Height, Mode=TwoWay}" Minimum="0" Maximum="4000" />
+                                    <NumericUpDown Value="{Binding Height, Mode=TwoWay}" IsEnabled="{Binding !AutoSize}" Minimum="0" Maximum="4000" />
                                 </StackPanel>
                             </Grid>
 

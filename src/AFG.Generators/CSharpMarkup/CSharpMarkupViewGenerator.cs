@@ -66,14 +66,17 @@ public sealed class CSharpMarkupViewGenerator : ICodeGenerator
         sb.AppendLine($"new {controlTypeName}()");
 
         // 1. 幾何與佈局屬性
-        if (node.Width.HasValue)
+        if (!node.AutoSize)
         {
-            sb.AppendLine($"{innerIndent}.Width({node.Width.Value.ToString(CultureInfo.InvariantCulture)})");
-        }
+            if (node.Width.HasValue)
+            {
+                sb.AppendLine($"{innerIndent}.Width({node.Width.Value.ToString(CultureInfo.InvariantCulture)})");
+            }
 
-        if (node.Height.HasValue)
-        {
-            sb.AppendLine($"{innerIndent}.Height({node.Height.Value.ToString(CultureInfo.InvariantCulture)})");
+            if (node.Height.HasValue)
+            {
+                sb.AppendLine($"{innerIndent}.Height({node.Height.Value.ToString(CultureInfo.InvariantCulture)})");
+            }
         }
 
         if (node.MinWidth.HasValue)

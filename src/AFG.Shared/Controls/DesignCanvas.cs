@@ -326,8 +326,16 @@ public sealed class DesignCanvas : Grid
                 break;
         }
 
-        control.Width = node.Width ?? 120;
-        control.Height = node.Height ?? 35;
+        if (node.AutoSize)
+        {
+            control.Width = double.NaN;
+            control.Height = double.NaN;
+        }
+        else
+        {
+            control.Width = node.Width ?? 120;
+            control.Height = node.Height ?? 35;
+        }
         control.Tag = node.Id;
         control.IsHitTestVisible = false; // 讓畫布統一捕捉滑鼠選取與拖曳
 

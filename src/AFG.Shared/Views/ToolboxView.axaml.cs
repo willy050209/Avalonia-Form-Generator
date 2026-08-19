@@ -59,7 +59,7 @@ public partial class ToolboxView : UserControl
 
     private void OnListBoxPointerMoved(object? sender, PointerEventArgs e)
     {
-        if (!_isPointerDown || _dragCandidateItem is null)
+        if (!_isPointerDown || _dragCandidateItem is null || _isDragging)
         {
             return;
         }
@@ -68,13 +68,17 @@ public partial class ToolboxView : UserControl
         var delta = currentPos - _pointerDownPos;
 
         // 僅當移動距離超過門檻值時才判定為開始拖曳
-        if (!_isDragging && (Math.Abs(delta.X) > DragThreshold || Math.Abs(delta.Y) > DragThreshold))
+        if (Math.Abs(delta.X) > DragThreshold || Math.Abs(delta.Y) > DragThreshold)
         {
             _isDragging = true;
+            var dragItem = _dragCandidateItem;
             if (DataContext is ToolboxViewModel vm)
             {
-                vm.StartDrag(_dragCandidateItem);
+                vm.StartDrag(dragItem);
             }
+
+            // 釋放工具箱捕獲，讓畫布能順暢接收後續的 PointerMoved 與 PointerReleased 事件
+            e.Pointer.Capture(null);
         }
     }
 
@@ -82,10 +86,13 @@ public partial class ToolboxView : UserControl
     {
         if (_isPointerDown)
         {
+            var bounds = new Rect(0, 0, Bounds.Width, Bounds.Height);
+            var releasePos = e.GetPosition(this);
+
             if (_isDragging)
             {
-                // 若是在工具箱範圍內釋放，取消拖曳狀態以防 ActiveDraggingItem 滯留
-                if (DataContext is ToolboxViewModel vm)
+                // 若滑鼠釋放點仍在工具箱範圍內，判定為取消拖曳
+                if (bounds.Contains(releasePos) && DataContext is ToolboxViewModel vm)
                 {
                     vm.EndDrag();
                 }

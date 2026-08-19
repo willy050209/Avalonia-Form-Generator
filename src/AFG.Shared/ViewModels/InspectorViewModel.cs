@@ -1,4 +1,13 @@
 // filepath: src/AFG.Shared/ViewModels/InspectorViewModel.cs
+using System;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Collections.Immutable;
+using System.Linq;
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
+using AFG.Core.Models.Ast;
+using AFG.Core.Validation;
 using CoreBindingMode = AFG.Core.Enums.BindingMode;
 using CoreHorizontalAlignment = AFG.Core.Enums.HorizontalAlignment;
 using CoreVerticalAlignment = AFG.Core.Enums.VerticalAlignment;
@@ -45,6 +54,12 @@ public sealed partial class InspectorViewModel : ObservableObject
 
     [ObservableProperty]
     private double? _height;
+
+    [ObservableProperty]
+    private bool _autoSize;
+
+    [ObservableProperty]
+    private int? _interval = 1000;
 
     [ObservableProperty]
     private double? _canvasLeft;
@@ -112,6 +127,40 @@ public sealed partial class InspectorViewModel : ObservableObject
     [ObservableProperty]
     private Core.Enums.Stretch? _stretch = Core.Enums.Stretch.Uniform;
 
+    // --- 控制項特性可見度旗標 (Property Visibility Capabilities) ---
+    [ObservableProperty]
+    private bool _isTextSupported = true;
+
+    [ObservableProperty]
+    private bool _isContentSupported = true;
+
+    [ObservableProperty]
+    private bool _isHeaderSupported;
+
+    [ObservableProperty]
+    private bool _isWatermarkSupported;
+
+    [ObservableProperty]
+    private bool _isImageSupported;
+
+    [ObservableProperty]
+    private bool _isTimerSupported;
+
+    [ObservableProperty]
+    private bool _isCheckableSupported;
+
+    [ObservableProperty]
+    private bool _isValueSupported;
+
+    [ObservableProperty]
+    private bool _isAutoSizeSupported;
+
+    [ObservableProperty]
+    private bool _isVisualControl = true;
+
+    [ObservableProperty]
+    private bool _isGeometrySupported = true;
+
     public ObservableCollection<BindingItemViewModel> Bindings { get; } = [];
     public ObservableCollection<EventItemViewModel> Events { get; } = [];
     public ObservableCollection<ValidationError> ValidationErrors { get; } = [];
@@ -171,6 +220,8 @@ public sealed partial class InspectorViewModel : ObservableObject
         Watermark = node.Watermark ?? string.Empty;
         Width = node.Width;
         Height = node.Height;
+        AutoSize = node.AutoSize;
+        Interval = node.Interval ?? 1000;
         CanvasLeft = node.CanvasLeft;
         CanvasTop = node.CanvasTop;
         GridRow = node.GridRow;
@@ -194,22 +245,35 @@ public sealed partial class InspectorViewModel : ObservableObject
         Source = node.Source ?? string.Empty;
         Stretch = node.Stretch;
 
+        // 計算控制項支援之特定屬性
+        var type = node.Type;
+        var isNonVisual = Generators.CSharpMarkup.CSharpMarkupViewGenerator.IsNonVisualComponent(type);
+        IsVisualControl = !isNonVisual;
+        IsGeometrySupported = !isNonVisual;
+        IsTimerSupported = type == CoreControlType.DispatcherTimer;
+        IsImageSupported = type == CoreControlType.PictureBox;
+        IsTextSupported = type is CoreControlType.TextBlock or CoreControlType.TextBox or CoreControlType.Button or CoreControlType.CheckBox or CoreControlType.RadioButton or CoreControlType.ComboBox or CoreControlType.DatePicker;
+        IsContentSupported = type is CoreControlType.Button or CoreControlType.CheckBox or CoreControlType.RadioButton or CoreControlType.Border;
+        IsHeaderSupported = false;
+        IsWatermarkSupported = type is CoreControlType.TextBox or CoreControlType.ComboBox;
+        IsCheckableSupported = type is CoreControlType.CheckBox or CoreControlType.RadioButton;
+        IsValueSupported = type is CoreControlType.Slider or CoreControlType.ProgressBar;
+        IsAutoSizeSupported = !node.IsContainer && !isNonVisual;
+
         if (!isSameNode)
         {
+            // 載入資料綁定
             Bindings.Clear();
             foreach (var b in node.Bindings)
             {
-                var item = BindingItemViewModel.FromDefinition(b);
-                item.PropertyChanged += (_, _) => ApplyChanges();
-                Bindings.Add(item);
+                Bindings.Add(BindingItemViewModel.FromDefinition(b));
             }
 
+            // 載入事件
             Events.Clear();
             foreach (var e in node.Events)
             {
-                var item = EventItemViewModel.FromDefinition(e, node.Type);
-                item.PropertyChanged += (_, _) => ApplyChanges();
-                Events.Add(item);
+                Events.Add(EventItemViewModel.FromDefinition(e, node.Type));
             }
         }
 
@@ -218,27 +282,44 @@ public sealed partial class InspectorViewModel : ObservableObject
     }
 
     [RelayCommand]
-    private void AddBinding()
+    public void AddBinding()
     {
-        var item = new BindingItemViewModel
+        if (_currentNode is null) return;
+        var availableProperties = GetAvailablePropertiesForCurrentControl();
+        var targetProperty = availableProperties.Count > 0 ? availableProperties[0] : "Text";
+        var defaultMode = targetProperty is "Text" or "IsChecked" or "Value"
+            ? CoreBindingMode.TwoWay
+            : CoreBindingMode.Default;
+
+        Bindings.Add(new BindingItemViewModel
         {
-            TargetProperty = ControlType switch
-            {
-                "TextBox" => "Text",
-                "CheckBox" or "RadioButton" => "IsChecked",
-                "Slider" or "ProgressBar" => "Value",
-                "ComboBox" or "ListBox" or "DataGrid" => "ItemsSource",
-                _ => "IsEnabled"
-            },
-            ViewModelProperty = $"{NodeName}Property"
-        };
-        item.PropertyChanged += (_, _) => ApplyChanges();
-        Bindings.Add(item);
+            TargetProperty = targetProperty,
+            ViewModelProperty = $"{NodeName}_{targetProperty}",
+            Mode = defaultMode
+        });
         ApplyChanges();
     }
 
+    public IReadOnlyList<string> GetAvailablePropertiesForCurrentControl()
+    {
+        if (_currentNode is null) return ["Text", "Content"];
+        return _currentNode.Type switch
+        {
+            CoreControlType.Button => ["Text", "Content", "IsEnabled", "IsVisible", "Background", "Foreground", "Width", "Height"],
+            CoreControlType.TextBox => ["Text", "Watermark", "IsEnabled", "IsVisible", "FontSize", "Width", "Height"],
+            CoreControlType.TextBlock => ["Text", "FontSize", "Foreground", "IsVisible", "Width", "Height"],
+            CoreControlType.CheckBox or CoreControlType.RadioButton => ["IsChecked", "Text", "Content", "IsEnabled", "IsVisible"],
+            CoreControlType.Slider or CoreControlType.ProgressBar => ["Value", "IsEnabled", "IsVisible", "Width", "Height"],
+            CoreControlType.ComboBox => ["ItemsSource", "SelectedItem", "SelectedIndex", "IsEnabled", "IsVisible", "Width", "Height"],
+            CoreControlType.ListBox => ["ItemsSource", "SelectedItem", "SelectedIndex", "IsEnabled", "IsVisible", "Width", "Height"],
+            CoreControlType.PictureBox => ["Source", "Stretch", "IsEnabled", "IsVisible", "Width", "Height"],
+            CoreControlType.Border => ["Background", "BorderBrush", "Padding", "Width", "Height", "IsVisible"],
+            _ => ["Text", "Content", "IsEnabled", "IsVisible", "Width", "Height"]
+        };
+    }
+
     [RelayCommand]
-    private void RemoveBinding(BindingItemViewModel item)
+    public void RemoveBinding(BindingItemViewModel item)
     {
         if (Bindings.Remove(item))
         {
@@ -247,25 +328,24 @@ public sealed partial class InspectorViewModel : ObservableObject
     }
 
     [RelayCommand]
-    private void AddEvent()
+    public void AddEvent()
     {
-        var nodeType = _currentNode?.Type ?? CoreControlType.Button;
-        var supported = ControlEventCatalog.GetSupportedEvents(nodeType);
-        var defaultEvt = ControlEventCatalog.GetDefaultEvent(nodeType);
+        if (_currentNode is null) return;
+        var availableEvents = ControlEventCatalog.GetSupportedEvents(_currentNode.Type);
+        var defaultEvent = ControlEventCatalog.GetDefaultEvent(_currentNode.Type) ?? (availableEvents.Count > 0 ? availableEvents[0] : "Click");
+        var defaultCommand = $"{NodeName}_{defaultEvent}Command";
 
-        var item = new EventItemViewModel
+        Events.Add(new EventItemViewModel
         {
-            AvailableEvents = supported,
-            EventName = defaultEvt,
-            CommandProperty = $"{NodeName}Command"
-        };
-        item.PropertyChanged += (_, _) => ApplyChanges();
-        Events.Add(item);
+            EventName = defaultEvent,
+            CommandProperty = defaultCommand,
+            AvailableEvents = availableEvents
+        });
         ApplyChanges();
     }
 
     [RelayCommand]
-    private void RemoveEvent(EventItemViewModel item)
+    public void RemoveEvent(EventItemViewModel item)
     {
         if (Events.Remove(item))
         {
@@ -291,6 +371,8 @@ public sealed partial class InspectorViewModel : ObservableObject
                 Watermark = string.IsNullOrEmpty(Watermark) ? null : Watermark,
                 Width = Width.HasValue ? Math.Max(0, Width.Value) : null,
                 Height = Height.HasValue ? Math.Max(0, Height.Value) : null,
+                AutoSize = AutoSize,
+                Interval = IsTimerSupported ? (Interval.HasValue ? Math.Max(1, Interval.Value) : 1000) : null,
                 CanvasLeft = CanvasLeft,
                 CanvasTop = CanvasTop,
                 GridRow = Math.Max(0, GridRow),
@@ -349,6 +431,8 @@ public sealed partial class InspectorViewModel : ObservableObject
     partial void OnStretchChanged(Core.Enums.Stretch? value) => ApplyChanges();
     partial void OnWidthChanged(double? value) => ApplyChanges();
     partial void OnHeightChanged(double? value) => ApplyChanges();
+    partial void OnAutoSizeChanged(bool value) => ApplyChanges();
+    partial void OnIntervalChanged(int? value) => ApplyChanges();
     partial void OnCanvasLeftChanged(double? value) => ApplyChanges();
     partial void OnCanvasTopChanged(double? value) => ApplyChanges();
     partial void OnGridRowChanged(int value) => ApplyChanges();

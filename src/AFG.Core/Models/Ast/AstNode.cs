@@ -71,6 +71,8 @@ public sealed record AstNode
     public string? SelectedItem { get; init; }
     public string? Source { get; init; }
     public Stretch? Stretch { get; init; }
+    public bool AutoSize { get; init; }
+    public int? Interval { get; init; }
 
     // --- 擴充自訂屬性 ---
     public ImmutableDictionary<string, string> CustomProperties { get; init; } = ImmutableDictionary<string, string>.Empty;

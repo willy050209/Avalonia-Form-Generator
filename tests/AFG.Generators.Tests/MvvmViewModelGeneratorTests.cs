@@ -318,4 +318,42 @@ public sealed class MvvmViewModelGeneratorTests
         var diagnostics = RoslynCompilerService.CheckSyntaxDiagnostics(result.Content);
         diagnostics.Should().BeEmpty();
     }
+
+    [Fact]
+    public void Generate_ForDispatcherTimer_ShouldIncludeConfiguredInterval()
+    {
+        // Arrange
+        var doc = new FormDocument
+        {
+            RootNamespace = "MyApp.ViewModels",
+            ViewModelClassName = "TimerViewModel",
+            RootNode = new AstNode
+            {
+                Id = "root",
+                Type = ControlType.Canvas,
+                Children = [
+                    new AstNode
+                    {
+                        Id = "tmr",
+                        Name = "PollTimer",
+                        Type = ControlType.DispatcherTimer,
+                        Interval = 250,
+                        Events = [
+                            new EventMappingDefinition { EventName = "Tick", CommandProperty = "OnPollTickCommand" }
+                        ]
+                    }
+                ]
+            }
+        };
+
+        // Act
+        var result = _generator.Generate(doc);
+
+        // Assert
+        result.Content.Should().Contain("private readonly DispatcherTimer _pollTimer = new() { Interval = TimeSpan.FromMilliseconds(250) };");
+        result.Content.Should().Contain("_pollTimer.Tick += (s, e) => OnPollTickCommand.Execute(null);");
+
+        var diagnostics = RoslynCompilerService.CheckSyntaxDiagnostics(result.Content);
+        diagnostics.Should().BeEmpty();
+    }
 }

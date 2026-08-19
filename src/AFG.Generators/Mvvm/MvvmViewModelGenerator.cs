@@ -97,7 +97,10 @@ public sealed class MvvmViewModelGenerator : ICodeGenerator
                 var fieldName = ToPrivateFieldName(string.IsNullOrWhiteSpace(comp.Name) ? comp.Type.ToString() : comp.Name);
                 if (comp.Type == ControlType.DispatcherTimer)
                 {
-                    sb.AppendLine($"    private readonly DispatcherTimer {fieldName} = new();");
+                    var initClause = comp.Interval.HasValue
+                        ? $" = new() {{ Interval = TimeSpan.FromMilliseconds({comp.Interval.Value}) }};"
+                        : " = new();";
+                    sb.AppendLine($"    private readonly DispatcherTimer {fieldName}{initClause}");
                 }
                 else if (comp.Type == ControlType.BackgroundWorker)
                 {
