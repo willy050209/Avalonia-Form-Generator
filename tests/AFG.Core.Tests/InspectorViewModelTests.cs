@@ -88,4 +88,26 @@ public sealed class InspectorViewModelTests
         item.EventName.Should().Be("DoWork");
         item.AvailableEvents.Should().BeEquivalentTo(["DoWork", "ProgressChanged", "RunWorkerCompleted"]);
     }
+
+    [Fact]
+    public void LoadNode_WhenDispatcherTimerLoaded_AddEventShouldHaveExactlyOnePairOfSenderAndE()
+    {
+        // Arrange
+        var vm = new InspectorViewModel();
+        var node = new AstNode { Id = "tmr1", Name = "PollTimer", Type = ControlType.DispatcherTimer };
+        vm.LoadNode(node);
+
+        // Act
+        vm.AddEventCommand.Execute(null);
+
+        // Assert
+        vm.Events.Should().HaveCount(1);
+        var item = vm.Events[0];
+        item.EventName.Should().Be("Tick");
+        item.Parameters.Should().HaveCount(2);
+        item.Parameters[0].Name.Should().Be("sender");
+        item.Parameters[0].Type.Should().Be("object?");
+        item.Parameters[1].Name.Should().Be("e");
+        item.Parameters[1].Type.Should().Be("EventArgs");
+    }
 }

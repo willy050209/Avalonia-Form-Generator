@@ -221,6 +221,8 @@ public sealed partial class EventItemViewModel : ObservableObject
         };
 
         var effectiveParams = def.GetEffectiveParameters();
+        vm.Parameters.Clear();
+
         if (effectiveParams.Count > 0)
         {
             foreach (var p in effectiveParams)

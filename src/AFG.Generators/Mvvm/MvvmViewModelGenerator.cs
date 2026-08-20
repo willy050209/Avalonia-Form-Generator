@@ -52,6 +52,7 @@ public sealed class MvvmViewModelGenerator : ICodeGenerator
                 {
                     var cmdName = NormalizeCommandName(evt.CommandProperty);
                     var effectiveParams = evt.GetEffectiveParameters()
+                        .DistinctBy(p => string.IsNullOrWhiteSpace(p.Name) ? "parameter" : ToCamelCase(p.Name))
                         .Select(p => new CommandParameterInfo(
                             Name: string.IsNullOrWhiteSpace(p.Name) ? "parameter" : ToCamelCase(p.Name),
                             Type: string.IsNullOrWhiteSpace(p.Type) ? "object?" : p.Type.Trim()))

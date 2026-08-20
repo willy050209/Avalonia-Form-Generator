@@ -398,9 +398,12 @@ public sealed partial class InspectorViewModel : ObservableObject
             AvailableEvents = availableEvents
         };
 
-        foreach (var p in ControlEventCatalog.GetDefaultParameters(defaultEvent))
+        if (eventVm.Parameters.Count == 0)
         {
-            eventVm.Parameters.Add(EventParameterItemViewModel.FromDefinition(p));
+            foreach (var p in ControlEventCatalog.GetDefaultParameters(defaultEvent))
+            {
+                eventVm.Parameters.Add(EventParameterItemViewModel.FromDefinition(p, defaultEvent));
+            }
         }
 
         Events.Add(eventVm);
