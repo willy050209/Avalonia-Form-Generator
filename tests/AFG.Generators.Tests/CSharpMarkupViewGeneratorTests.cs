@@ -71,7 +71,7 @@ public sealed class CSharpMarkupViewGeneratorTests
         result.Content.Should().Contain(".RowDefinitions(\"Auto\", \"*\")");
         result.Content.Should().Contain(".ColumnDefinitions(\"200\", \"*\")");
         result.Content.Should().Contain(".Content(\"Login\")");
-        result.Content.Should().Contain(".Command((LoginFormViewModel vm) => vm.LoginCommand)");
+        result.Content.Should().Contain(".OnClick((LoginFormViewModel vm) => vm.LoginCommand)");
         result.Content.Should().Contain(".Text((LoginFormViewModel vm) => vm.Username, BindingMode.TwoWay)");
 
         // 語法樹診斷檢查
@@ -149,7 +149,7 @@ public sealed class CSharpMarkupViewGeneratorTests
 
         // Assert
         result.Content.Should().Contain(".Text(nameof(ReflectionBindingViewModel.Title), BindingMode.TwoWay)");
-        result.Content.Should().Contain(".Command(nameof(ReflectionBindingViewModel.SaveCommand))");
+        result.Content.Should().Contain(".OnClick(nameof(ReflectionBindingViewModel.SaveCommand))");
 
         var syntaxDiagnostics = RoslynCompilerService.CheckSyntaxDiagnostics(result.Content);
         syntaxDiagnostics.Should().BeEmpty();
@@ -195,7 +195,7 @@ public sealed class CSharpMarkupViewGeneratorTests
 
         // Assert
         result.Content.Should().Contain(".Text((CompiledBindingViewModel vm) => vm.Title, BindingMode.TwoWay)");
-        result.Content.Should().Contain(".Command((CompiledBindingViewModel vm) => vm.SaveCommand)");
+        result.Content.Should().Contain(".OnClick((CompiledBindingViewModel vm) => vm.SaveCommand)");
 
         var syntaxDiagnostics = RoslynCompilerService.CheckSyntaxDiagnostics(result.Content);
         syntaxDiagnostics.Should().BeEmpty();
@@ -242,7 +242,7 @@ public sealed class CSharpMarkupViewGeneratorTests
         result.Content.Should().Contain(".Height(150)");
         result.Content.Should().Contain(".Source(\"assets/avatar.png\")");
         result.Content.Should().Contain(".Stretch(Stretch.Uniform)");
-        result.Content.Should().Contain(".Command((PhotoViewModel vm) => vm.SelectPhotoCommand)");
+        result.Content.Should().Contain(".OnClick((PhotoViewModel vm) => vm.SelectPhotoCommand)");
 
         var syntaxDiagnostics = RoslynCompilerService.CheckSyntaxDiagnostics(result.Content);
         syntaxDiagnostics.Should().BeEmpty();
@@ -324,7 +324,7 @@ public sealed class CSharpMarkupViewGeneratorTests
         result.Content.Should().Contain(".SelectedItem((ComplexFormViewModel vm) => vm.SelectedOption, BindingMode.TwoWay)");
         result.Content.Should().Contain(".Source((ComplexFormViewModel vm) => vm.ProfilePhoto, BindingMode.Default)");
         result.Content.Should().Contain(".Stretch((ComplexFormViewModel vm) => vm.PhotoStretch, BindingMode.Default)");
-        result.Content.Should().Contain(".Command((ComplexFormViewModel vm) => vm.UpdatePhotoCommand)");
+        result.Content.Should().Contain(".OnClick((ComplexFormViewModel vm) => vm.UpdatePhotoCommand)");
 
         var syntaxDiagnostics = RoslynCompilerService.CheckSyntaxDiagnostics(result.Content);
         syntaxDiagnostics.Should().BeEmpty();
@@ -459,7 +459,7 @@ public sealed class CSharpMarkupViewGeneratorTests
 
         // Assert
         result.Content.Should().Contain(".Text((KeywordViewModel vm) => vm.Event");
-        result.Content.Should().Contain(".Command((KeywordViewModel vm) => vm.ClassCommand");
+        result.Content.Should().Contain(".OnClick((KeywordViewModel vm) => vm.ClassCommand");
 
         var syntaxDiagnostics = RoslynCompilerService.CheckSyntaxDiagnostics(result.Content);
         syntaxDiagnostics.Should().BeEmpty();

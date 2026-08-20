@@ -187,7 +187,7 @@ public sealed partial class EventItemViewModel : ObservableObject
         var defaultParams = ControlEventCatalog.GetDefaultParameters(value);
         var availableTypes = ControlEventCatalog.GetSupportedParameterTypes(value);
 
-        if (Parameters.Count == 0 || (Parameters.Count == 1 && Parameters[0].Name == "e"))
+        if (Parameters.Count == 0 || (Parameters.Count == 2 && Parameters[0].Name == "sender" && Parameters[1].Name == "e") || (Parameters.Count == 1 && Parameters[0].Name == "e"))
         {
             Parameters.Clear();
             foreach (var p in defaultParams)

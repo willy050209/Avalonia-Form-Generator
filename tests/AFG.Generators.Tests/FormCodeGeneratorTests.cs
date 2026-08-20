@@ -178,7 +178,7 @@ public sealed class FormCodeGeneratorTests
 
         // 驗證 View 產生的代碼使用標準化 PascalCase 與強型別 Lambda 綁定
         viewFile.Content.Should().Contain(".Text((CaseFormViewModel vm) => vm.UserName, BindingMode.TwoWay)");
-        viewFile.Content.Should().Contain(".Command((CaseFormViewModel vm) => vm.SubmitCommand)");
+        viewFile.Content.Should().Contain(".OnClick((CaseFormViewModel vm) => vm.SubmitCommand)");
 
         // 驗證 ViewModel 產生的欄位與方法亦使用標準化名稱
         vmFile.Content.Should().Contain("private string _userName = \"Test User\";");

@@ -158,7 +158,7 @@ public sealed class MvvmViewModelGenerator : ICodeGenerator
                 var fieldName = ToPrivateFieldName(string.IsNullOrWhiteSpace(comp.Name) ? comp.Type.ToString() : comp.Name);
                 var cmdName = NormalizeCommandName(evt.CommandProperty);
                 var hasParams = commands.TryGetValue(cmdName, out var cInfo) && cInfo.Parameters.Count > 0;
-                var execArg = hasParams ? "e" : "null";
+                var execArg = !hasParams ? "null" : cInfo!.Parameters.Count > 1 ? "(s, e)" : "e";
                 sb.AppendLine($"        {fieldName}.{evt.EventName} += (s, e) => {cmdName}.Execute({execArg});");
             }
             sb.AppendLine("    }");

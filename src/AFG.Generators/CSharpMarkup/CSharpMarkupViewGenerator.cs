@@ -298,9 +298,25 @@ public sealed class CSharpMarkupViewGenerator : ICodeGenerator
 
             if (paramWithBinding is null)
             {
+                var eventMethod = evt.EventName switch
+                {
+                    "Click" => "OnClick",
+                    "Tapped" => "OnTapped",
+                    "DoubleTapped" => "OnDoubleTapped",
+                    "PointerPressed" => "OnPointerPressed",
+                    "PointerReleased" => "OnPointerReleased",
+                    "PointerMoved" => "OnPointerMoved",
+                    "KeyDown" => "OnKeyDown",
+                    "KeyUp" => "OnKeyUp",
+                    "TextChanged" => "OnTextChanged",
+                    "SelectionChanged" => "OnSelectionChanged",
+                    "ValueChanged" => "OnValueChanged",
+                    _ => "Command"
+                };
+
                 cmdCall = useCompiledBindings
-                    ? $".Command(({viewModelClassName} vm) => vm.{safeCmd})"
-                    : $".Command(nameof({viewModelClassName}.{safeCmd}))";
+                    ? $".{eventMethod}(({viewModelClassName} vm) => vm.{safeCmd})"
+                    : $".{eventMethod}(nameof({viewModelClassName}.{safeCmd}))";
             }
             else if (paramWithBinding.IsConstant)
             {

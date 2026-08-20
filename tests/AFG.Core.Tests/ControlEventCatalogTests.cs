@@ -169,12 +169,14 @@ public sealed class ControlEventCatalogTests
     }
 
     [Fact]
-    public void GetDefaultParameters_ForClick_ShouldReturnSingleRoutedEventArgs()
+    public void GetDefaultParameters_ForClick_ShouldReturnSenderAndRoutedEventArgs()
     {
         var parameters = ControlEventCatalog.GetDefaultParameters("Click");
-        parameters.Should().HaveCount(1);
-        parameters[0].Name.Should().Be("e");
-        parameters[0].Type.Should().Be("RoutedEventArgs");
+        parameters.Should().HaveCount(2);
+        parameters[0].Name.Should().Be("sender");
+        parameters[0].Type.Should().Be("object?");
+        parameters[1].Name.Should().Be("e");
+        parameters[1].Type.Should().Be("RoutedEventArgs");
     }
 
     [Fact]

@@ -144,7 +144,7 @@ public static class ControlEventCatalog
     }
 
     /// <summary>
-    /// 取得特定事件之預設參數清單（預設包含專屬之單一 EventArgs 或資料參數，以符合 CommunityToolkit.Mvvm RelayCommand 標準規範）。
+    /// 取得特定事件之預設參數清單（預設包含 sender 與專屬 EventArgs/資料參數）。
     /// </summary>
     public static ImmutableList<EventParameterDefinition> GetDefaultParameters(string? eventName)
     {
@@ -152,20 +152,36 @@ public static class ControlEventCatalog
 
         if (eventName is "Tick")
         {
-            return [new EventParameterDefinition("e", "EventArgs", null, false)];
+            return
+            [
+                new EventParameterDefinition("sender", "object?", null, false),
+                new EventParameterDefinition("e", "EventArgs", null, false)
+            ];
         }
 
         if (eventName is "DataReceived")
         {
-            return [new EventParameterDefinition("data", "string", null, false)];
+            return
+            [
+                new EventParameterDefinition("sender", "object?", null, false),
+                new EventParameterDefinition("data", "string", null, false)
+            ];
         }
 
         if (eventName is "DoWork")
         {
-            return [new EventParameterDefinition("e", "DoWorkEventArgs", null, false)];
+            return
+            [
+                new EventParameterDefinition("sender", "object?", null, false),
+                new EventParameterDefinition("e", "DoWorkEventArgs", null, false)
+            ];
         }
 
-        return [new EventParameterDefinition("e", eventArgsType, null, false)];
+        return
+        [
+            new EventParameterDefinition("sender", "object?", null, false),
+            new EventParameterDefinition("e", eventArgsType, null, false)
+        ];
     }
 
     /// <summary>

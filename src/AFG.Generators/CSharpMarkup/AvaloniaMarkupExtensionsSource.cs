@@ -13,6 +13,7 @@ public static class AvaloniaMarkupExtensionsSource
     using System;
     using System.Collections.Generic;
     using System.Linq.Expressions;
+    using System.Windows.Input;
     using Avalonia;
     using Avalonia.Controls;
     using Avalonia.Controls.Primitives;
@@ -558,6 +559,204 @@ public static class AvaloniaMarkupExtensionsSource
                 btn.Command(commandExpr, paramExpr);
             }
             return control;
+        }
+
+        private static void ExecuteCommandWithArgs(ICommand? cmd, object? s, object? e)
+        {
+            if (cmd == null) return;
+
+            var tuple = (s, e);
+            if (cmd.CanExecute(tuple))
+            {
+                cmd.Execute(tuple);
+                return;
+            }
+
+            if (cmd.CanExecute(e))
+            {
+                cmd.Execute(e);
+                return;
+            }
+
+            if (cmd.CanExecute(null))
+            {
+                cmd.Execute(null);
+            }
+        }
+
+        public static Button OnClick<TVm, TProp>(this Button btn, Expression<Func<TVm, TProp>> commandExpr)
+        {
+            var getter = commandExpr.Compile();
+            btn.Click += (s, e) =>
+            {
+                if (btn.DataContext is TVm vm && getter(vm) is ICommand cmd)
+                {
+                    ExecuteCommandWithArgs(cmd, s, e);
+                }
+            };
+            return btn;
+        }
+
+        public static Button OnClick(this Button btn, string commandName)
+        {
+            btn.Click += (s, e) =>
+            {
+                if (btn.DataContext != null)
+                {
+                    var prop = btn.DataContext.GetType().GetProperty(commandName);
+                    if (prop?.GetValue(btn.DataContext) is ICommand cmd)
+                    {
+                        ExecuteCommandWithArgs(cmd, s, e);
+                    }
+                }
+            };
+            return btn;
+        }
+
+        public static T OnTapped<T, TVm, TProp>(this T control, Expression<Func<TVm, TProp>> commandExpr) where T : Control
+        {
+            var getter = commandExpr.Compile();
+            control.Tapped += (s, e) =>
+            {
+                if (control.DataContext is TVm vm && getter(vm) is ICommand cmd)
+                {
+                    ExecuteCommandWithArgs(cmd, s, e);
+                }
+            };
+            return control;
+        }
+
+        public static T OnTapped<T>(this T control, string commandName) where T : Control
+        {
+            control.Tapped += (s, e) =>
+            {
+                if (control.DataContext != null)
+                {
+                    var prop = control.DataContext.GetType().GetProperty(commandName);
+                    if (prop?.GetValue(control.DataContext) is ICommand cmd)
+                    {
+                        ExecuteCommandWithArgs(cmd, s, e);
+                    }
+                }
+            };
+            return control;
+        }
+
+        public static T OnDoubleTapped<T, TVm, TProp>(this T control, Expression<Func<TVm, TProp>> commandExpr) where T : Control
+        {
+            var getter = commandExpr.Compile();
+            control.DoubleTapped += (s, e) =>
+            {
+                if (control.DataContext is TVm vm && getter(vm) is ICommand cmd)
+                {
+                    ExecuteCommandWithArgs(cmd, s, e);
+                }
+            };
+            return control;
+        }
+
+        public static T OnPointerPressed<T, TVm, TProp>(this T control, Expression<Func<TVm, TProp>> commandExpr) where T : Control
+        {
+            var getter = commandExpr.Compile();
+            control.PointerPressed += (s, e) =>
+            {
+                if (control.DataContext is TVm vm && getter(vm) is ICommand cmd)
+                {
+                    ExecuteCommandWithArgs(cmd, s, e);
+                }
+            };
+            return control;
+        }
+
+        public static T OnPointerReleased<T, TVm, TProp>(this T control, Expression<Func<TVm, TProp>> commandExpr) where T : Control
+        {
+            var getter = commandExpr.Compile();
+            control.PointerReleased += (s, e) =>
+            {
+                if (control.DataContext is TVm vm && getter(vm) is ICommand cmd)
+                {
+                    ExecuteCommandWithArgs(cmd, s, e);
+                }
+            };
+            return control;
+        }
+
+        public static T OnPointerMoved<T, TVm, TProp>(this T control, Expression<Func<TVm, TProp>> commandExpr) where T : Control
+        {
+            var getter = commandExpr.Compile();
+            control.PointerMoved += (s, e) =>
+            {
+                if (control.DataContext is TVm vm && getter(vm) is ICommand cmd)
+                {
+                    ExecuteCommandWithArgs(cmd, s, e);
+                }
+            };
+            return control;
+        }
+
+        public static T OnKeyDown<T, TVm, TProp>(this T control, Expression<Func<TVm, TProp>> commandExpr) where T : Control
+        {
+            var getter = commandExpr.Compile();
+            control.KeyDown += (s, e) =>
+            {
+                if (control.DataContext is TVm vm && getter(vm) is ICommand cmd)
+                {
+                    ExecuteCommandWithArgs(cmd, s, e);
+                }
+            };
+            return control;
+        }
+
+        public static T OnKeyUp<T, TVm, TProp>(this T control, Expression<Func<TVm, TProp>> commandExpr) where T : Control
+        {
+            var getter = commandExpr.Compile();
+            control.KeyUp += (s, e) =>
+            {
+                if (control.DataContext is TVm vm && getter(vm) is ICommand cmd)
+                {
+                    ExecuteCommandWithArgs(cmd, s, e);
+                }
+            };
+            return control;
+        }
+
+        public static TextBox OnTextChanged<TVm, TProp>(this TextBox tb, Expression<Func<TVm, TProp>> commandExpr)
+        {
+            var getter = commandExpr.Compile();
+            tb.TextChanged += (s, e) =>
+            {
+                if (tb.DataContext is TVm vm && getter(vm) is ICommand cmd)
+                {
+                    ExecuteCommandWithArgs(cmd, s, e);
+                }
+            };
+            return tb;
+        }
+
+        public static T OnSelectionChanged<T, TVm, TProp>(this T control, Expression<Func<TVm, TProp>> commandExpr) where T : SelectingItemsControl
+        {
+            var getter = commandExpr.Compile();
+            control.SelectionChanged += (s, e) =>
+            {
+                if (control.DataContext is TVm vm && getter(vm) is ICommand cmd)
+                {
+                    ExecuteCommandWithArgs(cmd, s, e);
+                }
+            };
+            return control;
+        }
+
+        public static RangeBase OnValueChanged<TVm, TProp>(this RangeBase rb, Expression<Func<TVm, TProp>> commandExpr)
+        {
+            var getter = commandExpr.Compile();
+            rb.ValueChanged += (s, e) =>
+            {
+                if (rb.DataContext is TVm vm && getter(vm) is ICommand cmd)
+                {
+                    ExecuteCommandWithArgs(cmd, s, e);
+                }
+            };
+            return rb;
         }
 
         public static T ItemsSource<T>(this T control, string path, BindingMode mode = BindingMode.Default) where T : ItemsControl
