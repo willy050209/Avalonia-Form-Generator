@@ -152,11 +152,7 @@ public static class ControlEventCatalog
 
         if (eventName is "Tick")
         {
-            return
-            [
-                new EventParameterDefinition("sender", "object?", null, false),
-                new EventParameterDefinition("e", "EventArgs", null, false)
-            ];
+            return ImmutableList<EventParameterDefinition>.Empty;
         }
 
         if (eventName is "DataReceived")

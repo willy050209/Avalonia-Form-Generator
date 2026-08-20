@@ -180,6 +180,13 @@ public sealed class ControlEventCatalogTests
     }
 
     [Fact]
+    public void GetDefaultParameters_ForTick_ShouldReturnEmpty()
+    {
+        var parameters = ControlEventCatalog.GetDefaultParameters("Tick");
+        parameters.Should().BeEmpty();
+    }
+
+    [Fact]
     public void GetSupportedParameterTypes_ForClick_ShouldOnlyIncludeRelevantEventArgsAndExcludeOthers()
     {
         var types = ControlEventCatalog.GetSupportedParameterTypes("Click");
