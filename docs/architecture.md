@@ -162,7 +162,7 @@ sequenceDiagram
 
 | 專案模組 | 職責劃分 | 關鍵類別 |
 | :--- | :--- | :--- |
-| **`AFG.Core`** | UI AST 節點定義、多表單專案定義、純函數樹操作（遞迴複製、對齊、均分、限制邊界、容器子節點重排）、驗證與 JSON 序列化 | `AstNode`, `FormDocument`, `FormProjectDefinition`, `AstTreeOperations`, `AstValidator`, `AfgSerializer` |
-| **`AFG.Generators`** | C# Declarative UI 程式碼生成（支援 nameof 與 Lambda 編譯綁定）、CommunityToolkit.Mvvm 與動態 DI 生成、版本常數管理、Roslyn 格式化、多表單專案匯出 | `CSharpMarkupViewGenerator`, `MvvmViewModelGenerator`, `PackageVersions`, `RoslynCompilerService`, `ProjectExportService` |
-| **`AFG.Shared`** | 視覺畫布（遞迴容器、橡皮筋框選、容器拖曳重排指示線）、8 點縮放裝飾器、對齊吸附計算、裝置解析度模型、可摺疊面板排版、歷史堆疊、屬性檢查器（焦點保護）、`CSharpSyntaxColorizer` (VS Code Dark+ 語法高亮)、`SelectableTextBlock` 與代碼區摺疊畫布 100% 自適應擴展 | `DesignCanvas`, `HistoryManager`, `SnappingEngine`, `CanvasPreset`, `MainViewModel`, `InspectorViewModel`, `CanvasViewModel`, `CSharpSyntaxColorizer` |
+| **`AFG.Core`** | UI AST 節點定義、多表單專案定義、多參數事件規格 (`EventParameterDefinition`)、控制項專屬事件目錄 (`ControlEventCatalog`)、純函數樹操作（遞迴複製、對齊、均分、限制邊界、容器子節點重排）、驗證與 JSON 序列化 | `AstNode`, `FormDocument`, `FormProjectDefinition`, `EventMappingDefinition`, `EventParameterDefinition`, `ControlEventCatalog`, `AstTreeOperations`, `AstValidator`, `AfgSerializer` |
+| **`AFG.Generators`** | C# Declarative UI 程式碼生成（支援 nameof 與 Lambda 編譯綁定、原生事件轉發 `OnClick` / `OnTextChanged` 等）、CommunityToolkit.Mvvm 多參數 ValueTuple 安全生成、動態 DI 生成、版本常數管理、Roslyn 格式化、多表單專案匯出 | `CSharpMarkupViewGenerator`, `MvvmViewModelGenerator`, `AvaloniaMarkupExtensionsSource`, `PackageVersions`, `RoslynCompilerService`, `ProjectExportService` |
+| **`AFG.Shared`** | 視覺畫布（遞迴容器、橡皮筋框選、容器拖曳重排指示線、不可視元件徽章卡片、差量更新演算法 `TryPatchElements`）、8 點縮放裝飾器、對齊吸附計算、裝置解析度模型、可摺疊面板排版、歷史堆疊、屬性檢查器（焦點保護、專屬事件與型別過濾、參數去重）、`CSharpSyntaxColorizer` (VS Code Dark+ 語法高亮)、`SelectableTextBlock` | `DesignCanvas`, `HistoryManager`, `SnappingEngine`, `CanvasPreset`, `MainViewModel`, `InspectorViewModel`, `CanvasViewModel`, `CSharpSyntaxColorizer` |
 | **`AFG.Desktop`** | Windows/macOS/Linux 桌面應用程式進入點、最大化視窗啟動與本機平台服務 | `Program`, `MainWindow`, `DesktopFileDialogService`, `DesktopClipboardService` |

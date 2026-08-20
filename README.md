@@ -31,7 +31,7 @@ graph LR
 | :--- | :--- | :--- |
 | **基礎控制項** | `Button`, `TextBox`, `TextBlock`, `CheckBox`, `RadioButton`, `ComboBox`, `DatePicker`, `Slider`, `ProgressBar`, `PictureBox` | 支援完整幾何、外觀、雙向/單向資料綁定、影像來源 (Source/ImageLocation) 與縮放模式 (Stretch/SizeMode) 與命令事件轉換 |
 | **版面配置容器** | `Canvas`, `StackPanel`, `Grid`, `Border`, `DockPanel`, `WrapPanel`, `ScrollViewer` | 支援巢狀拖曳放入、自動流式排版、列/欄定義與視覺樹精準選取 |
-| **非視覺 / 硬體元件** | `DispatcherTimer`, `BackgroundWorker`, `BluetoothClient`, `SerialPortService` | 自動註冊為 DI 服務並提供專屬回呼事件（`Tick`, `DoWork`, `ProgressChanged`, `DataReceived` 等）自動掛載 |
+| **非視覺 / 硬體元件** | `DispatcherTimer`, `BackgroundWorker`, `BluetoothClient`, `SerialPortService` | 支援設計畫布視覺卡片預覽（[Timer], [Worker], [BLE], [COM] 標籤），自動註冊為 DI 服務並提供專屬回呼事件（`Tick`, `DoWork`, `ProgressChanged`, `DataReceived` 等）自動掛載 |
 
 ---
 
@@ -56,6 +56,7 @@ graph LR
 
 1. **視覺化設計畫布 (Design Canvas & Adorner System)**
    - **自由畫布與容器模式**：支援 Canvas 絕對座標排版與 Grid / StackPanel / Border / DockPanel 等流式佈局。
+   - **不可視元件預覽卡片**：Timer、Worker、Bluetooth、SerialPort 等不可視元件在畫布上具備獨立徽章卡片，支援直接拖曳、選取與屬性設定。
    - **裝置解析度與長寬比預設 / 自訂**：支援主流手機長寬比（9:19.5、9:20、9:16）、平板（3:4、16:10）、桌面（1080p、720p）與**任意自訂寬高數值微調**。
    - **8 點縮放控制裝飾器**：基於 Avalonia 視覺樹 `TranslatePoint` 動態對齊，無論在 Canvas 或巢狀容器內均 100% 精準貼合。
    - **智慧拖曳事務 (Drag Transaction)**：滑鼠拖曳移動期間不污染歷史堆疊，單次拖曳僅推入一次快照，`Ctrl+Z` 一步到位。
@@ -65,12 +66,14 @@ graph LR
 2. **屬性與事件檢查器 (`Property & Event Inspector`)**
    - **外觀與幾何屬性配置**：Text, Content, Watermark, Width/Height, Margins, Alignments, Opacity, IsEnabled 等。
    - **MVVM 視覺化綁定建構器 (`Binding Builder`)**：支援屬性雙向綁定 (TwoWay)、單向綁定 (OneWay) 與模式切換。
-   - **事件轉命令 (`Event-to-Command Mapping`)**：自動將 Click / SelectionChanged 等事件映射為 RelayCommand。
+   - **多參數事件轉命令 (`Event-to-Command Mapping`)**：自動將 Click / SelectionChanged / Tick 等事件映射為 RelayCommand，支援事件專屬 EventArgs 型別過濾與多參數配置，並預設傳遞 `(sender, e)`。
+   - **ValueTuple 安全性防護**：產生的命令參數宣告為可為空型別 (`(sender, e)? args = null`)，確保 CommunityToolkit.Mvvm 的 `CanExecute(null)` 正確判定，絕不引發按鈕禁用或閃退。
 
 3. **相依性注入與跨平台多專案生成 (`AFG.Generators`)**
    - **全面整合 `Microsoft.Extensions.DependencyInjection`**：在 `App.cs` 配置 `ServiceCollection` / `ServiceProvider`，自動註冊 Services、ViewModels 與 Views，支援 ViewModel 建構子相依性注入。
    - **純 C# Markup 宣告式 UI**：無 AXAML 依賴，採用 Fluent Method Chaining 鏈式調用，型別安全且編譯即時檢查。
-   - **可配置視窗尺寸**：依設計器與解析度規格生成標準視窗尺寸 (`Width` / `Height`)。
+   - **原生事件轉發擴充**：提供 `OnClick`、`OnTextChanged`、`OnSelectionChanged` 等擴充方法，由 View 端原生事件直接激勵 ViewModel 命令。
+   - **可配置視窗尺寸**：依設計器與解析度規格生成標準視窗尺寸 (`Width` / `Height`)，預設不強制全螢幕。
    - **Roslyn 格式化與記憶體編譯診斷**：使用 Roslyn 語法樹標準化縮排，並在記憶體中編譯檢查，即時提供語法警告。
 
 4. **專案檔保存與載入 (`.afg.json`)**
@@ -87,25 +90,25 @@ AvaloniaFormGenerator/
 ├── src/
 │   ├── AFG.Core/                         # [核心層] UI AST 中介模型、不可變結構、純函數樹操作、驗證與 JSON 序列化
 │   │   ├── Enums/                        # 控制項類型、佈局模式、綁定模式等列舉
-│   │   ├── Models/Ast/                   # AstNode, FormDocument, BindingDefinition, EventMapping, AstTreeOperations
+│   │   ├── Models/Ast/                   # AstNode, FormDocument, BindingDefinition, EventMapping, ControlEventCatalog
 │   │   ├── Models/Common/                # ThicknessModel, CornerRadiusModel, GridLengthModel
 │   │   ├── Serialization/                # AfgSerializer (.afg.json 專案檔讀寫)
 │   │   └── Validation/                   # AstValidator (防禦性與命名規範檢查)
 │   │
 │   ├── AFG.Generators/                   # [程式碼生成引擎] Roslyn 格式化、C# Declarative View 生成、Mvvm 生成與專案匯出
 │   │   ├── Abstractions/                 # ICodeGenerator, IRoslynCompilerService
-│   │   ├── CSharpMarkup/                 # CSharpMarkupViewGenerator (Fluent 鏈式調用 View 生成器)
+│   │   ├── CSharpMarkup/                 # CSharpMarkupViewGenerator, AvaloniaMarkupExtensionsSource
 │   │   ├── Mvvm/                         # MvvmViewModelGenerator (自動屬性/命令提取與 DI 建構子生成)
 │   │   ├── ProjectExport/                # ProjectExportService (多專案 .slnx, .Shared, .Desktop, .Android 匯出)
 │   │   ├── Roslyn/                       # RoslynCodeFormatter, RoslynCompilerService
 │   │   └── FormCodeGenerator.cs          # 生成器外觀服務
 │   │
 │   ├── AFG.Shared/                       # [跨平台共用 UI] 視覺畫布、8 點縮放裝飾器、對齊吸附、屬性檢查器
-│   │   ├── Controls/                     # DesignCanvas (雙層渲染架構), SnappingEngine (吸附計算)
+│   │   ├── Controls/                     # DesignCanvas (雙層渲染與差量更新架構), SnappingEngine (吸附計算)
 │   │   ├── Models/                       # ToolboxItem, CanvasPreset (裝置解析度與長寬比模型)
 │   │   ├── Services/                     # IFileDialogService, IClipboardService, ToolboxService
-│   │   ├── ViewModels/                   # MainViewModel, CanvasViewModel, InspectorViewModel, ToolboxViewModel, VisualTreeViewModel
-│   │   └── Views/                        # MainView, DesignCanvas, InspectorView, ToolboxView, VisualTreeExplorerView
+│   │   ├── ViewModels/                   # MainViewModel, CanvasViewModel, InspectorViewModel, ToolboxViewModel
+│   │   └── Views/                        # MainView, DesignCanvas, InspectorView, ToolboxView
 │   │
 │   └── AFG.Desktop/                      # [桌面端進入點] Windows/macOS/Linux 桌面宿主與本機平台 API 實作
 │       ├── Services/                     # DesktopFileDialogService, DesktopClipboardService
@@ -113,10 +116,10 @@ AvaloniaFormGenerator/
 │       └── Program.cs                    # 應用程式進入點 (ClassicDesktopStyleApplicationLifetime)
 │
 ├── tests/
-│   ├── AFG.Core.Tests/                   # AST 增刪改查、循環防護、驗證器、序列化、吸附與檢查器測試 (32 項測試)
-│   └── AFG.Generators.Tests/             # C# Markup 轉譯、ViewModel 生成、Roslyn 格式化、DI 驗證與整包專案 dotnet build 測試 (13 項測試)
+│   ├── AFG.Core.Tests/                   # AST 增刪改查、循環防護、驗證器、序列化、吸附與檢查器測試 (116 項測試)
+│   └── AFG.Generators.Tests/             # C# Markup 轉譯、ViewModel 生成、Roslyn 格式化、DI 驗證與整包專案建置測試 (51 項測試)
 │
-├── docs/                                 # 詳細技術與使用手冊
+├── docs/                                 # 詳細技術規格與使用者手冊
 └── plan.md                               # 專案執行計劃書 (Phased Milestones)
 ```
 
@@ -137,7 +140,7 @@ dotnet build
 ```bash
 dotnet test
 ```
-> 目前包含 **103 / 103** 項單元與整合編譯測試，100% 全數通過，0 警告，0 錯誤。
+> 目前包含 **167 / 167** 項單元與整合編譯測試，100% 全數通過，0 警告，0 錯誤。
 
 ### 3. 啟動桌面設計器 (Run App)
 ```bash

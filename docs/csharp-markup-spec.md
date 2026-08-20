@@ -61,7 +61,8 @@ Content = new Canvas()
 | **清單項目來源** | - | `.ItemsSource(string path, BindingMode)` | `ItemsControl`, `ListBox`, `ComboBox` |
 | **選取項目** | - | `.SelectedItem(path)` / `.SelectedIndex(path)` | `SelectingItemsControl` |
 | **影像來源與縮放** | `.Source(IImage)` / `.Stretch(Stretch)` | `.Source(path, mode)` / `.Stretch(path, mode)` | `Image`, `PictureBox` |
-| **事件命令** | - | `.Command(string path)` / `.Command(Func<TVm, object?> expr)` | `Button`, `PictureBox`, `Image` |
+| **事件命令綁定** | - | `.Command(string path)` / `.Command(Func<TVm, object?> expr)` | `Button`, `PictureBox`, `Image` |
+| **原生事件轉發** | `.OnClick(...)`, `.OnTextChanged(...)`, `.OnSelectionChanged(...)`, `.OnTapped(...)`, `.OnKeyDown(...)` | 支援無參數、單參數與 `(sender, e)` 雙參數自動轉發至 ViewModel 命令 | `Button`, `TextBox`, `ComboBox`, `Control` |
 | **容器座標** | `.CanvasLeft(double)` / `.CanvasTop(double)` | - | `Canvas` 子項目 |
 | **Grid 網格座標** | `.GridRow(int)` / `.GridColumn(int)` | - | `Grid` 子項目 |
 | **子項目集合** | `.Children(params Control[])` | - | `Panel` (Canvas, Grid, StackPanel 等) |
@@ -92,12 +93,21 @@ AFG 的 ViewModel 生成器嚴格遵循 `CommunityToolkit.Mvvm` 與 `Microsoft.E
          private ObservableCollection<string> _itemsList = [];
      }
      ```
-2. **命令生成 (同步 vs 非同步)**：
+2. **命令生成 (單參數 vs 多參數 ValueTuple 與 CanExecute 安全性)**：
    - **非同步命令 (預設)**：方法簽章為 `async Task ...Async()`，CommunityToolkit.Mvvm 自動擴展為 `IAsyncRelayCommand` 屬性。
-   - **同步命令**：方法簽章為 `void ...()`，自動擴展為 `IRelayCommand` 屬性。
+   - **多參數元組封裝**：當事件包含多個參數（如 `sender` 與 `e`）時，生成器將其封裝為**可為空的 `ValueTuple`** 並提供預設值：
+     ```csharp
+     [RelayCommand]
+     private async Task Button1_ClickAsync((object? sender, RoutedEventArgs? e)? args = null)
+     {
+         // 透過 args?.sender 與 args?.e 安全存取原生事件來源與參數
+         await Task.CompletedTask;
+     }
+     ```
+   - **CanExecute 防禦機制**：參數宣告為可空元組 `(T1, T2)? args = null`，防止 `ValueTuple` 因實值型別拒絕 `null` 而導致 `CanExecute(null)` 回傳 `false` 誤將按鈕禁用的底層問題。
 
 3. **不可視元件與硬體通訊專屬回呼 (Callbacks)**：
-    - 自動在 ViewModel 建構子內進行事件掛載，無縫調用對應之 RelayCommand：
+    - 自動在 ViewModel 建構子內進行事件掛載，傳遞對應之 `(s, e)` 並調用對應之 RelayCommand：
       ```csharp
       public partial class HardwareFormViewModel : ObservableObject
       {
@@ -108,14 +118,17 @@ AFG 的 ViewModel 生成器嚴格遵循 `CommunityToolkit.Mvvm` 與 `Microsoft.E
 
           public HardwareFormViewModel()
           {
-              _pollTimer.Tick += (s, e) => OnTimerTickCommand.Execute(null);
-              _taskWorker.DoWork += (s, e) => PerformWorkCommand.Execute(null);
-              _bleScanner.DataReceived += (s, e) => OnBleDataCommand.Execute(null);
-              _serialDevice.DataReceived += (s, e) => OnSerialDataCommand.Execute(null);
+              _pollTimer.Tick += (s, e) => OnTimerTickCommand.Execute((s, e));
+              _taskWorker.DoWork += (s, e) => PerformWorkCommand.Execute((s, e));
+              _bleScanner.DataReceived += (s, e) => OnBleDataCommand.Execute((s, e));
+              _serialDevice.DataReceived += (s, e) => OnSerialDataCommand.Execute((s, e));
           }
 
           [RelayCommand]
-          private async Task OnBleDataAsync() { ... }
+          private async Task OnTimerTickAsync((object? sender, EventArgs? e)? args = null) { ... }
+
+          [RelayCommand]
+          private async Task OnBleDataAsync((object? sender, string? data)? args = null) { ... }
       }
       ```
 
