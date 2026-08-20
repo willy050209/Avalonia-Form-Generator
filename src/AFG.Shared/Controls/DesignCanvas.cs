@@ -133,7 +133,7 @@ public sealed class DesignCanvas : Grid
     /// </summary>
     private bool TryPatchElements(AstNode rootNode)
     {
-        var rootChildren = rootNode.Children.Where(c => !Generators.CSharpMarkup.CSharpMarkupViewGenerator.IsNonVisualComponent(c.Type)).ToList();
+        var rootChildren = rootNode.Children;
         if (_elementsCanvas.Children.Count != rootChildren.Count)
         {
             return false;
@@ -207,6 +207,10 @@ public sealed class DesignCanvas : Grid
             else if (ctrl is ProgressBar pb)
             {
                 if (node.Value.HasValue) pb.Value = node.Value.Value;
+            }
+            else if (ctrl is Border cardBorder && cardBorder.Child is StackPanel cardSp && cardSp.Children.Count >= 2 && cardSp.Children[1] is TextBlock nameTb)
+            {
+                nameTb.Text = node.Name;
             }
         }
 
