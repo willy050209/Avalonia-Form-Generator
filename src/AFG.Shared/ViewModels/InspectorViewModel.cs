@@ -161,6 +161,21 @@ public sealed partial class InspectorViewModel : ObservableObject
     [ObservableProperty]
     private bool _isGeometrySupported = true;
 
+    [ObservableProperty]
+    private bool _isPositionManagedByParent;
+
+    [ObservableProperty]
+    private string _parentContainerType = string.Empty;
+
+    [ObservableProperty]
+    private bool _isCanvasPositionSupported = true;
+
+    [ObservableProperty]
+    private bool _isGridCellSupported;
+
+    [ObservableProperty]
+    private bool _isDockSupported;
+
     public ObservableCollection<BindingItemViewModel> Bindings { get; } = [];
     public ObservableCollection<EventItemViewModel> Events { get; } = [];
     public ObservableCollection<ValidationError> ValidationErrors { get; } = [];
@@ -183,7 +198,33 @@ public sealed partial class InspectorViewModel : ObservableObject
         Core.Enums.Stretch.UniformToFill
     ];
 
-    public void LoadNode(AstNode? node)
+    public InspectorViewModel()
+    {
+        Bindings.CollectionChanged += (s, e) =>
+        {
+            if (e.NewItems is not null)
+            {
+                foreach (BindingItemViewModel item in e.NewItems)
+                {
+                    item.PropertyChanged += (_, _) => ApplyChanges();
+                }
+            }
+        };
+
+        Events.CollectionChanged += (s, e) =>
+        {
+            if (e.NewItems is not null)
+            {
+                foreach (EventItemViewModel item in e.NewItems)
+                {
+                    item.PropertyChanged += (_, _) => ApplyChanges();
+                    item.ParameterChanged += ApplyChanges;
+                }
+            }
+        };
+    }
+
+    public void LoadNode(AstNode? node, AstNode? parentNode = null)
     {
         if (_isUpdating)
         {
@@ -203,6 +244,11 @@ public sealed partial class InspectorViewModel : ObservableObject
             NodeName = string.Empty;
             Background = null;
             Foreground = null;
+            IsPositionManagedByParent = false;
+            ParentContainerType = string.Empty;
+            IsCanvasPositionSupported = true;
+            IsGridCellSupported = false;
+            IsDockSupported = false;
             Bindings.Clear();
             Events.Clear();
             ValidationErrors.Clear();
@@ -259,6 +305,16 @@ public sealed partial class InspectorViewModel : ObservableObject
         IsCheckableSupported = type is CoreControlType.CheckBox or CoreControlType.RadioButton;
         IsValueSupported = type is CoreControlType.Slider or CoreControlType.ProgressBar;
         IsAutoSizeSupported = !node.IsContainer && !isNonVisual;
+
+        // 判定是否受非 Canvas 容器管理
+        var isManagedByParent = parentNode is not null &&
+            parentNode.Type is CoreControlType.StackPanel or CoreControlType.DockPanel or CoreControlType.WrapPanel or CoreControlType.Grid;
+
+        IsPositionManagedByParent = isManagedByParent;
+        ParentContainerType = isManagedByParent ? parentNode!.Type.ToString() : string.Empty;
+        IsCanvasPositionSupported = !isNonVisual && !isManagedByParent;
+        IsGridCellSupported = parentNode?.Type == CoreControlType.Grid;
+        IsDockSupported = parentNode?.Type == CoreControlType.DockPanel;
 
         if (!isSameNode)
         {
@@ -335,12 +391,19 @@ public sealed partial class InspectorViewModel : ObservableObject
         var defaultEvent = ControlEventCatalog.GetDefaultEvent(_currentNode.Type) ?? (availableEvents.Count > 0 ? availableEvents[0] : "Click");
         var defaultCommand = $"{NodeName}_{defaultEvent}Command";
 
-        Events.Add(new EventItemViewModel
+        var eventVm = new EventItemViewModel
         {
             EventName = defaultEvent,
             CommandProperty = defaultCommand,
             AvailableEvents = availableEvents
-        });
+        };
+
+        foreach (var p in ControlEventCatalog.GetDefaultParameters(defaultEvent))
+        {
+            eventVm.Parameters.Add(EventParameterItemViewModel.FromDefinition(p));
+        }
+
+        Events.Add(eventVm);
         ApplyChanges();
     }
 

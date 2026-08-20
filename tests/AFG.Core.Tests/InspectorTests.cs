@@ -189,4 +189,93 @@ public sealed class InspectorTests
         updated.Should().NotBeNull();
         updated!.AutoSize.Should().BeTrue();
     }
+
+    [Fact]
+    public void LoadNode_WhenNodeInsideStackPanel_ShouldMarkPositionManagedByParentAndDisableCanvasPosition()
+    {
+        // Arrange
+        var parentNode = new AstNode
+        {
+            Id = "stack1",
+            Type = ControlType.StackPanel
+        };
+
+        var childNode = new AstNode
+        {
+            Id = "btn1",
+            Type = ControlType.Button,
+            CanvasLeft = 50,
+            CanvasTop = 60
+        };
+
+        var inspector = new InspectorViewModel();
+
+        // Act
+        inspector.LoadNode(childNode, parentNode);
+
+        // Assert
+        inspector.IsPositionManagedByParent.Should().BeTrue();
+        inspector.ParentContainerType.Should().Be("StackPanel");
+        inspector.IsCanvasPositionSupported.Should().BeFalse();
+        inspector.IsGridCellSupported.Should().BeFalse();
+    }
+
+    [Fact]
+    public void LoadNode_WhenNodeInsideGrid_ShouldEnableGridCellAndDisableCanvasPosition()
+    {
+        // Arrange
+        var parentNode = new AstNode
+        {
+            Id = "grid1",
+            Type = ControlType.Grid
+        };
+
+        var childNode = new AstNode
+        {
+            Id = "btn1",
+            Type = ControlType.Button,
+            GridRow = 1,
+            GridColumn = 2
+        };
+
+        var inspector = new InspectorViewModel();
+
+        // Act
+        inspector.LoadNode(childNode, parentNode);
+
+        // Assert
+        inspector.IsPositionManagedByParent.Should().BeTrue();
+        inspector.ParentContainerType.Should().Be("Grid");
+        inspector.IsCanvasPositionSupported.Should().BeFalse();
+        inspector.IsGridCellSupported.Should().BeTrue();
+    }
+
+    [Fact]
+    public void LoadNode_WhenNodeInsideCanvas_ShouldEnableCanvasPosition()
+    {
+        // Arrange
+        var parentNode = new AstNode
+        {
+            Id = "canvas1",
+            Type = ControlType.Canvas
+        };
+
+        var childNode = new AstNode
+        {
+            Id = "btn1",
+            Type = ControlType.Button,
+            CanvasLeft = 120,
+            CanvasTop = 80
+        };
+
+        var inspector = new InspectorViewModel();
+
+        // Act
+        inspector.LoadNode(childNode, parentNode);
+
+        // Assert
+        inspector.IsPositionManagedByParent.Should().BeFalse();
+        inspector.IsCanvasPositionSupported.Should().BeTrue();
+        inspector.IsGridCellSupported.Should().BeFalse();
+    }
 }

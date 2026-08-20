@@ -460,9 +460,46 @@ public static class AvaloniaMarkupExtensionsSource
             return btn;
         }
 
+        public static Button Command(this Button btn, string path, object? parameter)
+        {
+            btn.Bind(Button.CommandProperty, new Binding(path));
+            if (parameter != null)
+            {
+                btn.CommandParameter = parameter;
+            }
+            return btn;
+        }
+
+        public static Button Command(this Button btn, string path, string paramPath)
+        {
+            btn.Bind(Button.CommandProperty, new Binding(path));
+            btn.Bind(Button.CommandParameterProperty, new Binding(paramPath));
+            return btn;
+        }
+
         public static Button Command<TVm, TProp>(this Button btn, Expression<Func<TVm, TProp>> expr)
         {
             btn.Bind(Button.CommandProperty, new Binding(GetPropertyPath(expr)));
+            return btn;
+        }
+
+        public static Button Command<TVm, TProp>(this Button btn, Expression<Func<TVm, TProp>> commandExpr, object? parameter)
+        {
+            btn.Bind(Button.CommandProperty, new Binding(GetPropertyPath(commandExpr)));
+            if (parameter != null)
+            {
+                btn.CommandParameter = parameter;
+            }
+            return btn;
+        }
+
+        public static Button Command<TVm, TProp, TParam>(
+            this Button btn,
+            Expression<Func<TVm, TProp>> commandExpr,
+            Expression<Func<TVm, TParam>> paramExpr)
+        {
+            btn.Bind(Button.CommandProperty, new Binding(GetPropertyPath(commandExpr)));
+            btn.Bind(Button.CommandParameterProperty, new Binding(GetPropertyPath(paramExpr)));
             return btn;
         }
 
@@ -475,11 +512,50 @@ public static class AvaloniaMarkupExtensionsSource
             return control;
         }
 
+        public static T Command<T>(this T control, string path, object? parameter) where T : Control
+        {
+            if (control is Button btn)
+            {
+                btn.Command(path, parameter);
+            }
+            return control;
+        }
+
+        public static T Command<T>(this T control, string path, string paramPath) where T : Control
+        {
+            if (control is Button btn)
+            {
+                btn.Command(path, paramPath);
+            }
+            return control;
+        }
+
         public static T Command<T, TVm, TProp>(this T control, Expression<Func<TVm, TProp>> expr) where T : Control
         {
             if (control is Button btn)
             {
                 btn.Bind(Button.CommandProperty, new Binding(GetPropertyPath(expr)));
+            }
+            return control;
+        }
+
+        public static T Command<T, TVm, TProp>(this T control, Expression<Func<TVm, TProp>> commandExpr, object? parameter) where T : Control
+        {
+            if (control is Button btn)
+            {
+                btn.Command(commandExpr, parameter);
+            }
+            return control;
+        }
+
+        public static T Command<T, TVm, TProp, TParam>(
+            this T control,
+            Expression<Func<TVm, TProp>> commandExpr,
+            Expression<Func<TVm, TParam>> paramExpr) where T : Control
+        {
+            if (control is Button btn)
+            {
+                btn.Command(commandExpr, paramExpr);
             }
             return control;
         }

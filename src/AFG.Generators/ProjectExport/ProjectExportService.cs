@@ -12,7 +12,7 @@ namespace AFG.Generators.ProjectExport;
 /// </summary>
 public sealed record ProjectExportOptions(
     bool IncludeMobileProject = true,
-    bool IncludeLicense = true,
+    bool IncludeLicense = false,
     string? CustomProjectName = null);
 
 /// <summary>
@@ -45,7 +45,8 @@ public sealed class ProjectExportService(FormCodeGenerator? codeGenerator = null
         }
 
         var files = new List<GeneratedSourceFile>();
-        var baseProjectName = string.IsNullOrWhiteSpace(options.CustomProjectName) ? project.ProjectName : options.CustomProjectName.Trim();
+        var rawProjectName = string.IsNullOrWhiteSpace(options.CustomProjectName) ? project.ProjectName : options.CustomProjectName;
+        var baseProjectName = SanitizeProjectName(rawProjectName);
 
         var sharedProjectName = $"{baseProjectName}.Shared";
         var desktopProjectName = $"{baseProjectName}.Desktop";
@@ -691,29 +692,59 @@ public sealed class ProjectExportService(FormCodeGenerator? codeGenerator = null
     }
 
     /// <summary>
-    /// 將多表單專案檔案寫出至本機資料夾，並自動建立分層子資料夾階層。
+    /// 將多表單專案檔案寫出至本機資料夾，並自動建立分層子資料夾階層（具備目錄穿越安全防護）。
     /// </summary>
     public async Task ExportMultiFormToFolderAsync(FormProjectDefinition project, string destinationDirectory, ProjectExportOptions? options = null, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(project);
         ArgumentException.ThrowIfNullOrWhiteSpace(destinationDirectory);
 
-        if (!Directory.Exists(destinationDirectory))
+        var fullDestinationDir = Path.GetFullPath(destinationDirectory);
+        if (!Directory.Exists(fullDestinationDir))
         {
-            Directory.CreateDirectory(destinationDirectory);
+            Directory.CreateDirectory(fullDestinationDir);
         }
 
         var files = GenerateMultiFormProject(project, options);
         foreach (var file in files)
         {
-            var filePath = Path.Combine(destinationDirectory, file.FileName);
-            var fileDir = Path.GetDirectoryName(filePath);
+            var fullFilePath = Path.GetFullPath(Path.Combine(fullDestinationDir, file.FileName));
+            if (!fullFilePath.StartsWith(fullDestinationDir, StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidOperationException($"檢測到潛在的路徑穿越 (Path Traversal) 非法檔案路徑：{file.FileName}");
+            }
+
+            var fileDir = Path.GetDirectoryName(fullFilePath);
             if (!string.IsNullOrEmpty(fileDir) && !Directory.Exists(fileDir))
             {
                 Directory.CreateDirectory(fileDir);
             }
 
-            await File.WriteAllTextAsync(filePath, file.Content, Encoding.UTF8, cancellationToken);
+            await File.WriteAllTextAsync(fullFilePath, file.Content, Encoding.UTF8, cancellationToken);
         }
+    }
+
+    /// <summary>
+    /// 對專案名稱進行消毒，移除目錄穿越符號、非法字元與路徑分隔符號。
+    /// </summary>
+    public static string SanitizeProjectName(string? rawName)
+    {
+        if (string.IsNullOrWhiteSpace(rawName))
+        {
+            return "AvaloniaApp";
+        }
+
+        var invalidChars = Path.GetInvalidFileNameChars();
+        var sb = new StringBuilder();
+        foreach (var ch in rawName.Trim())
+        {
+            if (Array.IndexOf(invalidChars, ch) < 0 && ch is not '/' and not '\\' and not ':' and not '<' and not '>' and not '"' and not '|' and not '?' and not '*')
+            {
+                sb.Append(ch);
+            }
+        }
+
+        var result = sb.ToString().Replace("..", string.Empty, StringComparison.Ordinal).Trim('.', ' ');
+        return string.IsNullOrWhiteSpace(result) ? "AvaloniaApp" : result;
     }
 }

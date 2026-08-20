@@ -139,4 +139,68 @@ public sealed class ControlEventCatalogTests
         // Assert
         result.Should().Be(expected);
     }
+
+    [Theory]
+    [InlineData("Click", "RoutedEventArgs")]
+    [InlineData("Tapped", "TappedEventArgs")]
+    [InlineData("PointerPressed", "PointerPressedEventArgs")]
+    [InlineData("KeyDown", "KeyEventArgs")]
+    [InlineData("TextChanged", "TextChangedEventArgs")]
+    [InlineData("SelectionChanged", "SelectionChangedEventArgs")]
+    [InlineData("Tick", "EventArgs")]
+    public void GetDefaultEventArgsType_ShouldReturnCorrectAvaloniaEventArgs(string eventName, string expectedType)
+    {
+        var type = ControlEventCatalog.GetDefaultEventArgsType(eventName);
+        type.Should().Be(expectedType);
+    }
+
+    [Theory]
+    [InlineData("RoutedEventArgs", "e")]
+    [InlineData("PointerPressedEventArgs", "e")]
+    [InlineData("EventArgs", "e")]
+    [InlineData("object?", "sender")]
+    [InlineData("Control", "sender")]
+    [InlineData("int", "parameter")]
+    [InlineData("string", "parameter")]
+    public void GetDefaultParameterName_ShouldInferStandardParameterNames(string paramType, string expectedName)
+    {
+        var name = ControlEventCatalog.GetDefaultParameterName(paramType);
+        name.Should().Be(expectedName);
+    }
+
+    [Fact]
+    public void GetDefaultParameters_ForClick_ShouldReturnSenderAndRoutedEventArgs()
+    {
+        var parameters = ControlEventCatalog.GetDefaultParameters("Click");
+        parameters.Should().HaveCount(2);
+        parameters[0].Name.Should().Be("sender");
+        parameters[0].Type.Should().Be("object?");
+        parameters[1].Name.Should().Be("e");
+        parameters[1].Type.Should().Be("RoutedEventArgs");
+    }
+
+    [Fact]
+    public void GetSupportedParameterTypes_ForClick_ShouldOnlyIncludeRelevantEventArgsAndExcludeOthers()
+    {
+        var types = ControlEventCatalog.GetSupportedParameterTypes("Click");
+        types.Should().Contain("RoutedEventArgs");
+        types.Should().Contain("object?");
+        types.Should().Contain("string");
+        types.Should().NotContain("TextChangedEventArgs");
+        types.Should().NotContain("SelectionChangedEventArgs");
+        types.Should().NotContain("KeyEventArgs");
+        types.Should().NotContain("ScrollChangedEventArgs");
+        types.Should().NotContain("PointerPressedEventArgs");
+    }
+
+    [Fact]
+    public void GetSupportedParameterTypes_ForTextChanged_ShouldOnlyIncludeTextChangedEventArgs()
+    {
+        var types = ControlEventCatalog.GetSupportedParameterTypes("TextChanged");
+        types.Should().Contain("TextChangedEventArgs");
+        types.Should().Contain("RoutedEventArgs");
+        types.Should().NotContain("PointerPressedEventArgs");
+        types.Should().NotContain("SelectionChangedEventArgs");
+        types.Should().NotContain("KeyEventArgs");
+    }
 }

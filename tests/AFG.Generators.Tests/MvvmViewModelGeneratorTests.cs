@@ -356,4 +356,162 @@ public sealed class MvvmViewModelGeneratorTests
         var diagnostics = RoslynCompilerService.CheckSyntaxDiagnostics(result.Content);
         diagnostics.Should().BeEmpty();
     }
+
+    [Fact]
+    public void Generate_WhenEventHasParameterType_ShouldProduceParameterizedRelayCommandMethod()
+    {
+        // Arrange
+        var doc = new FormDocument
+        {
+            RootNamespace = "MyApp.ViewModels",
+            ViewModelClassName = "ItemManagementViewModel",
+            RootNode = new AstNode
+            {
+                Id = "root",
+                Type = ControlType.StackPanel,
+                Children = [
+                    new AstNode
+                    {
+                        Id = "btnDelete",
+                        Type = ControlType.Button,
+                        Events = [
+                            new EventMappingDefinition
+                            {
+                                EventName = "Click",
+                                CommandProperty = "DeleteItemCommand",
+                                CommandParameterProperty = "id",
+                                ParameterType = "int",
+                                IsAsync = true
+                            }
+                        ]
+                    },
+                    new AstNode
+                    {
+                        Id = "btnSearch",
+                        Type = ControlType.Button,
+                        Events = [
+                            new EventMappingDefinition
+                            {
+                                EventName = "Click",
+                                CommandProperty = "FilterItemsCommand",
+                                CommandParameterProperty = "keyword",
+                                ParameterType = "string",
+                                IsAsync = false
+                            }
+                        ]
+                    }
+                ]
+            }
+        };
+
+        // Act
+        var result = _generator.Generate(doc);
+
+        // Assert
+        result.Content.Should().Contain("[RelayCommand]");
+        result.Content.Should().Contain("private async Task DeleteItemAsync(int id)");
+        result.Content.Should().Contain("private void FilterItems(string keyword)");
+
+        var diagnostics = RoslynCompilerService.CheckSyntaxDiagnostics(result.Content);
+        diagnostics.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Generate_ForClickAndPointerEvents_ShouldIncludeAvaloniaEventNamespacesAndEventArgsParameters()
+    {
+        // Arrange
+        var doc = new FormDocument
+        {
+            RootNamespace = "MyApp.ViewModels",
+            ViewModelClassName = "EventsFormViewModel",
+            RootNode = new AstNode
+            {
+                Id = "root",
+                Type = ControlType.Canvas,
+                Children = [
+                    new AstNode
+                    {
+                        Id = "btnSubmit",
+                        Type = ControlType.Button,
+                        Events = [
+                            new EventMappingDefinition
+                            {
+                                EventName = "Click",
+                                CommandProperty = "SubmitCommand",
+                                ParameterType = "RoutedEventArgs",
+                                CommandParameterProperty = "e",
+                                IsAsync = true
+                            },
+                            new EventMappingDefinition
+                            {
+                                EventName = "PointerPressed",
+                                CommandProperty = "OnCanvasPressedCommand",
+                                ParameterType = "PointerPressedEventArgs",
+                                CommandParameterProperty = "e",
+                                IsAsync = false
+                            }
+                        ]
+                    }
+                ]
+            }
+        };
+
+        // Act
+        var result = _generator.Generate(doc);
+
+        // Assert
+        result.Content.Should().Contain("using Avalonia.Interactivity;");
+        result.Content.Should().Contain("using Avalonia.Input;");
+        result.Content.Should().Contain("private async Task SubmitAsync(RoutedEventArgs e)");
+        result.Content.Should().Contain("private void OnCanvasPressed(PointerPressedEventArgs e)");
+
+        var diagnostics = RoslynCompilerService.CheckSyntaxDiagnostics(result.Content);
+        diagnostics.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Generate_WhenEventHasMultipleParameters_ShouldEmitMethodWithAllParameters()
+    {
+        // Arrange
+        var doc = new FormDocument
+        {
+            RootNamespace = "MyApp.ViewModels",
+            ViewModelClassName = "MultiParamFormViewModel",
+            RootNode = new AstNode
+            {
+                Id = "root",
+                Type = ControlType.Canvas,
+                Children = [
+                    new AstNode
+                    {
+                        Id = "btnSave",
+                        Type = ControlType.Button,
+                        Events = [
+                            new EventMappingDefinition
+                            {
+                                EventName = "Click",
+                                CommandProperty = "SaveWithContextCommand",
+                                Parameters = [
+                                    new EventParameterDefinition("sender", "object?"),
+                                    new EventParameterDefinition("e", "RoutedEventArgs"),
+                                    new EventParameterDefinition("forceSave", "bool")
+                                ],
+                                IsAsync = true
+                            }
+                        ]
+                    }
+                ]
+            }
+        };
+
+        // Act
+        var result = _generator.Generate(doc);
+
+        // Assert
+        result.Content.Should().Contain("[RelayCommand]");
+        result.Content.Should().Contain("private async Task SaveWithContextAsync(object? sender, RoutedEventArgs e, bool forceSave)");
+
+        var diagnostics = RoslynCompilerService.CheckSyntaxDiagnostics(result.Content);
+        diagnostics.Should().BeEmpty();
+    }
 }

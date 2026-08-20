@@ -116,6 +116,118 @@ public sealed class AfgSerializerTests
     }
 
     [Fact]
+    public void Roundtrip_EventMappingDefinition_ShouldPreserveCommandParameterProperties()
+    {
+        // Arrange
+        var doc = new FormDocument
+        {
+            RootNode = new AstNode
+            {
+                Id = "root",
+                Type = ControlType.Canvas,
+                Children = [
+                    new AstNode
+                    {
+                        Id = "btnDelete",
+                        Type = ControlType.Button,
+                        Events = [
+                            new EventMappingDefinition
+                            {
+                                EventName = "Click",
+                                CommandProperty = "DeleteItemCommand",
+                                CommandParameterProperty = "SelectedItem.Id",
+                                ParameterType = "int",
+                                IsConstantParameter = false,
+                                IsAsync = true
+                            },
+                            new EventMappingDefinition
+                            {
+                                EventName = "Click",
+                                CommandProperty = "ConfirmActionCommand",
+                                CommandParameterProperty = "HardReset",
+                                ParameterType = "string",
+                                IsConstantParameter = true,
+                                IsAsync = false
+                            }
+                        ]
+                    }
+                ]
+            }
+        };
+
+        // Act
+        var json = AfgSerializer.SerializeDocument(doc);
+        var result = AfgSerializer.DeserializeDocument(json);
+
+        // Assert
+        var events = result.RootNode.Children[0].Events;
+        events.Should().HaveCount(2);
+
+        events[0].CommandProperty.Should().Be("DeleteItemCommand");
+        events[0].CommandParameterProperty.Should().Be("SelectedItem.Id");
+        events[0].ParameterType.Should().Be("int");
+        events[0].IsConstantParameter.Should().BeFalse();
+        events[0].IsAsync.Should().BeTrue();
+
+        events[1].CommandProperty.Should().Be("ConfirmActionCommand");
+        events[1].CommandParameterProperty.Should().Be("HardReset");
+        events[1].ParameterType.Should().Be("string");
+        events[1].IsConstantParameter.Should().BeTrue();
+        events[1].IsAsync.Should().BeFalse();
+    }
+
+    [Fact]
+    public void Roundtrip_EventMappingDefinition_ShouldPreserveMultipleParameters()
+    {
+        // Arrange
+        var doc = new FormDocument
+        {
+            RootNode = new AstNode
+            {
+                Id = "root",
+                Type = ControlType.Canvas,
+                Children = [
+                    new AstNode
+                    {
+                        Id = "btnMulti",
+                        Type = ControlType.Button,
+                        Events = [
+                            new EventMappingDefinition
+                            {
+                                EventName = "Click",
+                                CommandProperty = "ProcessItemCommand",
+                                Parameters = [
+                                    new EventParameterDefinition("sender", "object?"),
+                                    new EventParameterDefinition("e", "RoutedEventArgs"),
+                                    new EventParameterDefinition("force", "bool", "true", true)
+                                ],
+                                IsAsync = true
+                            }
+                        ]
+                    }
+                ]
+            }
+        };
+
+        // Act
+        var json = AfgSerializer.SerializeDocument(doc);
+        var result = AfgSerializer.DeserializeDocument(json);
+
+        // Assert
+        var evt = result.RootNode.Children[0].Events[0];
+        evt.Parameters.Should().NotBeNull();
+        evt.Parameters.Should().HaveCount(3);
+        evt.Parameters![0].Name.Should().Be("sender");
+        evt.Parameters[0].Type.Should().Be("object?");
+        evt.Parameters[1].Name.Should().Be("e");
+        evt.Parameters[1].Type.Should().Be("RoutedEventArgs");
+        evt.Parameters[2].Name.Should().Be("force");
+        evt.Parameters[2].Type.Should().Be("bool");
+        evt.Parameters[2].ValueOrPath.Should().Be("true");
+        evt.Parameters[2].IsConstant.Should().BeTrue();
+    }
+
+    [Fact]
     public void DeserializeDocument_ShouldThrowJsonException_WhenGivenCorruptJson()
     {
         // Arrange

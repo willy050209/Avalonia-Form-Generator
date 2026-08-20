@@ -42,8 +42,8 @@ public sealed class MvvmViewModelGenerator : ICodeGenerator
             }
         }
 
-        // 收集所有唯一的 Command 命令名稱與非同步標記 (統一標準化為 PascalCase + Command)
-        var commands = new Dictionary<string, bool>(StringComparer.Ordinal);
+        // 收集所有唯一的 Command 命令名稱、非同步標記與多參數配置清單 (統一標準化為 PascalCase + Command)
+        var commands = new Dictionary<string, CommandGenInfo>(StringComparer.Ordinal);
         foreach (var node in allNodes)
         {
             foreach (var evt in node.Events)
@@ -51,9 +51,19 @@ public sealed class MvvmViewModelGenerator : ICodeGenerator
                 if (!string.IsNullOrWhiteSpace(evt.CommandProperty))
                 {
                     var cmdName = NormalizeCommandName(evt.CommandProperty);
-                    if (!commands.ContainsKey(cmdName))
+                    var effectiveParams = evt.GetEffectiveParameters()
+                        .Select(p => new CommandParameterInfo(
+                            Name: string.IsNullOrWhiteSpace(p.Name) ? "parameter" : ToCamelCase(p.Name),
+                            Type: string.IsNullOrWhiteSpace(p.Type) ? "object?" : p.Type.Trim()))
+                        .ToList();
+
+                    if (!commands.TryGetValue(cmdName, out var existing))
                     {
-                        commands[cmdName] = evt.IsAsync;
+                        commands[cmdName] = new CommandGenInfo(cmdName, evt.IsAsync, effectiveParams);
+                    }
+                    else if (existing.Parameters.Count == 0 && effectiveParams.Count > 0)
+                    {
+                        commands[cmdName] = existing with { Parameters = effectiveParams };
                     }
                 }
             }
@@ -73,6 +83,8 @@ public sealed class MvvmViewModelGenerator : ICodeGenerator
         sb.AppendLine("using System.Collections.ObjectModel;");
         sb.AppendLine("using System.ComponentModel;");
         sb.AppendLine("using System.Threading.Tasks;");
+        sb.AppendLine("using Avalonia.Input;");
+        sb.AppendLine("using Avalonia.Interactivity;");
         sb.AppendLine("using Avalonia.Threading;");
         sb.AppendLine("using CommunityToolkit.Mvvm.ComponentModel;");
         sb.AppendLine("using CommunityToolkit.Mvvm.Input;");
@@ -182,23 +194,28 @@ public sealed class MvvmViewModelGenerator : ICodeGenerator
             }
         }
 
-        // 輸出 Commands (支援同步 void 與非同步 async Task)
+        // 輸出 Commands (支援無參數/單參數/多參數，以及同步 void 與非同步 async Task)
         if (commands.Count > 0)
         {
-            foreach (var (cmdName, isAsync) in commands)
+            foreach (var (_, cmdInfo) in commands)
             {
-                var rawName = cmdName.EndsWith("Command", StringComparison.Ordinal)
-                    ? cmdName[..^"Command".Length]
-                    : cmdName;
+                var rawName = cmdInfo.CommandName.EndsWith("Command", StringComparison.Ordinal)
+                    ? cmdInfo.CommandName[..^"Command".Length]
+                    : cmdInfo.CommandName;
+
+                var paramDecls = cmdInfo.Parameters
+                    .Select(p => $"{p.Type} {Roslyn.CSharpSyntaxSanitizer.EscapeIdentifier(p.Name)}")
+                    .ToList();
+                var paramSignature = string.Join(", ", paramDecls);
 
                 sb.AppendLine("    [RelayCommand]");
-                if (isAsync)
+                if (cmdInfo.IsAsync)
                 {
                     var asyncMethodName = rawName.EndsWith("Async", StringComparison.Ordinal)
                         ? rawName
                         : $"{rawName}Async";
 
-                    sb.AppendLine($"    private async Task {asyncMethodName}()");
+                    sb.AppendLine($"    private async Task {asyncMethodName}({paramSignature})");
                     sb.AppendLine("    {");
                     sb.AppendLine("        // TODO: 實作非同步命令業務邏輯");
                     sb.AppendLine("        await Task.CompletedTask;");
@@ -210,7 +227,7 @@ public sealed class MvvmViewModelGenerator : ICodeGenerator
                         ? rawName[..^"Async".Length]
                         : rawName;
 
-                    sb.AppendLine($"    private void {syncMethodName}()");
+                    sb.AppendLine($"    private void {syncMethodName}({paramSignature})");
                     sb.AppendLine("    {");
                     sb.AppendLine("        // TODO: 實作同步命令業務邏輯");
                     sb.AppendLine("    }");
@@ -234,13 +251,16 @@ public sealed class MvvmViewModelGenerator : ICodeGenerator
             return "_value";
         }
 
-        return $"_{char.ToLowerInvariant(propertyName[0])}{propertyName[1..]}";
+        var sanitized = Roslyn.CSharpSyntaxSanitizer.SanitizeIdentifier(propertyName);
+        return $"_{char.ToLowerInvariant(sanitized[0])}{sanitized[1..]}";
     }
 
     private static string ToCamelCase(string name)
     {
         if (string.IsNullOrEmpty(name)) return "service";
-        return $"{char.ToLowerInvariant(name[0])}{name[1..]}";
+        var sanitized = Roslyn.CSharpSyntaxSanitizer.SanitizeIdentifier(name);
+        var camel = $"{char.ToLowerInvariant(sanitized[0])}{sanitized[1..]}";
+        return Roslyn.CSharpSyntaxSanitizer.EscapeIdentifier(camel);
     }
 
     private static string InferPropertyType(string targetProperty, ControlType controlType) => targetProperty switch
@@ -270,33 +290,39 @@ public sealed class MvvmViewModelGenerator : ICodeGenerator
     {
         return targetProperty switch
         {
-            "Text" => !string.IsNullOrEmpty(node.Text) ? $"\"{EscapeString(node.Text)}\"" : null,
-            "Content" => !string.IsNullOrEmpty(node.Content) ? $"\"{EscapeString(node.Content)}\"" : null,
-            "Source" => !string.IsNullOrEmpty(node.Source) ? $"\"{EscapeString(node.Source)}\"" : null,
+            "Text" => !string.IsNullOrEmpty(node.Text) ? $"\"{Roslyn.CSharpSyntaxSanitizer.EscapeStringLiteral(node.Text)}\"" : null,
+            "Content" => !string.IsNullOrEmpty(node.Content) ? $"\"{Roslyn.CSharpSyntaxSanitizer.EscapeStringLiteral(node.Content)}\"" : null,
+            "Source" => !string.IsNullOrEmpty(node.Source) ? $"\"{Roslyn.CSharpSyntaxSanitizer.EscapeStringLiteral(node.Source)}\"" : null,
             "IsChecked" when node.IsChecked.HasValue => node.IsChecked.Value ? "true" : "false",
             "Value" when node.Value.HasValue => node.Value.Value.ToString(System.Globalization.CultureInfo.InvariantCulture),
             _ => null
         };
     }
 
-    private static string EscapeString(string input) =>
-        input.Replace("\\", "\\\\", StringComparison.Ordinal).Replace("\"", "\\\"", StringComparison.Ordinal);
-
     public static string NormalizePropertyName(string name)
     {
         if (string.IsNullOrWhiteSpace(name)) return "Value";
-        name = name.Trim();
+        name = Roslyn.CSharpSyntaxSanitizer.SanitizeIdentifier(name.Trim());
         return char.ToUpperInvariant(name[0]) + name[1..];
     }
 
     public static string NormalizeCommandName(string name)
     {
         if (string.IsNullOrWhiteSpace(name)) return "ExecuteCommand";
-        name = name.Trim();
+        name = Roslyn.CSharpSyntaxSanitizer.SanitizeIdentifier(name.Trim());
         var raw = name.EndsWith("Command", StringComparison.OrdinalIgnoreCase)
             ? name[..^"Command".Length]
             : name;
         if (string.IsNullOrWhiteSpace(raw)) raw = "Execute";
         return char.ToUpperInvariant(raw[0]) + raw[1..] + "Command";
     }
+
+    private sealed record CommandParameterInfo(
+        string Name,
+        string Type);
+
+    private sealed record CommandGenInfo(
+        string CommandName,
+        bool IsAsync,
+        List<CommandParameterInfo> Parameters);
 }

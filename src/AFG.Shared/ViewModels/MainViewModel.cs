@@ -93,7 +93,10 @@ public sealed partial class MainViewModel : ObservableObject
     private void OnCanvasSelectionChanged(AstNode? node)
     {
         VisualTree.SyncSelection(node?.Id);
-        Inspector.LoadNode(node);
+        var parentNode = (node is not null && Canvas.Document is not null)
+            ? AstTreeOperations.FindParentNode(Canvas.Document.RootNode, node.Id)
+            : null;
+        Inspector.LoadNode(node, parentNode);
     }
 
     private void OnVisualTreeSelectionChanged(string? nodeId)

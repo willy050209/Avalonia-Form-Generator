@@ -93,4 +93,133 @@ public static class ControlEventCatalog
         var supported = GetSupportedEvents(controlType);
         return supported.Contains(eventName.Trim());
     }
+
+    /// <summary>
+    /// 取得特定事件對應之預設 C# 事件參數型別（例如 RoutedEventArgs, PointerPressedEventArgs 等）。
+    /// </summary>
+    public static string GetDefaultEventArgsType(string? eventName) => eventName switch
+    {
+        "Click" or "Checked" or "Unchecked" or "IsCheckedChanged" => "RoutedEventArgs",
+        "Tapped" or "DoubleTapped" => "TappedEventArgs",
+        "PointerPressed" => "PointerPressedEventArgs",
+        "PointerReleased" => "PointerReleasedEventArgs",
+        "PointerMoved" => "PointerEventArgs",
+        "KeyDown" or "KeyUp" => "KeyEventArgs",
+        "TextChanged" => "TextChangedEventArgs",
+        "SelectionChanged" => "SelectionChangedEventArgs",
+        "ScrollChanged" => "ScrollChangedEventArgs",
+        "SelectedDateChanged" => "DatePickerSelectedValueChangedEventArgs",
+        "SelectedTimeChanged" => "TimePickerSelectedValueChangedEventArgs",
+        "ValueChanged" => "RangeBaseValueChangedEventArgs",
+        "DoWork" => "DoWorkEventArgs",
+        "ProgressChanged" => "ProgressChangedEventArgs",
+        "RunWorkerCompleted" => "RunWorkerCompletedEventArgs",
+        "DataReceived" => "string",
+        "Tick" => "EventArgs",
+        _ => "RoutedEventArgs"
+    };
+
+    /// <summary>
+    /// 依據參數型別推斷標準參數名稱（如 e, sender, parameter）。
+    /// </summary>
+    public static string GetDefaultParameterName(string? parameterType, string? fallbackName = null)
+    {
+        if (string.IsNullOrWhiteSpace(parameterType))
+        {
+            return fallbackName ?? "parameter";
+        }
+
+        parameterType = parameterType.Trim();
+        if (parameterType.EndsWith("EventArgs", StringComparison.Ordinal) || parameterType == "EventArgs")
+        {
+            return "e";
+        }
+
+        if (parameterType is "object" or "object?" or "Control" or "Control?")
+        {
+            return "sender";
+        }
+
+        return fallbackName ?? "parameter";
+    }
+
+    /// <summary>
+    /// 取得特定事件之預設多參數清單（預設包含 sender 與專屬 EventArgs/資料參數）。
+    /// </summary>
+    public static ImmutableList<EventParameterDefinition> GetDefaultParameters(string? eventName)
+    {
+        var eventArgsType = GetDefaultEventArgsType(eventName);
+
+        if (eventName is "Tick")
+        {
+            return
+            [
+                new EventParameterDefinition("sender", "object?", null, false),
+                new EventParameterDefinition("e", "EventArgs", null, false)
+            ];
+        }
+
+        if (eventName is "DataReceived")
+        {
+            return
+            [
+                new EventParameterDefinition("sender", "object?", null, false),
+                new EventParameterDefinition("data", "string", null, false)
+            ];
+        }
+
+        if (eventName is "DoWork")
+        {
+            return
+            [
+                new EventParameterDefinition("sender", "object?", null, false),
+                new EventParameterDefinition("e", "DoWorkEventArgs", null, false)
+            ];
+        }
+
+        return
+        [
+            new EventParameterDefinition("sender", "object?", null, false),
+            new EventParameterDefinition("e", eventArgsType, null, false)
+        ];
+    }
+
+    /// <summary>
+    /// 取得特定事件專屬支援的 C# 參數型別清單（僅包含該事件專屬 EventArgs 與通用基底型別，排除其他事件的無關 EventArgs）。
+    /// </summary>
+    public static IReadOnlyList<string> GetSupportedParameterTypes(string? eventName)
+    {
+        var specificArgs = eventName switch
+        {
+            "Click" or "Checked" or "Unchecked" or "IsCheckedChanged" => (IReadOnlyList<string>)["RoutedEventArgs"],
+            "Tapped" or "DoubleTapped" => ["TappedEventArgs", "RoutedEventArgs"],
+            "PointerPressed" or "PointerReleased" or "PointerMoved" => ["PointerPressedEventArgs", "PointerReleasedEventArgs", "PointerEventArgs", "RoutedEventArgs"],
+            "KeyDown" or "KeyUp" => ["KeyEventArgs", "RoutedEventArgs"],
+            "TextChanged" => ["TextChangedEventArgs", "RoutedEventArgs"],
+            "SelectionChanged" => ["SelectionChangedEventArgs", "RoutedEventArgs"],
+            "ScrollChanged" => ["ScrollChangedEventArgs", "RoutedEventArgs"],
+            "SelectedDateChanged" => ["DatePickerSelectedValueChangedEventArgs", "RoutedEventArgs"],
+            "SelectedTimeChanged" => ["TimePickerSelectedValueChangedEventArgs", "RoutedEventArgs"],
+            "ValueChanged" => ["RangeBaseValueChangedEventArgs", "RoutedEventArgs"],
+            "DoWork" => ["DoWorkEventArgs", "EventArgs"],
+            "ProgressChanged" => ["ProgressChangedEventArgs", "EventArgs"],
+            "RunWorkerCompleted" => ["RunWorkerCompletedEventArgs", "EventArgs"],
+            "Tick" => ["EventArgs"],
+            "DataReceived" => ["string", "byte[]", "EventArgs"],
+            _ => ["RoutedEventArgs", "EventArgs"]
+        };
+
+        var commonPrimitives = new string[]
+        {
+            "object?",
+            "Control?",
+            "string",
+            "int",
+            "double",
+            "bool",
+            "Guid"
+        };
+
+        return specificArgs.Concat(commonPrimitives).Distinct().ToList();
+    }
 }

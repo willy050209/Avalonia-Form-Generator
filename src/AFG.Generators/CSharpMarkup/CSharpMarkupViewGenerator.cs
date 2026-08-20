@@ -1,5 +1,6 @@
 // filepath: src/AFG.Generators/CSharpMarkup/CSharpMarkupViewGenerator.cs
 using System.Globalization;
+using AFG.Generators.Roslyn;
 
 namespace AFG.Generators.CSharpMarkup;
 
@@ -22,6 +23,8 @@ public sealed class CSharpMarkupViewGenerator : ICodeGenerator
         sb.AppendLine("using Avalonia;");
         sb.AppendLine("using Avalonia.Controls;");
         sb.AppendLine("using Avalonia.Data;");
+        sb.AppendLine("using Avalonia.Input;");
+        sb.AppendLine("using Avalonia.Interactivity;");
         sb.AppendLine("using Avalonia.Layout;");
         sb.AppendLine("using Avalonia.Media;");
         sb.AppendLine("using Avalonia.Threading;");
@@ -39,7 +42,7 @@ public sealed class CSharpMarkupViewGenerator : ICodeGenerator
         sb.AppendLine("    {");
 
         // 遞迴生成根節點
-        var rootCode = GenerateNodeCode(document.RootNode, indentLevel: 2, document.ViewModelClassName, document.UseCompiledBindings);
+        var rootCode = GenerateNodeCode(document.RootNode, indentLevel: 2, document.ViewModelClassName, document.UseCompiledBindings, parentNode: null);
         sb.AppendLine($"        Content = {rootCode};");
 
         sb.AppendLine("    }");
@@ -54,7 +57,7 @@ public sealed class CSharpMarkupViewGenerator : ICodeGenerator
     /// <summary>
     /// 遞迴將 AST 節點轉換為 C# Fluent 鏈式調用語法。
     /// </summary>
-    public static string GenerateNodeCode(AstNode node, int indentLevel, string viewModelClassName, bool useCompiledBindings = false)
+    public static string GenerateNodeCode(AstNode node, int indentLevel, string viewModelClassName, bool useCompiledBindings = false, AstNode? parentNode = null)
     {
         ArgumentNullException.ThrowIfNull(node);
 
@@ -139,38 +142,48 @@ public sealed class CSharpMarkupViewGenerator : ICodeGenerator
             sb.AppendLine($"{innerIndent}.ZIndex({node.ZIndex})");
         }
 
-        // 2. 容器附屬屬性 (Attached Properties)
-        if (node.CanvasLeft.HasValue)
+        // 2. 容器附屬屬性 (Attached Properties - 依據父容器型別精準輸出，避免語意矛盾)
+        var isCanvasChild = parentNode is null || parentNode.Type == ControlType.Canvas;
+        var isGridChild = parentNode?.Type == ControlType.Grid;
+        var isDockChild = parentNode?.Type == ControlType.DockPanel;
+
+        if (isCanvasChild)
         {
-            sb.AppendLine($"{innerIndent}.CanvasLeft({node.CanvasLeft.Value.ToString(CultureInfo.InvariantCulture)})");
+            if (node.CanvasLeft.HasValue)
+            {
+                sb.AppendLine($"{innerIndent}.CanvasLeft({node.CanvasLeft.Value.ToString(CultureInfo.InvariantCulture)})");
+            }
+
+            if (node.CanvasTop.HasValue)
+            {
+                sb.AppendLine($"{innerIndent}.CanvasTop({node.CanvasTop.Value.ToString(CultureInfo.InvariantCulture)})");
+            }
         }
 
-        if (node.CanvasTop.HasValue)
+        if (isGridChild)
         {
-            sb.AppendLine($"{innerIndent}.CanvasTop({node.CanvasTop.Value.ToString(CultureInfo.InvariantCulture)})");
+            if (node.GridRow != 0)
+            {
+                sb.AppendLine($"{innerIndent}.GridRow({node.GridRow})");
+            }
+
+            if (node.GridColumn != 0)
+            {
+                sb.AppendLine($"{innerIndent}.GridColumn({node.GridColumn})");
+            }
+
+            if (node.GridRowSpan > 1)
+            {
+                sb.AppendLine($"{innerIndent}.GridRowSpan({node.GridRowSpan})");
+            }
+
+            if (node.GridColumnSpan > 1)
+            {
+                sb.AppendLine($"{innerIndent}.GridColumnSpan({node.GridColumnSpan})");
+            }
         }
 
-        if (node.GridRow != 0)
-        {
-            sb.AppendLine($"{innerIndent}.GridRow({node.GridRow})");
-        }
-
-        if (node.GridColumn != 0)
-        {
-            sb.AppendLine($"{innerIndent}.GridColumn({node.GridColumn})");
-        }
-
-        if (node.GridRowSpan > 1)
-        {
-            sb.AppendLine($"{innerIndent}.GridRowSpan({node.GridRowSpan})");
-        }
-
-        if (node.GridColumnSpan > 1)
-        {
-            sb.AppendLine($"{innerIndent}.GridColumnSpan({node.GridColumnSpan})");
-        }
-
-        if (node.Dock.HasValue)
+        if (isDockChild && node.Dock.HasValue)
         {
             sb.AppendLine($"{innerIndent}.Dock(Dock.{node.Dock.Value})");
         }
@@ -178,13 +191,13 @@ public sealed class CSharpMarkupViewGenerator : ICodeGenerator
         // 3. 容器專屬設置
         if (node.RowDefinitions.Count > 0)
         {
-            var rowDefs = string.Join(", ", node.RowDefinitions.Select(r => $"\"{r}\""));
+            var rowDefs = string.Join(", ", node.RowDefinitions.Select(r => $"\"{CSharpSyntaxSanitizer.EscapeStringLiteral(r.ToString())}\""));
             sb.AppendLine($"{innerIndent}.RowDefinitions({rowDefs})");
         }
 
         if (node.ColumnDefinitions.Count > 0)
         {
-            var colDefs = string.Join(", ", node.ColumnDefinitions.Select(c => $"\"{c}\""));
+            var colDefs = string.Join(", ", node.ColumnDefinitions.Select(c => $"\"{CSharpSyntaxSanitizer.EscapeStringLiteral(c.ToString())}\""));
             sb.AppendLine($"{innerIndent}.ColumnDefinitions({colDefs})");
         }
 
@@ -193,26 +206,26 @@ public sealed class CSharpMarkupViewGenerator : ICodeGenerator
             sb.AppendLine($"{innerIndent}.Orientation(Orientation.{node.Orientation.Value})");
         }
 
-        // 4. 控制項專屬外觀與內容（若已有資料綁定則不輸出覆寫之常數值）
+        // 4. 控制項專屬外觀與內容（採用 Roslyn 標準轉義防護特殊字元）
         var boundProps = new HashSet<string>(node.Bindings.Select(b => b.TargetProperty), StringComparer.Ordinal);
 
         if (!boundProps.Contains("Text") && !string.IsNullOrEmpty(node.Text))
         {
-            sb.AppendLine($"{innerIndent}.Text(\"{EscapeString(node.Text)}\")");
+            sb.AppendLine($"{innerIndent}.Text(\"{CSharpSyntaxSanitizer.EscapeStringLiteral(node.Text)}\")");
         }
         else if (!boundProps.Contains("Content") && !string.IsNullOrEmpty(node.Content))
         {
-            sb.AppendLine($"{innerIndent}.Content(\"{EscapeString(node.Content)}\")");
+            sb.AppendLine($"{innerIndent}.Content(\"{CSharpSyntaxSanitizer.EscapeStringLiteral(node.Content)}\")");
         }
 
         if (!boundProps.Contains("Header") && !string.IsNullOrEmpty(node.Header))
         {
-            sb.AppendLine($"{innerIndent}.Header(\"{EscapeString(node.Header)}\")");
+            sb.AppendLine($"{innerIndent}.Header(\"{CSharpSyntaxSanitizer.EscapeStringLiteral(node.Header)}\")");
         }
 
         if (!boundProps.Contains("Watermark") && !string.IsNullOrEmpty(node.Watermark))
         {
-            sb.AppendLine($"{innerIndent}.Watermark(\"{EscapeString(node.Watermark)}\")");
+            sb.AppendLine($"{innerIndent}.Watermark(\"{CSharpSyntaxSanitizer.EscapeStringLiteral(node.Watermark)}\")");
         }
 
         if (!boundProps.Contains("IsChecked") && node.IsChecked.HasValue)
@@ -232,17 +245,17 @@ public sealed class CSharpMarkupViewGenerator : ICodeGenerator
 
         if (!string.IsNullOrWhiteSpace(node.Background))
         {
-            sb.AppendLine($"{innerIndent}.Background(Brush.Parse(\"{EscapeString(node.Background)}\"))");
+            sb.AppendLine($"{innerIndent}.Background(Brush.Parse(\"{CSharpSyntaxSanitizer.EscapeStringLiteral(node.Background)}\"))");
         }
 
         if (!string.IsNullOrWhiteSpace(node.Foreground))
         {
-            sb.AppendLine($"{innerIndent}.Foreground(Brush.Parse(\"{EscapeString(node.Foreground)}\"))");
+            sb.AppendLine($"{innerIndent}.Foreground(Brush.Parse(\"{CSharpSyntaxSanitizer.EscapeStringLiteral(node.Foreground)}\"))");
         }
 
         if (!boundProps.Contains("Source") && !string.IsNullOrWhiteSpace(node.Source))
         {
-            sb.AppendLine($"{innerIndent}.Source(\"{EscapeString(node.Source)}\")");
+            sb.AppendLine($"{innerIndent}.Source(\"{CSharpSyntaxSanitizer.EscapeStringLiteral(node.Source)}\")");
         }
 
         if (!boundProps.Contains("Stretch") && node.Stretch.HasValue)
@@ -250,10 +263,11 @@ public sealed class CSharpMarkupViewGenerator : ICodeGenerator
             sb.AppendLine($"{innerIndent}.Stretch(Stretch.{node.Stretch.Value})");
         }
 
-        // 5. MVVM 綁定配置 (一律傳遞明確的 BindingMode 列舉參數，並標準化 ViewModel 屬性名稱為 PascalCase)
+        // 5. MVVM 綁定配置 (一律傳遞明確的 BindingMode 列舉參數，並進行關鍵字逃逸)
         foreach (var binding in node.Bindings)
         {
             var normalizedProp = Mvvm.MvvmViewModelGenerator.NormalizePropertyName(binding.ViewModelProperty);
+            var safeProp = CSharpSyntaxSanitizer.EscapeIdentifier(normalizedProp);
             var modeName = binding.Mode switch
             {
                 BindingMode.TwoWay => "BindingMode.TwoWay",
@@ -266,24 +280,48 @@ public sealed class CSharpMarkupViewGenerator : ICodeGenerator
             };
 
             var bindingCall = useCompiledBindings
-                ? $".{binding.TargetProperty}(({viewModelClassName} vm) => vm.{normalizedProp}, {modeName})"
-                : $".{binding.TargetProperty}(nameof({viewModelClassName}.{normalizedProp}), {modeName})";
+                ? $".{binding.TargetProperty}(({viewModelClassName} vm) => vm.{safeProp}, {modeName})"
+                : $".{binding.TargetProperty}(nameof({viewModelClassName}.{safeProp}), {modeName})";
 
             sb.AppendLine($"{innerIndent}{bindingCall}");
         }
 
-        // 6. 事件映射至命令 (標準化 Command 名稱為 PascalCase)
+        // 6. 事件映射至命令 (標準化 Command 名稱並進行關鍵字逃逸，支援 CommandParameter 傳遞)
         foreach (var evt in node.Events)
         {
             var normalizedCmd = Mvvm.MvvmViewModelGenerator.NormalizeCommandName(evt.CommandProperty);
-            var cmdCall = useCompiledBindings
-                ? $".Command(({viewModelClassName} vm) => vm.{normalizedCmd})"
-                : $".Command(nameof({viewModelClassName}.{normalizedCmd}))";
+            var safeCmd = CSharpSyntaxSanitizer.EscapeIdentifier(normalizedCmd);
+            var effectiveParams = evt.GetEffectiveParameters();
+
+            string cmdCall;
+            var paramWithBinding = effectiveParams.FirstOrDefault(p => !string.IsNullOrWhiteSpace(p.ValueOrPath));
+
+            if (paramWithBinding is null)
+            {
+                cmdCall = useCompiledBindings
+                    ? $".Command(({viewModelClassName} vm) => vm.{safeCmd})"
+                    : $".Command(nameof({viewModelClassName}.{safeCmd}))";
+            }
+            else if (paramWithBinding.IsConstant)
+            {
+                var escapedParam = CSharpSyntaxSanitizer.EscapeStringLiteral(paramWithBinding.ValueOrPath!);
+                cmdCall = useCompiledBindings
+                    ? $".Command(({viewModelClassName} vm) => vm.{safeCmd}, \"{escapedParam}\")"
+                    : $".Command(nameof({viewModelClassName}.{safeCmd}), \"{escapedParam}\")";
+            }
+            else
+            {
+                var normalizedParam = Mvvm.MvvmViewModelGenerator.NormalizePropertyName(paramWithBinding.ValueOrPath!);
+                var safeParam = CSharpSyntaxSanitizer.EscapeIdentifier(normalizedParam);
+                cmdCall = useCompiledBindings
+                    ? $".Command(({viewModelClassName} vm) => vm.{safeCmd}, ({viewModelClassName} vm) => vm.{safeParam})"
+                    : $".Command(nameof({viewModelClassName}.{safeCmd}), nameof({viewModelClassName}.{safeParam}))";
+            }
 
             sb.AppendLine($"{innerIndent}{cmdCall}");
         }
 
-        // 7. 遞迴子節點 (Children - 僅包含實體可視控制項，不可視元件由 ViewModel / DI 管理)
+        // 7. 遞迴子節點 (Children - 傳遞目前 node 作為 parentNode 參數)
         var visualChildren = node.Children
             .Where(c => !IsNonVisualComponent(c.Type))
             .ToList();
@@ -293,7 +331,7 @@ public sealed class CSharpMarkupViewGenerator : ICodeGenerator
             sb.AppendLine($"{innerIndent}.Children(");
             for (var i = 0; i < visualChildren.Count; i++)
             {
-                var childCode = GenerateNodeCode(visualChildren[i], indentLevel + 2, viewModelClassName, useCompiledBindings);
+                var childCode = GenerateNodeCode(visualChildren[i], indentLevel + 2, viewModelClassName, useCompiledBindings, parentNode: node);
                 var isLast = i == visualChildren.Count - 1;
                 var trailingComma = isLast ? string.Empty : ",";
                 sb.AppendLine($"{new string(' ', (indentLevel + 2) * 4)}{childCode}{trailingComma}");
@@ -313,7 +351,4 @@ public sealed class CSharpMarkupViewGenerator : ICodeGenerator
 
     private static string FormatThickness(ThicknessModel thickness) =>
         $"{thickness.Left.ToString(CultureInfo.InvariantCulture)}, {thickness.Top.ToString(CultureInfo.InvariantCulture)}, {thickness.Right.ToString(CultureInfo.InvariantCulture)}, {thickness.Bottom.ToString(CultureInfo.InvariantCulture)}";
-
-    private static string EscapeString(string input) =>
-        input.Replace("\\", "\\\\", StringComparison.Ordinal).Replace("\"", "\\\"", StringComparison.Ordinal);
 }

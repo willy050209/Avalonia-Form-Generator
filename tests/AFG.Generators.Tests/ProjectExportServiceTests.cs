@@ -39,7 +39,7 @@ public sealed class ProjectExportServiceTests
         };
 
         // Act
-        var files = _exportService.GenerateFullProject(doc, new ProjectExportOptions(IncludeMobileProject: true));
+        var files = _exportService.GenerateFullProject(doc, new ProjectExportOptions(IncludeMobileProject: true, IncludeLicense: true));
 
         // Assert
         files.Should().NotBeNull();
@@ -148,13 +148,13 @@ public sealed class ProjectExportServiceTests
     }
 
     [Fact]
-    public void GenerateFullProject_WhenIncludeLicenseIsFalse_ShouldNotGenerateLicenseFile()
+    public void GenerateFullProject_ByDefault_ShouldNotGenerateLicenseFile()
     {
         // Arrange
         var doc = FormDocument.CreateDefault();
 
         // Act
-        var files = _exportService.GenerateFullProject(doc, new ProjectExportOptions(IncludeLicense: false));
+        var files = _exportService.GenerateFullProject(doc);
 
         // Assert
         files.Should().NotContain(f => f.FileName == "LICENSE");
@@ -598,5 +598,52 @@ public sealed class ProjectExportServiceTests
         filesFromOption.Should().Contain(f => f.FileName == Path.Combine("src", "CustomPosSystem.Shared", "CustomPosSystem.Shared.csproj"));
         filesFromOption.Should().Contain(f => f.FileName == Path.Combine("src", "CustomPosSystem.Desktop", "CustomPosSystem.Desktop.csproj"));
         filesFromOption.Should().NotContain(f => f.FileName.Contains(".Android"));
+    }
+
+    [Theory]
+    [InlineData("../../MaliciousApp", "MaliciousApp")]
+    [InlineData("..\\..\\HackProj", "HackProj")]
+    [InlineData("Invalid<Name>:*?\"|", "InvalidName")]
+    [InlineData("", "AvaloniaApp")]
+    [InlineData("   ", "AvaloniaApp")]
+    [InlineData(null, "AvaloniaApp")]
+    public void SanitizeProjectName_ShouldRemovePathTraversalAndIllegalChars(string? input, string expected)
+    {
+        // Act
+        var sanitized = ProjectExportService.SanitizeProjectName(input);
+
+        // Assert
+        sanitized.Should().Be(expected);
+    }
+
+    [Fact]
+    public async Task ExportMultiFormToFolderAsync_WhenGivenValidDirectory_ShouldExportWithoutPathEscape()
+    {
+        // Arrange
+        var tempDir = Path.Combine(Path.GetTempPath(), "AFG_Test_Export_" + Guid.NewGuid().ToString("N"));
+        try
+        {
+            var doc = new FormDocument
+            {
+                ProjectName = "SafeApp",
+                ViewClassName = "MainView",
+                ViewModelClassName = "MainViewModel",
+                RootNode = new AstNode { Id = "root", Type = ControlType.Canvas }
+            };
+
+            // Act
+            await _exportService.ExportToFolderAsync(doc, tempDir, new ProjectExportOptions(IncludeMobileProject: false));
+
+            // Assert
+            Directory.Exists(tempDir).Should().BeTrue();
+            File.Exists(Path.Combine(tempDir, "SafeApp.slnx")).Should().BeTrue();
+        }
+        finally
+        {
+            if (Directory.Exists(tempDir))
+            {
+                Directory.Delete(tempDir, recursive: true);
+            }
+        }
     }
 }

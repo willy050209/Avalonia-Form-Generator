@@ -23,6 +23,11 @@ public sealed class InspectorViewModelTests
         vm.Events.Should().HaveCount(1);
         var item = vm.Events[0];
         item.EventName.Should().Be("Click");
+        item.Parameters.Should().HaveCount(2);
+        item.Parameters[0].Name.Should().Be("sender");
+        item.Parameters[0].Type.Should().Be("object?");
+        item.Parameters[1].Name.Should().Be("e");
+        item.Parameters[1].Type.Should().Be("RoutedEventArgs");
         item.AvailableEvents.Should().Contain("Click");
         item.AvailableEvents.Should().Contain("Tapped");
         item.AvailableEvents.Should().NotContain("ValueChanged");

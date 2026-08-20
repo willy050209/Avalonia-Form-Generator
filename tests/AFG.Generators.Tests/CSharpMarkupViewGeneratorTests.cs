@@ -363,6 +363,182 @@ public sealed class CSharpMarkupViewGeneratorTests
     }
 
     [Fact]
+    public void Generate_WhenNodeContainsSpecialCharacters_ShouldEscapeProperlyAndCompileCleanly()
+    {
+        // Arrange
+        var doc = new FormDocument
+        {
+            RootNamespace = "MyApp.Views",
+            ViewClassName = "SpecialCharView",
+            ViewModelClassName = "SpecialCharViewModel",
+            RootNode = new AstNode
+            {
+                Id = "btn",
+                Type = ControlType.Button,
+                Text = "Welcome \"Admin\" \\ User\r\nNext\tLine",
+                Watermark = "Path: C:\\Users\\Name\\",
+                Background = "#1E293B"
+            }
+        };
+
+        // Act
+        var result = _generator.Generate(doc);
+
+        // Assert
+        result.Content.Should().Contain(".Text(\"Welcome \\\"Admin\\\" \\\\ User\\r\\nNext\\tLine\")");
+        result.Content.Should().Contain(".Watermark(\"Path: C:\\\\Users\\\\Name\\\\\")");
+
+        var syntaxDiagnostics = RoslynCompilerService.CheckSyntaxDiagnostics(result.Content);
+        syntaxDiagnostics.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Generate_WhenNodeIsInStackPanelOrGrid_ShouldOmitCanvasCoordinates()
+    {
+        // Arrange
+        var doc = new FormDocument
+        {
+            RootNamespace = "MyApp.Views",
+            ViewClassName = "StackPanelView",
+            ViewModelClassName = "StackPanelViewModel",
+            RootNode = new AstNode
+            {
+                Id = "stack",
+                Type = ControlType.StackPanel,
+                Children = [
+                    new AstNode
+                    {
+                        Id = "btn",
+                        Type = ControlType.Button,
+                        Text = "Button in StackPanel",
+                        CanvasLeft = 100,
+                        CanvasTop = 200
+                    }
+                ]
+            }
+        };
+
+        // Act
+        var result = _generator.Generate(doc);
+
+        // Assert
+        result.Content.Should().Contain("new StackPanel()");
+        result.Content.Should().Contain("new Button()");
+        result.Content.Should().NotContain(".CanvasLeft(100)");
+        result.Content.Should().NotContain(".CanvasTop(200)");
+
+        var syntaxDiagnostics = RoslynCompilerService.CheckSyntaxDiagnostics(result.Content);
+        syntaxDiagnostics.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Generate_WhenBindingToReservedKeyword_ShouldEscapeKeywordWithAtSign()
+    {
+        // Arrange
+        var doc = new FormDocument
+        {
+            RootNamespace = "MyApp.Views",
+            ViewClassName = "KeywordView",
+            ViewModelClassName = "KeywordViewModel",
+            UseCompiledBindings = true,
+            RootNode = new AstNode
+            {
+                Id = "txt",
+                Type = ControlType.TextBox,
+                Bindings = [
+                    new BindingDefinition { TargetProperty = "Text", ViewModelProperty = "event" }
+                ],
+                Events = [
+                    new EventMappingDefinition { EventName = "Click", CommandProperty = "class" }
+                ]
+            }
+        };
+
+        // Act
+        var result = _generator.Generate(doc);
+
+        // Assert
+        result.Content.Should().Contain(".Text((KeywordViewModel vm) => vm.Event");
+        result.Content.Should().Contain(".Command((KeywordViewModel vm) => vm.ClassCommand");
+
+        var syntaxDiagnostics = RoslynCompilerService.CheckSyntaxDiagnostics(result.Content);
+        syntaxDiagnostics.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Generate_WhenEventHasDynamicCommandParameter_ShouldGenerateExpressionCommandWithParameter()
+    {
+        // Arrange
+        var doc = new FormDocument
+        {
+            RootNamespace = "MyApp.Views",
+            ViewClassName = "ParamCommandView",
+            ViewModelClassName = "ParamCommandViewModel",
+            UseCompiledBindings = true,
+            RootNode = new AstNode
+            {
+                Id = "btn",
+                Type = ControlType.Button,
+                Events = [
+                    new EventMappingDefinition
+                    {
+                        EventName = "Click",
+                        CommandProperty = "DeleteItemCommand",
+                        CommandParameterProperty = "SelectedId",
+                        ParameterType = "int",
+                        IsConstantParameter = false
+                    }
+                ]
+            }
+        };
+
+        // Act
+        var result = _generator.Generate(doc);
+
+        // Assert
+        result.Content.Should().Contain(".Command((ParamCommandViewModel vm) => vm.DeleteItemCommand, (ParamCommandViewModel vm) => vm.SelectedId)");
+
+        var syntaxDiagnostics = RoslynCompilerService.CheckSyntaxDiagnostics(result.Content);
+        syntaxDiagnostics.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Generate_WhenEventHasConstantCommandParameter_ShouldGenerateCommandWithConstantValue()
+    {
+        // Arrange
+        var doc = new FormDocument
+        {
+            RootNamespace = "MyApp.Views",
+            ViewClassName = "ConstParamCommandView",
+            ViewModelClassName = "ConstParamCommandViewModel",
+            UseCompiledBindings = true,
+            RootNode = new AstNode
+            {
+                Id = "btn",
+                Type = ControlType.Button,
+                Events = [
+                    new EventMappingDefinition
+                    {
+                        EventName = "Click",
+                        CommandProperty = "TriggerActionCommand",
+                        CommandParameterProperty = "PermanentDelete",
+                        IsConstantParameter = true
+                    }
+                ]
+            }
+        };
+
+        // Act
+        var result = _generator.Generate(doc);
+
+        // Assert
+        result.Content.Should().Contain(".Command((ConstParamCommandViewModel vm) => vm.TriggerActionCommand, \"PermanentDelete\")");
+
+        var syntaxDiagnostics = RoslynCompilerService.CheckSyntaxDiagnostics(result.Content);
+        syntaxDiagnostics.Should().BeEmpty();
+    }
+
+    [Fact]
     public void Generate_ShouldThrowArgumentNullException_WhenDocumentIsNull()
     {
         var act = () => _generator.Generate(null!);

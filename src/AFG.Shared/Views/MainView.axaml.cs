@@ -18,9 +18,21 @@ public partial class MainView : UserControl
     private double _savedRightPanelWidth = 320;
     private double _savedCodePanelHeight = 240;
 
+    private readonly Avalonia.Threading.DispatcherTimer _codeDebounceTimer = new()
+    {
+        Interval = TimeSpan.FromMilliseconds(150)
+    };
+
     public MainView()
     {
         InitializeComponent();
+
+        _codeDebounceTimer.Tick += (_, _) =>
+        {
+            _codeDebounceTimer.Stop();
+            UpdateViewCode();
+            UpdateVmCode();
+        };
 
         Loaded += (_, _) =>
         {
@@ -54,13 +66,11 @@ public partial class MainView : UserControl
 
     private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (e.PropertyName == nameof(MainViewModel.GeneratedViewCode))
+        if (e.PropertyName == nameof(MainViewModel.GeneratedViewCode) ||
+            e.PropertyName == nameof(MainViewModel.GeneratedVmCode))
         {
-            UpdateViewCode();
-        }
-        else if (e.PropertyName == nameof(MainViewModel.GeneratedVmCode))
-        {
-            UpdateVmCode();
+            _codeDebounceTimer.Stop();
+            _codeDebounceTimer.Start();
         }
         else if (e.PropertyName is nameof(MainViewModel.IsLeftPanelVisible) or
                                    nameof(MainViewModel.IsRightPanelVisible) or

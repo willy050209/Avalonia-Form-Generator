@@ -36,7 +36,7 @@ public sealed partial class CanvasViewModel : ObservableObject
     private bool _includeMobileProject = true;
 
     [ObservableProperty]
-    private bool _includeLicense = true;
+    private bool _includeLicense = false;
 
     [ObservableProperty]
     private string _exportProjectName = "MainFormApp";

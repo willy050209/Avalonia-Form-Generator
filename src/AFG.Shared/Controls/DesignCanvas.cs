@@ -97,7 +97,18 @@ public sealed class DesignCanvas : Grid
         }
     }
 
-    private void OnDocumentChanged(FormDocument doc) => RebuildElements();
+    private void OnDocumentChanged(FormDocument doc)
+    {
+        if (!TryPatchElements(doc.RootNode))
+        {
+            RebuildElements();
+        }
+        else
+        {
+            _overlay.InvalidateVisual();
+        }
+    }
+
     private void OnSelectionChanged(AstNode? node) => _overlay.InvalidateVisual();
 
     public void RebuildElements()
@@ -115,6 +126,91 @@ public sealed class DesignCanvas : Grid
         }
 
         _overlay.InvalidateVisual();
+    }
+
+    /// <summary>
+    /// 高效差量更新現有視覺控制項之幾何座標與外觀，避免高頻率微調或屬性變更時全樹銷毀重建引發 GC 壓力與畫面閃爍。
+    /// </summary>
+    private bool TryPatchElements(AstNode rootNode)
+    {
+        var rootChildren = rootNode.Children.Where(c => !Generators.CSharpMarkup.CSharpMarkupViewGenerator.IsNonVisualComponent(c.Type)).ToList();
+        if (_elementsCanvas.Children.Count != rootChildren.Count)
+        {
+            return false;
+        }
+
+        for (var i = 0; i < rootChildren.Count; i++)
+        {
+            var node = rootChildren[i];
+            var ctrl = _elementsCanvas.Children[i];
+
+            if (!Equals(ctrl.Tag, node.Id))
+            {
+                return false;
+            }
+
+            // 若有巢狀子容器且子節點數量改變，觸發全樹重建
+            if (node.IsContainer && node.Children.Count > 0)
+            {
+                return false;
+            }
+
+            // 尺寸更新
+            if (node.AutoSize)
+            {
+                ctrl.Width = double.NaN;
+                ctrl.Height = double.NaN;
+            }
+            else
+            {
+                if (node.Width.HasValue) ctrl.Width = node.Width.Value;
+                if (node.Height.HasValue) ctrl.Height = node.Height.Value;
+            }
+
+            var left = node.CanvasLeft ?? 0;
+            var top = node.CanvasTop ?? 0;
+            Canvas.SetLeft(ctrl, left);
+            Canvas.SetTop(ctrl, top);
+
+            ctrl.Margin = new Thickness(node.Margin.Left, node.Margin.Top, node.Margin.Right, node.Margin.Bottom);
+            ctrl.Opacity = node.Opacity;
+            ctrl.IsVisible = node.IsVisible;
+            ctrl.IsEnabled = node.IsEnabled;
+
+            if (ctrl is Button btn)
+            {
+                btn.Content = node.Content ?? node.Text ?? "Button";
+            }
+            else if (ctrl is TextBlock tb)
+            {
+                tb.Text = node.Text ?? "TextBlock";
+            }
+            else if (ctrl is TextBox txt)
+            {
+                txt.Text = node.Text ?? string.Empty;
+                txt.PlaceholderText = node.Watermark;
+            }
+            else if (ctrl is CheckBox cb)
+            {
+                cb.Content = node.Content ?? "CheckBox";
+                cb.IsChecked = node.IsChecked;
+            }
+            else if (ctrl is RadioButton rb)
+            {
+                rb.Content = node.Content ?? "RadioButton";
+                rb.IsChecked = node.IsChecked;
+            }
+            else if (ctrl is Slider sl)
+            {
+                if (node.Value.HasValue) sl.Value = node.Value.Value;
+            }
+            else if (ctrl is ProgressBar pb)
+            {
+                if (node.Value.HasValue) pb.Value = node.Value.Value;
+            }
+        }
+
+        return true;
     }
 
     /// <summary>
@@ -375,20 +471,26 @@ public sealed class DesignCanvas : Grid
         _dragStartPoint = pos;
         var isCtrlPressed = e.KeyModifiers.HasFlag(KeyModifiers.Control);
 
-        // 1. 檢查是否點擊在已選取主節點的 8 個縮放手柄上
+        // 1. 檢查是否點擊在已選取主節點的 8 個縮放手柄上 (若節點位於容器內部，則禁用自由縮放手柄)
         if (ViewModel.SelectedNode is not null)
         {
-            var selectedBounds = GetNodeBounds(ViewModel.SelectedNode);
-            var handle = HitTestResizeHandle(selectedBounds, pos);
-            if (handle != ResizeHandleType.None)
+            var parentNode = AstTreeOperations.FindParentNode(ViewModel.Document.RootNode, ViewModel.SelectedNode.Id);
+            var isManagedByParent = parentNode is not null && parentNode.Type is ControlType.StackPanel or ControlType.DockPanel or ControlType.WrapPanel or ControlType.Grid;
+
+            if (!isManagedByParent)
             {
-                _activeHandle = handle;
-                _initialNodeBounds = selectedBounds;
-                _isDragging = true;
-                _isDragTransacted = false;
-                e.Pointer.Capture(this);
-                e.Handled = true;
-                return;
+                var selectedBounds = GetNodeBounds(ViewModel.SelectedNode);
+                var handle = HitTestResizeHandle(selectedBounds, pos);
+                if (handle != ResizeHandleType.None)
+                {
+                    _activeHandle = handle;
+                    _initialNodeBounds = selectedBounds;
+                    _isDragging = true;
+                    _isDragTransacted = false;
+                    e.Pointer.Capture(this);
+                    e.Handled = true;
+                    return;
+                }
             }
         }
 
@@ -691,20 +793,21 @@ public sealed class DesignCanvas : Grid
                     e.Handled = true;
                     break;
                 case Key.Left:
-                    ViewModel.NudgeSelectedNodes(-step, 0);
-                    e.Handled = true;
-                    break;
                 case Key.Right:
-                    ViewModel.NudgeSelectedNodes(step, 0);
-                    e.Handled = true;
-                    break;
                 case Key.Up:
-                    ViewModel.NudgeSelectedNodes(0, -step);
-                    e.Handled = true;
-                    break;
                 case Key.Down:
-                    ViewModel.NudgeSelectedNodes(0, step);
-                    e.Handled = true;
+                    // 若選取節點位於容器內部，禁用自由座標微調 (Nudge)，避免語意矛盾
+                    var parentNode = (ViewModel?.Document is not null && ViewModel.SelectedNode is not null)
+                        ? AstTreeOperations.FindParentNode(ViewModel.Document.RootNode, ViewModel.SelectedNode.Id)
+                        : null;
+                    var isManagedByParent = parentNode is not null && parentNode.Type is ControlType.StackPanel or ControlType.DockPanel or ControlType.WrapPanel or ControlType.Grid;
+                    if (!isManagedByParent && ViewModel is not null)
+                    {
+                        var dx = e.Key == Key.Left ? -step : (e.Key == Key.Right ? step : 0);
+                        var dy = e.Key == Key.Up ? -step : (e.Key == Key.Down ? step : 0);
+                        ViewModel.NudgeSelectedNodes(dx, dy);
+                        e.Handled = true;
+                    }
                     break;
             }
         }
@@ -883,34 +986,46 @@ public sealed class DesignCanvas : Grid
                 }
             }
 
-            // 5. 繪製主選取裝飾器 (Primary Selection 8-Handle Adorner)
+            // 5. 繪製主選取裝飾器 (Primary Selection Adorner)
             if (vm?.SelectedNode is not null)
             {
                 var bounds = _parent.GetNodeBounds(vm.SelectedNode);
-                var adornerPen = new Pen(new SolidColorBrush(Color.FromRgb(14, 165, 233)), 1.5);
-                var handleFill = new SolidColorBrush(Color.FromRgb(255, 255, 255));
-                var handlePen = new Pen(new SolidColorBrush(Color.FromRgb(14, 165, 233)), 1.5);
+                var parentNode = AstTreeOperations.FindParentNode(vm.Document.RootNode, vm.SelectedNode.Id);
+                var isManagedByParent = parentNode is not null && parentNode.Type is ControlType.StackPanel or ControlType.DockPanel or ControlType.WrapPanel or ControlType.Grid;
 
-                // 選取框外框
-                context.DrawRectangle(null, adornerPen, bounds);
-
-                // 8 個縮放手柄
-                const double handleSize = 6.0;
-                var handlePoints = new[]
+                if (isManagedByParent)
                 {
-                    new Point(bounds.X, bounds.Y),
-                    new Point(bounds.X + (bounds.Width / 2), bounds.Y),
-                    new Point(bounds.Right, bounds.Y),
-                    new Point(bounds.Right, bounds.Y + (bounds.Height / 2)),
-                    new Point(bounds.Right, bounds.Bottom),
-                    new Point(bounds.X + (bounds.Width / 2), bounds.Bottom),
-                    new Point(bounds.X, bounds.Bottom),
-                    new Point(bounds.X, bounds.Y + (bounds.Height / 2))
-                };
-
-                foreach (var p in handlePoints)
+                    // 容器內部節點：繪製專屬虛線選取框（不繪製 8 點自由座標手柄，避免認知混淆）
+                    var containerPen = new Pen(new SolidColorBrush(Color.FromRgb(56, 189, 248)), 1.5, new DashStyle([4, 3], 0));
+                    context.DrawRectangle(null, containerPen, bounds);
+                }
+                else
                 {
-                    context.DrawRectangle(handleFill, handlePen, new Rect(p.X - (handleSize / 2), p.Y - (handleSize / 2), handleSize, handleSize));
+                    var adornerPen = new Pen(new SolidColorBrush(Color.FromRgb(14, 165, 233)), 1.5);
+                    var handleFill = new SolidColorBrush(Color.FromRgb(255, 255, 255));
+                    var handlePen = new Pen(new SolidColorBrush(Color.FromRgb(14, 165, 233)), 1.5);
+
+                    // 選取框外框
+                    context.DrawRectangle(null, adornerPen, bounds);
+
+                    // 8 個縮放手柄
+                    const double handleSize = 6.0;
+                    var handlePoints = new[]
+                    {
+                        new Point(bounds.X, bounds.Y),
+                        new Point(bounds.X + (bounds.Width / 2), bounds.Y),
+                        new Point(bounds.Right, bounds.Y),
+                        new Point(bounds.Right, bounds.Y + (bounds.Height / 2)),
+                        new Point(bounds.Right, bounds.Bottom),
+                        new Point(bounds.X + (bounds.Width / 2), bounds.Bottom),
+                        new Point(bounds.X, bounds.Bottom),
+                        new Point(bounds.X, bounds.Y + (bounds.Height / 2))
+                    };
+
+                    foreach (var p in handlePoints)
+                    {
+                        context.DrawRectangle(handleFill, handlePen, new Rect(p.X - (handleSize / 2), p.Y - (handleSize / 2), handleSize, handleSize));
+                    }
                 }
             }
 
