@@ -180,10 +180,14 @@ public sealed class ControlEventCatalogTests
     }
 
     [Fact]
-    public void GetDefaultParameters_ForTick_ShouldReturnEmpty()
+    public void GetDefaultParameters_ForTick_ShouldReturnSenderAndEventArgs()
     {
         var parameters = ControlEventCatalog.GetDefaultParameters("Tick");
-        parameters.Should().BeEmpty();
+        parameters.Should().HaveCount(2);
+        parameters[0].Name.Should().Be("sender");
+        parameters[0].Type.Should().Be("object?");
+        parameters[1].Name.Should().Be("e");
+        parameters[1].Type.Should().Be("EventArgs");
     }
 
     [Fact]
