@@ -509,7 +509,7 @@ public sealed class MvvmViewModelGeneratorTests
 
         // Assert
         result.Content.Should().Contain("[RelayCommand]");
-        result.Content.Should().Contain("private async Task SaveWithContextAsync(object? sender, RoutedEventArgs e, bool forceSave)");
+        result.Content.Should().Contain("private async Task SaveWithContextAsync((object? sender, RoutedEventArgs e, bool forceSave) args)");
 
         var diagnostics = RoslynCompilerService.CheckSyntaxDiagnostics(result.Content);
         diagnostics.Should().BeEmpty();

@@ -157,7 +157,9 @@ public sealed class MvvmViewModelGenerator : ICodeGenerator
             {
                 var fieldName = ToPrivateFieldName(string.IsNullOrWhiteSpace(comp.Name) ? comp.Type.ToString() : comp.Name);
                 var cmdName = NormalizeCommandName(evt.CommandProperty);
-                sb.AppendLine($"        {fieldName}.{evt.EventName} += (s, e) => {cmdName}.Execute(null);");
+                var hasParams = commands.TryGetValue(cmdName, out var cInfo) && cInfo.Parameters.Count > 0;
+                var execArg = hasParams ? "e" : "null";
+                sb.AppendLine($"        {fieldName}.{evt.EventName} += (s, e) => {cmdName}.Execute({execArg});");
             }
             sb.AppendLine("    }");
             sb.AppendLine();
@@ -203,10 +205,23 @@ public sealed class MvvmViewModelGenerator : ICodeGenerator
                     ? cmdInfo.CommandName[..^"Command".Length]
                     : cmdInfo.CommandName;
 
-                var paramDecls = cmdInfo.Parameters
-                    .Select(p => $"{p.Type} {Roslyn.CSharpSyntaxSanitizer.EscapeIdentifier(p.Name)}")
-                    .ToList();
-                var paramSignature = string.Join(", ", paramDecls);
+                string paramSignature;
+                if (cmdInfo.Parameters.Count == 0)
+                {
+                    paramSignature = string.Empty;
+                }
+                else if (cmdInfo.Parameters.Count == 1)
+                {
+                    var p = cmdInfo.Parameters[0];
+                    paramSignature = $"{p.Type} {Roslyn.CSharpSyntaxSanitizer.EscapeIdentifier(p.Name)}";
+                }
+                else
+                {
+                    // CommunityToolkit.Mvvm [RelayCommand] 僅支援 0 或 1 個參數型別。
+                    // 若配置多個參數，將其封裝為 ValueTuple 單一參數以符合 MVVM Toolkit 命令規範並避免 MVVMTK0007 編譯錯誤。
+                    var tupleFields = string.Join(", ", cmdInfo.Parameters.Select(p => $"{p.Type} {Roslyn.CSharpSyntaxSanitizer.EscapeIdentifier(p.Name)}"));
+                    paramSignature = $"({tupleFields}) args";
+                }
 
                 sb.AppendLine("    [RelayCommand]");
                 if (cmdInfo.IsAsync)
