@@ -409,8 +409,8 @@ public sealed class MvvmViewModelGeneratorTests
 
         // Assert
         result.Content.Should().Contain("[RelayCommand]");
-        result.Content.Should().Contain("private async Task DeleteItemAsync(int id)");
-        result.Content.Should().Contain("private void FilterItems(string keyword)");
+        result.Content.Should().Contain("private async Task DeleteItemAsync(int? id = default)");
+        result.Content.Should().Contain("private void FilterItems(string? keyword = default)");
 
         var diagnostics = RoslynCompilerService.CheckSyntaxDiagnostics(result.Content);
         diagnostics.Should().BeEmpty();
@@ -462,8 +462,8 @@ public sealed class MvvmViewModelGeneratorTests
         // Assert
         result.Content.Should().Contain("using Avalonia.Interactivity;");
         result.Content.Should().Contain("using Avalonia.Input;");
-        result.Content.Should().Contain("private async Task SubmitAsync(RoutedEventArgs e)");
-        result.Content.Should().Contain("private void OnCanvasPressed(PointerPressedEventArgs e)");
+        result.Content.Should().Contain("private async Task SubmitAsync(RoutedEventArgs? e = default)");
+        result.Content.Should().Contain("private void OnCanvasPressed(PointerPressedEventArgs? e = default)");
 
         var diagnostics = RoslynCompilerService.CheckSyntaxDiagnostics(result.Content);
         diagnostics.Should().BeEmpty();
@@ -509,7 +509,7 @@ public sealed class MvvmViewModelGeneratorTests
 
         // Assert
         result.Content.Should().Contain("[RelayCommand]");
-        result.Content.Should().Contain("private async Task SaveWithContextAsync((object? sender, RoutedEventArgs e, bool forceSave) args)");
+        result.Content.Should().Contain("private async Task SaveWithContextAsync((object? sender, RoutedEventArgs? e, bool? forceSave)? args = null)");
 
         var diagnostics = RoslynCompilerService.CheckSyntaxDiagnostics(result.Content);
         diagnostics.Should().BeEmpty();

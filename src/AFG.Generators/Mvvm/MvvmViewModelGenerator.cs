@@ -213,14 +213,16 @@ public sealed class MvvmViewModelGenerator : ICodeGenerator
                 else if (cmdInfo.Parameters.Count == 1)
                 {
                     var p = cmdInfo.Parameters[0];
-                    paramSignature = $"{p.Type} {Roslyn.CSharpSyntaxSanitizer.EscapeIdentifier(p.Name)}";
+                    var safeType = EnsureNullableType(p.Type);
+                    var safeName = Roslyn.CSharpSyntaxSanitizer.EscapeIdentifier(p.Name);
+                    paramSignature = $"{safeType} {safeName} = default";
                 }
                 else
                 {
                     // CommunityToolkit.Mvvm [RelayCommand] 僅支援 0 或 1 個參數型別。
-                    // 若配置多個參數，將其封裝為 ValueTuple 單一參數以符合 MVVM Toolkit 命令規範並避免 MVVMTK0007 編譯錯誤。
-                    var tupleFields = string.Join(", ", cmdInfo.Parameters.Select(p => $"{p.Type} {Roslyn.CSharpSyntaxSanitizer.EscapeIdentifier(p.Name)}"));
-                    paramSignature = $"({tupleFields}) args";
+                    // 若配置多個參數，將其封裝為 Nullable ValueTuple 單一參數以符合 MVVM Toolkit 命令規範並確保 CanExecute(null) 不會因實值型別元組拒絕 null 而將按鈕禁用。
+                    var tupleFields = string.Join(", ", cmdInfo.Parameters.Select(p => $"{EnsureNullableType(p.Type)} {Roslyn.CSharpSyntaxSanitizer.EscapeIdentifier(p.Name)}"));
+                    paramSignature = $"({tupleFields})? args = null";
                 }
 
                 sb.AppendLine("    [RelayCommand]");
@@ -268,6 +270,14 @@ public sealed class MvvmViewModelGenerator : ICodeGenerator
 
         var sanitized = Roslyn.CSharpSyntaxSanitizer.SanitizeIdentifier(propertyName);
         return $"_{char.ToLowerInvariant(sanitized[0])}{sanitized[1..]}";
+    }
+
+    private static string EnsureNullableType(string type)
+    {
+        if (string.IsNullOrWhiteSpace(type)) return "object?";
+        type = type.Trim();
+        if (type.EndsWith('?')) return type;
+        return $"{type}?";
     }
 
     private static string ToCamelCase(string name)
