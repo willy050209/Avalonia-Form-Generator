@@ -565,22 +565,83 @@ public static class AvaloniaMarkupExtensionsSource
         {
             if (cmd == null) return;
 
-            var tuple = (s, e);
-            if (cmd.CanExecute(tuple))
+            try
             {
-                cmd.Execute(tuple);
-                return;
-            }
+                var cmdType = cmd.GetType();
+                Type? targetParamType = null;
 
-            if (cmd.CanExecute(e))
-            {
-                cmd.Execute(e);
-                return;
-            }
+                if (cmdType.IsGenericType)
+                {
+                    targetParamType = cmdType.GetGenericArguments().FirstOrDefault();
+                }
+                else
+                {
+                    var genericInterface = cmdType.GetInterfaces()
+                        .FirstOrDefault(i => i.IsGenericType && (i.Name.StartsWith("IRelayCommand") || i.Name.StartsWith("IAsyncRelayCommand")));
+                    if (genericInterface != null)
+                    {
+                        targetParamType = genericInterface.GetGenericArguments().FirstOrDefault();
+                    }
+                }
 
-            if (cmd.CanExecute(null))
+                if (targetParamType != null)
+                {
+                    var underlyingType = Nullable.GetUnderlyingType(targetParamType) ?? targetParamType;
+
+                    if (underlyingType.IsGenericType && underlyingType.GetGenericTypeDefinition() == typeof(ValueTuple<,>))
+                    {
+                        var tupleArgs = underlyingType.GetGenericArguments();
+                        object? arg1 = s;
+                        object? arg2 = e;
+
+                        var tupleInstance = Activator.CreateInstance(underlyingType, arg1, arg2);
+                        if (cmd.CanExecute(tupleInstance))
+                        {
+                            cmd.Execute(tupleInstance);
+                            return;
+                        }
+                    }
+
+                    if (e != null && underlyingType.IsAssignableFrom(e.GetType()))
+                    {
+                        if (cmd.CanExecute(e))
+                        {
+                            cmd.Execute(e);
+                            return;
+                        }
+                    }
+
+                    if (s != null && underlyingType.IsAssignableFrom(s.GetType()))
+                    {
+                        if (cmd.CanExecute(s))
+                        {
+                            cmd.Execute(s);
+                            return;
+                        }
+                    }
+                }
+
+                if (cmd.CanExecute(null))
+                {
+                    cmd.Execute(null);
+                    return;
+                }
+
+                if (cmd.CanExecute(e))
+                {
+                    cmd.Execute(e);
+                    return;
+                }
+
+                var tupleFallback = (s, e);
+                if (cmd.CanExecute(tupleFallback))
+                {
+                    cmd.Execute(tupleFallback);
+                }
+            }
+            catch (Exception ex)
             {
-                cmd.Execute(null);
+                System.Diagnostics.Debug.WriteLine($"[ExecuteCommandWithArgs Error] {ex}");
             }
         }
 
