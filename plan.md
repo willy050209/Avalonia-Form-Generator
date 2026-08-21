@@ -181,7 +181,7 @@ AvaloniaFormGenerator/
     - 在 `ToolboxService` 新增「除錯工具」分類，包含 `DebugConsole` 工具箱項目。
     - 在 `DesignCanvas` 支援 `DebugConsole` 畫布深色面板視覺渲染（包含標題列、Clear 按鈕與日誌列表）。
     - 撰寫單元測試驗證 AST、工具箱與事件目錄整合。
-  - [ ] 11.2 **Phase 2: View 與 ViewModel 程式碼生成支援 (View & ViewModel CodeGen for DebugConsole)**
+  - [x] 11.2 **Phase 2: View 與 ViewModel 程式碼生成支援 (View & ViewModel CodeGen for DebugConsole)**
     - 在 `CSharpMarkupViewGenerator` 將 `DebugConsole` 轉譯為 C# Declarative UI 結構（Border, Grid, Header, Clear Button, ListBox ItemsSource）。
     - 在 `MvvmViewModelGenerator` 當偵測到 `DebugConsole` 時，自動注入 `InMemoryLogService` 與 `ILogger<TViewModel>`，宣告 `LogEntries` 與 `ClearLogsCommand`。
     - 撰寫單元測試驗證 View 與 ViewModel 生成及 Roslyn 語法診斷。

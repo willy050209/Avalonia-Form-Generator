@@ -335,6 +335,50 @@ public sealed class MvvmViewModelGeneratorTests
     }
 
     [Fact]
+    public void Generate_WithDebugConsole_ShouldInjectLogServiceAndExposeLogEntriesAndClearCommand()
+    {
+        // Arrange
+        var doc = new FormDocument
+        {
+            RootNamespace = "DiagnosticsApp.ViewModels",
+            ViewModelClassName = "DiagnosticsViewModel",
+            RootNode = new AstNode
+            {
+                Id = "root",
+                Type = ControlType.Canvas,
+                Children = [
+                    new AstNode
+                    {
+                        Id = "console1",
+                        Name = "LiveConsole",
+                        Type = ControlType.DebugConsole
+                    }
+                ]
+            }
+        };
+
+        // Act
+        var result = _generator.Generate(doc);
+
+        // Assert
+        result.Content.Should().Contain("using Microsoft.Extensions.Logging;");
+        result.Content.Should().Contain("using DiagnosticsApp.ViewModels.Services;");
+        result.Content.Should().Contain("private readonly InMemoryLogService? _logService;");
+        result.Content.Should().Contain("private readonly ILogger<DiagnosticsViewModel>? _logger;");
+        result.Content.Should().Contain("private ObservableCollection<LogEntry> _logEntries = [];");
+        result.Content.Should().Contain("public DiagnosticsViewModel(InMemoryLogService? logService = null, ILogger<DiagnosticsViewModel>? logger = null) : this()");
+        result.Content.Should().Contain("_logService = logService;");
+        result.Content.Should().Contain("_logger = logger;");
+        result.Content.Should().Contain("_logEntries = logService.Logs;");
+        result.Content.Should().Contain("private void ClearLogs()");
+        result.Content.Should().Contain("_logService?.Clear();");
+        result.Content.Should().Contain("_logEntries.Clear();");
+
+        var diagnostics = RoslynCompilerService.CheckSyntaxDiagnostics(result.Content);
+        diagnostics.Should().BeEmpty();
+    }
+
+    [Fact]
     public void Generate_ForPictureBox_ShouldInferImageSourceProperty()
     {
         // Arrange

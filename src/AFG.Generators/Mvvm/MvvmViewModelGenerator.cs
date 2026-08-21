@@ -70,6 +70,19 @@ public sealed class MvvmViewModelGenerator : ICodeGenerator
             }
         }
 
+        var hasDebugConsole = allNodes.Any(n => n.Type == ControlType.DebugConsole);
+        if (hasDebugConsole)
+        {
+            if (!properties.ContainsKey("LogEntries"))
+            {
+                properties["LogEntries"] = ("ObservableCollection<LogEntry>", "[]");
+            }
+            if (!commands.ContainsKey("ClearLogsCommand"))
+            {
+                commands["ClearLogsCommand"] = new CommandGenInfo("ClearLogsCommand", false, []);
+            }
+        }
+
         var nonVisualComponents = allNodes
             .Where(n => n.Type is ControlType.DispatcherTimer or ControlType.BackgroundWorker
                               or ControlType.BluetoothClient or ControlType.SerialPortService
@@ -91,8 +104,13 @@ public sealed class MvvmViewModelGenerator : ICodeGenerator
         sb.AppendLine("using CommunityToolkit.Mvvm.ComponentModel;");
         sb.AppendLine("using CommunityToolkit.Mvvm.Input;");
 
+        if (hasDebugConsole)
+        {
+            sb.AppendLine("using Microsoft.Extensions.Logging;");
+        }
+
         var services = document.InjectedServices ?? [];
-        if (services.Count > 0 || nonVisualComponents.Any(c => c.Type is ControlType.BluetoothClient or ControlType.SerialPortService
+        if (hasDebugConsole || services.Count > 0 || nonVisualComponents.Any(c => c.Type is ControlType.BluetoothClient or ControlType.SerialPortService
                                                                  or ControlType.OpenFileDialog or ControlType.SaveFileDialog or ControlType.MessageBox))
         {
             sb.AppendLine($"using {document.RootNamespace}.Services;");
@@ -146,6 +164,13 @@ public sealed class MvvmViewModelGenerator : ICodeGenerator
         }
 
         // 服務欄位宣告
+        if (hasDebugConsole)
+        {
+            sb.AppendLine("    private readonly InMemoryLogService? _logService;");
+            sb.AppendLine($"    private readonly ILogger<{document.ViewModelClassName}>? _logger;");
+            sb.AppendLine();
+        }
+
         if (services.Count > 0)
         {
             foreach (var svc in services)
@@ -162,7 +187,7 @@ public sealed class MvvmViewModelGenerator : ICodeGenerator
             .ToList();
 
         var hasNonVisualEvents = nonVisualEvents.Count > 0;
-        var hasServices = services.Count > 0;
+        var hasServices = services.Count > 0 || hasDebugConsole;
 
         if (hasNonVisualEvents || hasServices)
         {
@@ -181,7 +206,21 @@ public sealed class MvvmViewModelGenerator : ICodeGenerator
 
             if (hasServices)
             {
-                var ctorParams = string.Join(", ", services.Select(s => $"{s.InterfaceName} {ToCamelCase(s.InterfaceName.StartsWith('I') ? s.InterfaceName[1..] : s.InterfaceName)}"));
+                var ctorParamList = new List<string>();
+                foreach (var svc in services)
+                {
+                    var paramType = svc.InterfaceName;
+                    var paramName = ToCamelCase(svc.InterfaceName.StartsWith('I') ? svc.InterfaceName[1..] : svc.InterfaceName);
+                    ctorParamList.Add($"{paramType} {paramName}");
+                }
+
+                if (hasDebugConsole)
+                {
+                    ctorParamList.Add("InMemoryLogService? logService = null");
+                    ctorParamList.Add($"ILogger<{document.ViewModelClassName}>? logger = null");
+                }
+
+                var ctorParams = string.Join(", ", ctorParamList);
                 sb.AppendLine($"    public {document.ViewModelClassName}({ctorParams}) : this()");
                 sb.AppendLine("    {");
                 foreach (var svc in services)
@@ -190,6 +229,17 @@ public sealed class MvvmViewModelGenerator : ICodeGenerator
                     var paramName = ToCamelCase(svc.InterfaceName.StartsWith('I') ? svc.InterfaceName[1..] : svc.InterfaceName);
                     sb.AppendLine($"        {fieldName} = {paramName};");
                 }
+
+                if (hasDebugConsole)
+                {
+                    sb.AppendLine("        _logService = logService;");
+                    sb.AppendLine("        _logger = logger;");
+                    sb.AppendLine("        if (logService is not null)");
+                    sb.AppendLine("        {");
+                    sb.AppendLine("            _logEntries = logService.Logs;");
+                    sb.AppendLine("        }");
+                }
+
                 sb.AppendLine("    }");
                 sb.AppendLine();
             }
@@ -259,10 +309,21 @@ public sealed class MvvmViewModelGenerator : ICodeGenerator
                         ? rawName[..^"Async".Length]
                         : rawName;
 
-                    sb.AppendLine($"    private void {syncMethodName}({paramSignature})");
-                    sb.AppendLine("    {");
-                    sb.AppendLine("        // TODO: 實作同步命令業務邏輯");
-                    sb.AppendLine("    }");
+                    if (rawName == "ClearLogs")
+                    {
+                        sb.AppendLine($"    private void {syncMethodName}({paramSignature})");
+                        sb.AppendLine("    {");
+                        sb.AppendLine("        _logService?.Clear();");
+                        sb.AppendLine("        _logEntries.Clear();");
+                        sb.AppendLine("    }");
+                    }
+                    else
+                    {
+                        sb.AppendLine($"    private void {syncMethodName}({paramSignature})");
+                        sb.AppendLine("    {");
+                        sb.AppendLine("        // TODO: 實作同步命令業務邏輯");
+                        sb.AppendLine("    }");
+                    }
                 }
                 sb.AppendLine();
             }

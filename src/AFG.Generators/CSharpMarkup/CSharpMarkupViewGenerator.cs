@@ -67,6 +67,11 @@ public sealed class CSharpMarkupViewGenerator : ICodeGenerator
         var innerIndent = new string(' ', (indentLevel + 1) * 4);
         var sb = new StringBuilder();
 
+        if (node.Type == ControlType.DebugConsole)
+        {
+            return GenerateDebugConsoleCode(node, indentLevel, viewModelClassName, useCompiledBindings, parentNode, isRoot);
+        }
+
         var nodeName = !string.IsNullOrWhiteSpace(node.Name) ? node.Name.Trim() : node.Type.ToString();
         if (!isRoot)
         {
@@ -362,6 +367,104 @@ public sealed class CSharpMarkupViewGenerator : ICodeGenerator
             }
             sb.Append($"{innerIndent})");
         }
+
+        return sb.ToString().TrimEnd();
+    }
+
+    private static string GenerateDebugConsoleCode(AstNode node, int indentLevel, string viewModelClassName, bool useCompiledBindings, AstNode? parentNode, bool isRoot)
+    {
+        var indent = new string(' ', indentLevel * 4);
+        var innerIndent = new string(' ', (indentLevel + 1) * 4);
+        var sb = new StringBuilder();
+
+        var nodeName = !string.IsNullOrWhiteSpace(node.Name) ? node.Name.Trim() : "DebugConsole";
+        if (!isRoot)
+        {
+            sb.AppendLine($"// {nodeName}");
+        }
+
+        sb.AppendLine("new Border()");
+        sb.AppendLine($"{innerIndent}.Background(Brush.Parse(\"#09090B\"))");
+        sb.AppendLine($"{innerIndent}.BorderBrush(Brush.Parse(\"#27272A\"))");
+        sb.AppendLine($"{innerIndent}.BorderThickness(new Thickness(1))");
+        sb.AppendLine($"{innerIndent}.CornerRadius(new CornerRadius(6))");
+        sb.AppendLine($"{innerIndent}.Padding(new Thickness(6))");
+
+        if (node.Width.HasValue)
+        {
+            sb.AppendLine($"{innerIndent}.Width({node.Width.Value.ToString(CultureInfo.InvariantCulture)})");
+        }
+        if (node.Height.HasValue)
+        {
+            sb.AppendLine($"{innerIndent}.Height({node.Height.Value.ToString(CultureInfo.InvariantCulture)})");
+        }
+
+        var isCanvasChild = parentNode is null || parentNode.Type == ControlType.Canvas;
+        var isGridChild = parentNode?.Type == ControlType.Grid;
+        var isDockChild = parentNode?.Type == ControlType.DockPanel;
+
+        if (isCanvasChild)
+        {
+            if (node.CanvasLeft.HasValue)
+                sb.AppendLine($"{innerIndent}.CanvasLeft({node.CanvasLeft.Value.ToString(CultureInfo.InvariantCulture)})");
+            if (node.CanvasTop.HasValue)
+                sb.AppendLine($"{innerIndent}.CanvasTop({node.CanvasTop.Value.ToString(CultureInfo.InvariantCulture)})");
+        }
+
+        if (isGridChild)
+        {
+            if (node.GridRow != 0) sb.AppendLine($"{innerIndent}.GridRow({node.GridRow})");
+            if (node.GridColumn != 0) sb.AppendLine($"{innerIndent}.GridColumn({node.GridColumn})");
+            if (node.GridRowSpan > 1) sb.AppendLine($"{innerIndent}.GridRowSpan({node.GridRowSpan})");
+            if (node.GridColumnSpan > 1) sb.AppendLine($"{innerIndent}.GridColumnSpan({node.GridColumnSpan})");
+        }
+
+        if (isDockChild && node.Dock.HasValue)
+        {
+            sb.AppendLine($"{innerIndent}.Dock(Dock.{node.Dock.Value})");
+        }
+
+        var clearCmdExpr = useCompiledBindings
+            ? $"({viewModelClassName} vm) => vm.ClearLogsCommand"
+            : $"nameof({viewModelClassName}.ClearLogsCommand)";
+
+        var logItemsExpr = useCompiledBindings
+            ? $"({viewModelClassName} vm) => vm.LogEntries"
+            : $"nameof({viewModelClassName}.LogEntries)";
+
+        var title = string.IsNullOrWhiteSpace(node.Text) ? "Debug Console" : node.Text;
+
+        sb.AppendLine($"{innerIndent}.Child(");
+        sb.AppendLine($"{innerIndent}    new Grid()");
+        sb.AppendLine($"{innerIndent}        .RowDefinitions(\"Auto, *\")");
+        sb.AppendLine($"{innerIndent}        .Children(");
+        sb.AppendLine($"{innerIndent}            new DockPanel()");
+        sb.AppendLine($"{innerIndent}                .Margin(new Thickness(0, 0, 0, 4))");
+        sb.AppendLine($"{innerIndent}                .Children(");
+        sb.AppendLine($"{innerIndent}                    new TextBlock()");
+        sb.AppendLine($"{innerIndent}                        .Text(\"{CSharpSyntaxSanitizer.EscapeStringLiteral(title)}\")");
+        sb.AppendLine($"{innerIndent}                        .FontSize(11)");
+        sb.AppendLine($"{innerIndent}                        .FontWeight(FontWeight.Bold)");
+        sb.AppendLine($"{innerIndent}                        .Foreground(Brush.Parse(\"#E4E4E7\"))");
+        sb.AppendLine($"{innerIndent}                        .VerticalAlignment(VerticalAlignment.Center)");
+        sb.AppendLine($"{innerIndent}                        .Dock(Dock.Left),");
+        sb.AppendLine($"{innerIndent}                    new Button()");
+        sb.AppendLine($"{innerIndent}                        .Content(\"Clear\")");
+        sb.AppendLine($"{innerIndent}                        .FontSize(10)");
+        sb.AppendLine($"{innerIndent}                        .Padding(new Thickness(8, 2))");
+        sb.AppendLine($"{innerIndent}                        .Background(Brush.Parse(\"#27272A\"))");
+        sb.AppendLine($"{innerIndent}                        .Foreground(Brushes.White)");
+        sb.AppendLine($"{innerIndent}                        .HorizontalAlignment(HorizontalAlignment.Right)");
+        sb.AppendLine($"{innerIndent}                        .Command({clearCmdExpr})");
+        sb.AppendLine($"{innerIndent}                ),");
+        sb.AppendLine($"{innerIndent}            new ListBox()");
+        sb.AppendLine($"{innerIndent}                .GridRow(1)");
+        sb.AppendLine($"{innerIndent}                .Background(Brushes.Transparent)");
+        sb.AppendLine($"{innerIndent}                .Foreground(Brush.Parse(\"#A1A1AA\"))");
+        sb.AppendLine($"{innerIndent}                .FontSize(10)");
+        sb.AppendLine($"{innerIndent}                .ItemsSource({logItemsExpr})");
+        sb.AppendLine($"{innerIndent}        )");
+        sb.Append($"{innerIndent})");
 
         return sb.ToString().TrimEnd();
     }

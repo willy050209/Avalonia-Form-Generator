@@ -576,6 +576,55 @@ public sealed class CSharpMarkupViewGeneratorTests
     }
 
     [Fact]
+    public void Generate_WithDebugConsole_ShouldProduceBorderAndListBoxStructure()
+    {
+        // Arrange
+        var doc = new FormDocument
+        {
+            RootNamespace = "MyApp.Views",
+            ViewClassName = "DebugView",
+            ViewModelClassName = "DebugViewModel",
+            UseCompiledBindings = true,
+            RootNode = new AstNode
+            {
+                Id = "root",
+                Type = ControlType.Canvas,
+                Children = [
+                    new AstNode
+                    {
+                        Id = "dbg",
+                        Name = "ConsolePanel",
+                        Type = ControlType.DebugConsole,
+                        Width = 450,
+                        Height = 200,
+                        CanvasLeft = 20,
+                        CanvasTop = 100,
+                        Text = "Live System Logs"
+                    }
+                ]
+            }
+        };
+
+        // Act
+        var result = _generator.Generate(doc);
+
+        // Assert
+        result.Content.Should().Contain("// ConsolePanel");
+        result.Content.Should().Contain("new Border()");
+        result.Content.Should().Contain(".Background(Brush.Parse(\"#09090B\"))");
+        result.Content.Should().Contain(".Width(450)");
+        result.Content.Should().Contain(".Height(200)");
+        result.Content.Should().Contain(".CanvasLeft(20)");
+        result.Content.Should().Contain(".CanvasTop(100)");
+        result.Content.Should().Contain(".Text(\"Live System Logs\")");
+        result.Content.Should().Contain(".Command((DebugViewModel vm) => vm.ClearLogsCommand)");
+        result.Content.Should().Contain(".ItemsSource((DebugViewModel vm) => vm.LogEntries)");
+
+        var syntaxDiagnostics = RoslynCompilerService.CheckSyntaxDiagnostics(result.Content);
+        syntaxDiagnostics.Should().BeEmpty();
+    }
+
+    [Fact]
     public void Generate_ShouldThrowArgumentNullException_WhenDocumentIsNull()
     {
         var act = () => _generator.Generate(null!);
