@@ -152,4 +152,22 @@ public sealed class InspectorViewModelTests
         item.Parameters[1].Name.Should().Be("result");
         item.Parameters[1].Type.Should().Be("bool?");
     }
+
+    [Fact]
+    public void LoadNode_WhenDebugConsoleLoaded_AddEventShouldProvideClearedEvent()
+    {
+        // Arrange
+        var vm = new InspectorViewModel();
+        var node = new AstNode { Id = "dbg1", Name = "DebugConsole1", Type = ControlType.DebugConsole };
+        vm.LoadNode(node);
+
+        // Act
+        vm.AddEventCommand.Execute(null);
+
+        // Assert
+        vm.Events.Should().HaveCount(1);
+        var item = vm.Events[0];
+        item.EventName.Should().Be("Cleared");
+        item.AvailableEvents.Should().Contain("Cleared");
+    }
 }

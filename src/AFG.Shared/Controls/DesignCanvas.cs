@@ -425,8 +425,58 @@ public sealed class DesignCanvas : Grid
                 };
                 control = compBorder;
                 break;
+            case ControlType.DebugConsole:
+                var consoleBorder = new Border
+                {
+                    Background = new SolidColorBrush(Color.Parse("#09090B")),
+                    BorderBrush = new SolidColorBrush(Color.Parse("#27272A")),
+                    BorderThickness = new Thickness(1),
+                    CornerRadius = new CornerRadius(6),
+                    Padding = new Thickness(6)
+                };
+                var consoleGrid = new Grid
+                {
+                    RowDefinitions = new RowDefinitions("Auto, *")
+                };
+                var headerPanel = new DockPanel { Margin = new Thickness(0, 0, 0, 4) };
+                var titleText = new TextBlock
+                {
+                    Text = string.IsNullOrWhiteSpace(node.Text) ? "Debug Console" : node.Text,
+                    FontSize = 11,
+                    FontWeight = FontWeight.Bold,
+                    Foreground = new SolidColorBrush(Color.Parse("#E4E4E7")),
+                    VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center
+                };
+                DockPanel.SetDock(titleText, Avalonia.Controls.Dock.Left);
+                var clearBtn = new Button
+                {
+                    Content = "Clear",
+                    FontSize = 10,
+                    Padding = new Thickness(8, 2),
+                    Background = new SolidColorBrush(Color.Parse("#27272A")),
+                    Foreground = Brushes.White,
+                    HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Right
+                };
+                headerPanel.Children.Add(titleText);
+                headerPanel.Children.Add(clearBtn);
+                Grid.SetRow(headerPanel, 0);
+
+                var logListBox = new ListBox
+                {
+                    Background = Brushes.Transparent,
+                    Foreground = new SolidColorBrush(Color.Parse("#A1A1AA")),
+                    FontSize = 10,
+                    ItemsSource = new[] { "[INF] Application initialized.", "[DBG] Debug console listening..." }
+                };
+                Grid.SetRow(logListBox, 1);
+
+                consoleGrid.Children.Add(headerPanel);
+                consoleGrid.Children.Add(logListBox);
+                consoleBorder.Child = consoleGrid;
+                control = consoleBorder;
+                break;
             default:
-                control = new Button { Content = node.Name };
+                control = new ContentControl { Content = $"Unknown: {node.Type}" };
                 break;
         }
 

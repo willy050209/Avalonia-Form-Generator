@@ -172,6 +172,30 @@ AvaloniaFormGenerator/
 
 ---
 
+### 🔹 階段 11：內嵌 Debug Console / Log Console 元件整合 (Embedded Debug Console & Logging Integration)
+- [ ] **階段狀態：進行中**
+- **目標**：提供開箱即用的「內嵌 Debug Console」元件 (`DebugConsole`)，支援 `Microsoft.Extensions.Logging` 攔截、繼承 `System.IO.TextWriter` 支援標準輸出重定向、畫布視覺渲染、C# Declarative UI 綁定與 ViewModel 自動相依性注入。
+- **任務清單**：
+  - [x] 11.1 **Phase 1: AST 模型、工具箱與畫布視覺支援 (AST, Toolbox & Canvas for DebugConsole)**
+    - 在 `ControlType` 加入 `DebugConsole`。
+    - 在 `ToolboxService` 新增「除錯工具」分類，包含 `DebugConsole` 工具箱項目。
+    - 在 `DesignCanvas` 支援 `DebugConsole` 畫布深色面板視覺渲染（包含標題列、Clear 按鈕與日誌列表）。
+    - 撰寫單元測試驗證 AST、工具箱與事件目錄整合。
+  - [ ] 11.2 **Phase 2: View 與 ViewModel 程式碼生成支援 (View & ViewModel CodeGen for DebugConsole)**
+    - 在 `CSharpMarkupViewGenerator` 將 `DebugConsole` 轉譯為 C# Declarative UI 結構（Border, Grid, Header, Clear Button, ListBox ItemsSource）。
+    - 在 `MvvmViewModelGenerator` 當偵測到 `DebugConsole` 時，自動注入 `InMemoryLogService` 與 `ILogger<TViewModel>`，宣告 `LogEntries` 與 `ClearLogsCommand`。
+    - 撰寫單元測試驗證 View 與 ViewModel 生成及 Roslyn 語法診斷。
+  - [ ] 11.3 **Phase 3: 專案匯出服務、Logging DI 與 ConsoleRedirectWriter 實作 (Project Export Services, Logging & TextWriter Redirection)**
+    - 在 `PackageVersions` 新增 `MicrosoftExtensionsLogging` 常數，於匯出專案之 `Shared.csproj` 引入。
+    - 在 `ProjectExportService` 產出 `LogEntry.cs`、`InMemoryLogService.cs`、`InMemoryLoggerProvider.cs` 與 `ConsoleRedirectWriter.cs`（繼承 `System.IO.TextWriter`）。
+    - 在 `App.cs` 配置 `InMemoryLogService`、`services.AddLogging` 與標準輸出重定向。
+    - 撰寫整合測試，匯出包含 `DebugConsole` 的完整專案並執行實體 `dotnet build` 驗證。
+  - [ ] 11.4 **Phase 4: 技術文件更新與全專案驗證 (Documentation & Final Verification)**
+    - 更新 `README.md`、`docs/architecture.md`、`docs/ast-schema.md`、`docs/csharp-markup-spec.md`、`docs/user-guide.md`。
+    - 執行全專案 100% 測試驗證並完成各階段 Git Commit。
+
+---
+
 ## 4. 驗證標準與品質指標
 
 1. **單元測試覆蓋率**：所有純函式、AST 操作、歷史堆疊、生成器與序列化演算法 100% 覆蓋。

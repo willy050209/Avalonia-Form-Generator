@@ -31,12 +31,13 @@ public enum ControlType
     WrapPanel,
     ScrollViewer,
 
-    // 不可視元件、通訊服務與對話方塊
+    // 不可視元件、通訊服務、對話方塊與除錯控制項
     DispatcherTimer,
     BackgroundWorker,
     BluetoothClient,
     SerialPortService,
     OpenFileDialog,
     SaveFileDialog,
-    MessageBox
+    MessageBox,
+    DebugConsole
 }

@@ -37,7 +37,10 @@ public static class ToolboxService
         // 對話方塊元件
         new("OpenFileDialog", "對話方塊", ControlType.OpenFileDialog, "Ofd", 150, 40, "開啟檔案 (OpenFileDialog)"),
         new("SaveFileDialog", "對話方塊", ControlType.SaveFileDialog, "Sfd", 150, 40, "儲存檔案 (SaveFileDialog)"),
-        new("MessageBox", "對話方塊", ControlType.MessageBox, "Msg", 150, 40, "訊息方塊 (MessageBox)")
+        new("MessageBox", "對話方塊", ControlType.MessageBox, "Msg", 150, 40, "訊息方塊 (MessageBox)"),
+
+        // 除錯控制項
+        new("DebugConsole", "除錯工具", ControlType.DebugConsole, "Dbg", 400, 180, "Debug Console")
     ];
 
     public static IReadOnlyList<ToolboxItem> GetAvailableItems() => Items;

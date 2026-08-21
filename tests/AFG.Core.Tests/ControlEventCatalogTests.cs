@@ -246,4 +246,16 @@ public sealed class ControlEventCatalogTests
         parameters[1].Name.Should().Be("result");
         parameters[1].Type.Should().Be("bool?");
     }
+
+    [Fact]
+    public void GetSupportedEvents_ForDebugConsole_ShouldReturnClearedAndPointerEvents()
+    {
+        var events = ControlEventCatalog.GetSupportedEvents(ControlType.DebugConsole);
+        events.Should().Contain("Cleared");
+        events.Should().Contain("Tapped");
+        events.Should().Contain("PointerPressed");
+
+        var defaultEvt = ControlEventCatalog.GetDefaultEvent(ControlType.DebugConsole);
+        defaultEvt.Should().Be("Cleared");
+    }
 }

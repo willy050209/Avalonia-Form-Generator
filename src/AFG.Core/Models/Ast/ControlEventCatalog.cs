@@ -44,10 +44,11 @@ public static class ControlEventCatalog
             [ControlType.BluetoothClient] = ["DeviceDiscovered", "Connected", "Disconnected", "DataReceived"],
             [ControlType.SerialPortService] = ["DataReceived", "ErrorReceived", "PinChanged"],
 
-            // 對話方塊元件專屬事件
+            // 對話方塊與除錯控制項
             [ControlType.OpenFileDialog] = ["FileOk"],
             [ControlType.SaveFileDialog] = ["FileOk"],
-            [ControlType.MessageBox] = ["Confirmed"]
+            [ControlType.MessageBox] = ["Confirmed"],
+            [ControlType.DebugConsole] = ["Cleared", "Tapped", "PointerPressed"]
         }.ToImmutableDictionary();
 
     private static readonly ImmutableList<string> FallbackEvents = ["Tapped", "PointerPressed"];
@@ -82,8 +83,10 @@ public static class ControlEventCatalog
         ControlType.BackgroundWorker => "DoWork",
         ControlType.BluetoothClient => "DataReceived",
         ControlType.SerialPortService => "DataReceived",
-        ControlType.OpenFileDialog or ControlType.SaveFileDialog => "FileOk",
+        ControlType.OpenFileDialog => "FileOk",
+        ControlType.SaveFileDialog => "FileOk",
         ControlType.MessageBox => "Confirmed",
+        ControlType.DebugConsole => "Cleared",
         _ => "Tapped"
     };
 
@@ -125,6 +128,7 @@ public static class ControlEventCatalog
         "Tick" => "EventArgs",
         "FileOk" => "string?",
         "Confirmed" => "bool?",
+        "Cleared" => "EventArgs",
         _ => "RoutedEventArgs"
     };
 
