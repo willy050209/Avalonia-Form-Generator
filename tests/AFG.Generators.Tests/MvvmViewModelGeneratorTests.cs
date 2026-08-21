@@ -261,18 +261,74 @@ public sealed class MvvmViewModelGeneratorTests
 
         // 驗證建構子內的事件回呼掛載
         result.Content.Should().Contain("public HardwareFormViewModel()");
-        result.Content.Should().Contain("_pollTimer.Tick += (s, e) => OnTimerTickCommand.Execute(null);");
+        result.Content.Should().Contain("_pollTimer.Tick += (s, e) => TimerTickCommand.Execute(null);");
         result.Content.Should().Contain("_taskWorker.DoWork += (s, e) => PerformWorkCommand.Execute(null);");
         result.Content.Should().Contain("_taskWorker.RunWorkerCompleted += (s, e) => WorkCompletedCommand.Execute(null);");
-        result.Content.Should().Contain("_bleScanner.DataReceived += (s, e) => OnBleDataCommand.Execute(null);");
-        result.Content.Should().Contain("_serialDevice.DataReceived += (s, e) => OnSerialDataCommand.Execute(null);");
+        result.Content.Should().Contain("_bleScanner.DataReceived += (s, e) => BleDataCommand.Execute(null);");
+        result.Content.Should().Contain("_serialDevice.DataReceived += (s, e) => SerialDataCommand.Execute(null);");
 
         // 驗證生成的 Commands
-        result.Content.Should().Contain("private async Task OnTimerTickAsync()");
+        result.Content.Should().Contain("private async Task TimerTickAsync()");
         result.Content.Should().Contain("private async Task PerformWorkAsync()");
         result.Content.Should().Contain("private void WorkCompleted()");
-        result.Content.Should().Contain("private async Task OnBleDataAsync()");
-        result.Content.Should().Contain("private async Task OnSerialDataAsync()");
+        result.Content.Should().Contain("private async Task BleDataAsync()");
+        result.Content.Should().Contain("private async Task SerialDataAsync()");
+
+        var diagnostics = RoslynCompilerService.CheckSyntaxDiagnostics(result.Content);
+        diagnostics.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Generate_ShouldSupportDialogComponents_AndRegisterEventCallbacks()
+    {
+        // Arrange
+        var doc = new FormDocument
+        {
+            RootNamespace = "DialogApp.ViewModels",
+            ViewModelClassName = "DialogFormViewModel",
+            RootNode = new AstNode
+            {
+                Id = "root",
+                Type = ControlType.Canvas,
+                Children = [
+                    new AstNode
+                    {
+                        Id = "ofd",
+                        Name = "OpenFileDlg",
+                        Type = ControlType.OpenFileDialog,
+                        Events = [new EventMappingDefinition { EventName = "FileOk", CommandProperty = "OnFileOpenedCommand", IsAsync = true }]
+                    },
+                    new AstNode
+                    {
+                        Id = "sfd",
+                        Name = "SaveFileDlg",
+                        Type = ControlType.SaveFileDialog,
+                        Events = [new EventMappingDefinition { EventName = "FileOk", CommandProperty = "OnFileSavedCommand", IsAsync = true }]
+                    },
+                    new AstNode
+                    {
+                        Id = "msg",
+                        Name = "AlertBox",
+                        Type = ControlType.MessageBox,
+                        Events = [new EventMappingDefinition { EventName = "Confirmed", CommandProperty = "OnAlertConfirmedCommand", IsAsync = false }]
+                    }
+                ]
+            }
+        };
+
+        // Act
+        var result = _generator.Generate(doc);
+
+        // Assert
+        result.Content.Should().Contain("private readonly OpenFileDialog _openFileDlg = new();");
+        result.Content.Should().Contain("private readonly SaveFileDialog _saveFileDlg = new();");
+        result.Content.Should().Contain("private readonly MessageBox _alertBox = new();");
+
+        // 驗證建構子內的事件回呼掛載
+        result.Content.Should().Contain("public DialogFormViewModel()");
+        result.Content.Should().Contain("_openFileDlg.FileOk += (s, e) => FileOpenedCommand.Execute(null);");
+        result.Content.Should().Contain("_saveFileDlg.FileOk += (s, e) => FileSavedCommand.Execute(null);");
+        result.Content.Should().Contain("_alertBox.Confirmed += (s, e) => AlertConfirmedCommand.Execute(null);");
 
         var diagnostics = RoslynCompilerService.CheckSyntaxDiagnostics(result.Content);
         diagnostics.Should().BeEmpty();
@@ -351,7 +407,7 @@ public sealed class MvvmViewModelGeneratorTests
 
         // Assert
         result.Content.Should().Contain("private readonly DispatcherTimer _pollTimer = new() { Interval = TimeSpan.FromMilliseconds(250) };");
-        result.Content.Should().Contain("_pollTimer.Tick += (s, e) => OnPollTickCommand.Execute(null);");
+        result.Content.Should().Contain("_pollTimer.Tick += (s, e) => PollTickCommand.Execute(null);");
 
         var diagnostics = RoslynCompilerService.CheckSyntaxDiagnostics(result.Content);
         diagnostics.Should().BeEmpty();
@@ -463,7 +519,7 @@ public sealed class MvvmViewModelGeneratorTests
         result.Content.Should().Contain("using Avalonia.Interactivity;");
         result.Content.Should().Contain("using Avalonia.Input;");
         result.Content.Should().Contain("private async Task SubmitAsync(RoutedEventArgs? e = default)");
-        result.Content.Should().Contain("private void OnCanvasPressed(PointerPressedEventArgs? e = default)");
+        result.Content.Should().Contain("private void CanvasPressed(PointerPressedEventArgs? e = default)");
 
         var diagnostics = RoslynCompilerService.CheckSyntaxDiagnostics(result.Content);
         diagnostics.Should().BeEmpty();

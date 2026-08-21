@@ -72,7 +72,8 @@ public sealed class MvvmViewModelGenerator : ICodeGenerator
 
         var nonVisualComponents = allNodes
             .Where(n => n.Type is ControlType.DispatcherTimer or ControlType.BackgroundWorker
-                              or ControlType.BluetoothClient or ControlType.SerialPortService)
+                              or ControlType.BluetoothClient or ControlType.SerialPortService
+                              or ControlType.OpenFileDialog or ControlType.SaveFileDialog or ControlType.MessageBox)
             .ToList();
 
         var sb = new StringBuilder();
@@ -91,7 +92,8 @@ public sealed class MvvmViewModelGenerator : ICodeGenerator
         sb.AppendLine("using CommunityToolkit.Mvvm.Input;");
 
         var services = document.InjectedServices ?? [];
-        if (services.Count > 0 || nonVisualComponents.Any(c => c.Type is ControlType.BluetoothClient or ControlType.SerialPortService))
+        if (services.Count > 0 || nonVisualComponents.Any(c => c.Type is ControlType.BluetoothClient or ControlType.SerialPortService
+                                                                 or ControlType.OpenFileDialog or ControlType.SaveFileDialog or ControlType.MessageBox))
         {
             sb.AppendLine($"using {document.RootNamespace}.Services;");
         }
@@ -102,7 +104,7 @@ public sealed class MvvmViewModelGenerator : ICodeGenerator
         sb.AppendLine($"public partial class {document.ViewModelClassName} : ObservableObject");
         sb.AppendLine("{");
 
-        // 不可視元件與硬體通訊宣告 (如 DispatcherTimer, BackgroundWorker, BluetoothClient, SerialPortService)
+        // 不可視元件、硬體通訊與對話方塊宣告 (如 DispatcherTimer, BackgroundWorker, BluetoothClient, SerialPortService, OpenFileDialog, SaveFileDialog, MessageBox)
         if (nonVisualComponents.Count > 0)
         {
             foreach (var comp in nonVisualComponents)
@@ -126,6 +128,18 @@ public sealed class MvvmViewModelGenerator : ICodeGenerator
                 else if (comp.Type == ControlType.SerialPortService)
                 {
                     sb.AppendLine($"    private readonly SerialPortService {fieldName} = new();");
+                }
+                else if (comp.Type == ControlType.OpenFileDialog)
+                {
+                    sb.AppendLine($"    private readonly OpenFileDialog {fieldName} = new();");
+                }
+                else if (comp.Type == ControlType.SaveFileDialog)
+                {
+                    sb.AppendLine($"    private readonly SaveFileDialog {fieldName} = new();");
+                }
+                else if (comp.Type == ControlType.MessageBox)
+                {
+                    sb.AppendLine($"    private readonly MessageBox {fieldName} = new();");
                 }
             }
             sb.AppendLine();
@@ -339,6 +353,10 @@ public sealed class MvvmViewModelGenerator : ICodeGenerator
         var raw = name.EndsWith("Command", StringComparison.OrdinalIgnoreCase)
             ? name[..^"Command".Length]
             : name;
+        if (raw.StartsWith("On", StringComparison.Ordinal) && raw.Length > 2 && char.IsUpper(raw[2]))
+        {
+            raw = raw[2..];
+        }
         if (string.IsNullOrWhiteSpace(raw)) raw = "Execute";
         return char.ToUpperInvariant(raw[0]) + raw[1..] + "Command";
     }

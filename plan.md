@@ -162,8 +162,8 @@ AvaloniaFormGenerator/
     - 在 `DesignCanvas` 支援不可視對話方塊徽章卡片渲染（`[OpenFileDialog]`, `[SaveFileDialog]`, `[MessageBox]`）。
     - 在 `ControlEventCatalog` 註冊對話方塊專屬事件（`FileOk`, `Confirmed` 等）與預設回呼參數。
     - 撰寫單元測試驗證對話方塊的事件目錄、參數及工具箱整合。
-  - [ ] 10.3 **Phase 3: 專案匯出對話方塊服務與 ViewModel 整合 (Dialog Services & CodeGen Integration)**
-    - 在 `ProjectExportService` 產出跨平台 `IDialogService.cs`、`DialogService.cs` 與純 C# Markup 現代化 `MessageBoxWindow.cs`。
+  - [x] 10.3 **Phase 3: 專案匯出對話方塊服務與 ViewModel 整合 (Dialog Services & CodeGen Integration)**
+    - 在 `ProjectExportService` 產出跨平台 `IDialogService.cs`、`DialogService.cs` 與純 C# 原生現代化 `MessageBoxWindow.cs`。
     - 在 `MvvmViewModelGenerator` 支援不可視對話方塊欄位宣告與事件建構子掛載。
     - 撰寫單元與整合測試，包含匯出包含對話方塊的專案並驗證 `dotnet build`。
   - [ ] 10.4 **Phase 4: 技術文件更新與全專案驗證 (Documentation & Final Verification)**

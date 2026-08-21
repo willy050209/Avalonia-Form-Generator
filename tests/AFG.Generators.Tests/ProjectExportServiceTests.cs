@@ -65,6 +65,12 @@ public sealed class ProjectExportServiceTests
         var markupExtCs = Path.Combine("src", "OrderFormApp.Shared", "Markup", "AvaloniaMarkupExtensions.cs");
         var igreetingCs = Path.Combine("src", "OrderFormApp.Shared", "Services", "IGreetingService.cs");
         var greetingCs = Path.Combine("src", "OrderFormApp.Shared", "Services", "GreetingService.cs");
+        var idialogCs = Path.Combine("src", "OrderFormApp.Shared", "Services", "IDialogService.cs");
+        var dialogCs = Path.Combine("src", "OrderFormApp.Shared", "Services", "DialogService.cs");
+        var msgWindowCs = Path.Combine("src", "OrderFormApp.Shared", "Services", "MessageBoxWindow.cs");
+        var openFileCs = Path.Combine("src", "OrderFormApp.Shared", "Services", "OpenFileDialog.cs");
+        var saveFileCs = Path.Combine("src", "OrderFormApp.Shared", "Services", "SaveFileDialog.cs");
+        var msgBoxCs = Path.Combine("src", "OrderFormApp.Shared", "Services", "MessageBox.cs");
         var viewCs = Path.Combine("src", "OrderFormApp.Shared", "Views", "OrderFormView.cs");
         var vmCs = Path.Combine("src", "OrderFormApp.Shared", "ViewModels", "OrderFormViewModel.cs");
 
@@ -75,6 +81,12 @@ public sealed class ProjectExportServiceTests
         files.Should().Contain(f => f.FileName == markupExtCs);
         files.Should().Contain(f => f.FileName == igreetingCs);
         files.Should().Contain(f => f.FileName == greetingCs);
+        files.Should().Contain(f => f.FileName == idialogCs);
+        files.Should().Contain(f => f.FileName == dialogCs);
+        files.Should().Contain(f => f.FileName == msgWindowCs);
+        files.Should().Contain(f => f.FileName == openFileCs);
+        files.Should().Contain(f => f.FileName == saveFileCs);
+        files.Should().Contain(f => f.FileName == msgBoxCs);
         files.Should().Contain(f => f.FileName == viewCs);
         files.Should().Contain(f => f.FileName == vmCs);
 
@@ -307,6 +319,138 @@ public sealed class ProjectExportServiceTests
                 catch
                 {
                     // 忽略清理時由鎖定引起之例外
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// 端到端實體編譯測試：驗證包含 OpenFileDialog, SaveFileDialog 與 MessageBox 之專案可直接透過 dotnet CLI 成功編譯。
+    /// </summary>
+    [Fact]
+    public async Task ExportedProject_WithDialogComponents_ShouldCompileDirectlyWithDotnetCli()
+    {
+        var tempFolder = Path.Combine(Path.GetTempPath(), "AFG_DialogBuildVerification_" + Guid.NewGuid().ToString("N"));
+        var doc = new FormDocument
+        {
+            ViewClassName = "EditorFormView",
+            ViewModelClassName = "EditorFormViewModel",
+            Title = "文字編輯器",
+            RootNode = new AstNode
+            {
+                Id = "rootCanvas",
+                Type = ControlType.Canvas,
+                Children = [
+                    new AstNode
+                    {
+                        Id = "txtEditor",
+                        Type = ControlType.TextBox,
+                        Watermark = "請在此輸入文章內容...",
+                        CanvasLeft = 20,
+                        CanvasTop = 60,
+                        Width = 400,
+                        Height = 200,
+                        Bindings = [new BindingDefinition { TargetProperty = "Text", ViewModelProperty = "DocumentText", Mode = BindingMode.TwoWay }]
+                    },
+                    new AstNode
+                    {
+                        Id = "btnOpen",
+                        Type = ControlType.Button,
+                        Content = "開啟檔案",
+                        CanvasLeft = 20,
+                        CanvasTop = 15,
+                        Width = 90,
+                        Height = 32,
+                        Events = [new EventMappingDefinition { EventName = "Click", CommandProperty = "OpenClickCommand", IsAsync = true }]
+                    },
+                    new AstNode
+                    {
+                        Id = "btnSave",
+                        Type = ControlType.Button,
+                        Content = "儲存檔案",
+                        CanvasLeft = 120,
+                        CanvasTop = 15,
+                        Width = 90,
+                        Height = 32,
+                        Events = [new EventMappingDefinition { EventName = "Click", CommandProperty = "SaveClickCommand", IsAsync = true }]
+                    },
+                    new AstNode
+                    {
+                        Id = "btnAbout",
+                        Type = ControlType.Button,
+                        Content = "關於",
+                        CanvasLeft = 220,
+                        CanvasTop = 15,
+                        Width = 70,
+                        Height = 32,
+                        Events = [new EventMappingDefinition { EventName = "Click", CommandProperty = "AboutClickCommand", IsAsync = false }]
+                    },
+                    new AstNode
+                    {
+                        Id = "ofd",
+                        Name = "OpenFileDlg",
+                        Type = ControlType.OpenFileDialog,
+                        Events = [new EventMappingDefinition { EventName = "FileOk", CommandProperty = "OnFileOpenedCommand", IsAsync = true }]
+                    },
+                    new AstNode
+                    {
+                        Id = "sfd",
+                        Name = "SaveFileDlg",
+                        Type = ControlType.SaveFileDialog,
+                        Events = [new EventMappingDefinition { EventName = "FileOk", CommandProperty = "OnFileSavedCommand", IsAsync = true }]
+                    },
+                    new AstNode
+                    {
+                        Id = "msg",
+                        Name = "AboutMessageBox",
+                        Type = ControlType.MessageBox,
+                        Events = [new EventMappingDefinition { EventName = "Confirmed", CommandProperty = "OnAboutConfirmedCommand", IsAsync = false }]
+                    }
+                ]
+            }
+        };
+
+        try
+        {
+            await _exportService.ExportToFolderAsync(doc, tempFolder, new ProjectExportOptions(IncludeMobileProject: false));
+
+            var desktopCsprojPath = Path.Combine(tempFolder, "src", "EditorFormApp.Desktop", "EditorFormApp.Desktop.csproj");
+            File.Exists(desktopCsprojPath).Should().BeTrue("Desktop 專案檔應存在於匯出目錄");
+
+            var psi = new ProcessStartInfo
+            {
+                FileName = "dotnet",
+                Arguments = $"build \"{desktopCsprojPath}\" -c Release --nologo",
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            };
+
+            using var process = Process.Start(psi);
+            process.Should().NotBeNull();
+
+            var stdoutTask = process!.StandardOutput.ReadToEndAsync();
+            var stderrTask = process.StandardError.ReadToEndAsync();
+
+            var completedInTime = process.WaitForExit(90000);
+            completedInTime.Should().BeTrue("dotnet build 應在 90 秒內執行完成");
+
+            var stdout = await stdoutTask;
+            var stderr = await stderrTask;
+
+            process.ExitCode.Should().Be(0, $"含對話方塊之匯出專案 dotnet build 應成功 (ExitCode 0)。\n標準輸出:\n{stdout}\n錯誤輸出:\n{stderr}");
+        }
+        finally
+        {
+            if (Directory.Exists(tempFolder))
+            {
+                try
+                {
+                    Directory.Delete(tempFolder, recursive: true);
+                }
+                catch
+                {
                 }
             }
         }
