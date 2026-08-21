@@ -42,7 +42,12 @@ public static class ControlEventCatalog
             [ControlType.DispatcherTimer] = ["Tick"],
             [ControlType.BackgroundWorker] = ["DoWork", "ProgressChanged", "RunWorkerCompleted"],
             [ControlType.BluetoothClient] = ["DeviceDiscovered", "Connected", "Disconnected", "DataReceived"],
-            [ControlType.SerialPortService] = ["DataReceived", "ErrorReceived", "PinChanged"]
+            [ControlType.SerialPortService] = ["DataReceived", "ErrorReceived", "PinChanged"],
+
+            // 對話方塊元件專屬事件
+            [ControlType.OpenFileDialog] = ["FileOk"],
+            [ControlType.SaveFileDialog] = ["FileOk"],
+            [ControlType.MessageBox] = ["Confirmed"]
         }.ToImmutableDictionary();
 
     private static readonly ImmutableList<string> FallbackEvents = ["Tapped", "PointerPressed"];
@@ -77,6 +82,8 @@ public static class ControlEventCatalog
         ControlType.BackgroundWorker => "DoWork",
         ControlType.BluetoothClient => "DataReceived",
         ControlType.SerialPortService => "DataReceived",
+        ControlType.OpenFileDialog or ControlType.SaveFileDialog => "FileOk",
+        ControlType.MessageBox => "Confirmed",
         _ => "Tapped"
     };
 
@@ -116,6 +123,8 @@ public static class ControlEventCatalog
         "RunWorkerCompleted" => "RunWorkerCompletedEventArgs",
         "DataReceived" => "string",
         "Tick" => "EventArgs",
+        "FileOk" => "string?",
+        "Confirmed" => "bool?",
         _ => "RoutedEventArgs"
     };
 
@@ -156,6 +165,24 @@ public static class ControlEventCatalog
             [
                 new EventParameterDefinition("sender", "object?", null, false),
                 new EventParameterDefinition("e", "EventArgs", null, false)
+            ];
+        }
+
+        if (eventName is "FileOk")
+        {
+            return
+            [
+                new EventParameterDefinition("sender", "object?", null, false),
+                new EventParameterDefinition("filePath", "string?", null, false)
+            ];
+        }
+
+        if (eventName is "Confirmed")
+        {
+            return
+            [
+                new EventParameterDefinition("sender", "object?", null, false),
+                new EventParameterDefinition("result", "bool?", null, false)
             ];
         }
 
@@ -205,6 +232,8 @@ public static class ControlEventCatalog
             "ProgressChanged" => ["ProgressChangedEventArgs", "EventArgs"],
             "RunWorkerCompleted" => ["RunWorkerCompletedEventArgs", "EventArgs"],
             "Tick" => ["EventArgs"],
+            "FileOk" => ["string?", "string", "CancelEventArgs", "EventArgs"],
+            "Confirmed" => ["bool?", "bool", "string?", "EventArgs"],
             "DataReceived" => ["string", "byte[]", "EventArgs"],
             _ => ["RoutedEventArgs", "EventArgs"]
         };

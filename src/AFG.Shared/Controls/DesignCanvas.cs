@@ -391,13 +391,17 @@ public sealed class DesignCanvas : Grid
                 }
                 control = scrollViewer;
                 break;
-            case ControlType.DispatcherTimer or ControlType.BackgroundWorker or ControlType.BluetoothClient or ControlType.SerialPortService:
+            case ControlType.DispatcherTimer or ControlType.BackgroundWorker or ControlType.BluetoothClient or ControlType.SerialPortService
+                 or ControlType.OpenFileDialog or ControlType.SaveFileDialog or ControlType.MessageBox:
                 var iconTag = node.Type switch
                 {
                     ControlType.DispatcherTimer => "[Timer]",
                     ControlType.BackgroundWorker => "[Worker]",
                     ControlType.BluetoothClient => "[BLE]",
                     ControlType.SerialPortService => "[COM]",
+                    ControlType.OpenFileDialog => "[OpenFileDialog]",
+                    ControlType.SaveFileDialog => "[SaveFileDialog]",
+                    ControlType.MessageBox => "[MessageBox]",
                     _ => "[Service]"
                 };
                 var compBorder = new Border

@@ -369,7 +369,8 @@ public sealed class CSharpMarkupViewGenerator : ICodeGenerator
     public static bool IsNonVisualComponent(ControlType type) => type switch
     {
         ControlType.DispatcherTimer or ControlType.BackgroundWorker or
-        ControlType.BluetoothClient or ControlType.SerialPortService => true,
+        ControlType.BluetoothClient or ControlType.SerialPortService or
+        ControlType.OpenFileDialog or ControlType.SaveFileDialog or ControlType.MessageBox => true,
         _ => false
     };
 

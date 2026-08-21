@@ -32,7 +32,12 @@ public static class ToolboxService
         new("DispatcherTimer", "不可視元件", ControlType.DispatcherTimer, "Tmr", 150, 40, "計時器 (Timer)"),
         new("BackgroundWorker", "不可視元件", ControlType.BackgroundWorker, "Bgw", 150, 40, "背景工作 (Worker)"),
         new("BluetoothClient", "硬體通訊", ControlType.BluetoothClient, "Ble", 150, 40, "藍牙通訊 (BLE)"),
-        new("SerialPortService", "硬體通訊", ControlType.SerialPortService, "Com", 150, 40, "序列埠 (COM)")
+        new("SerialPortService", "硬體通訊", ControlType.SerialPortService, "Com", 150, 40, "序列埠 (COM)"),
+
+        // 對話方塊元件
+        new("OpenFileDialog", "對話方塊", ControlType.OpenFileDialog, "Ofd", 150, 40, "開啟檔案 (OpenFileDialog)"),
+        new("SaveFileDialog", "對話方塊", ControlType.SaveFileDialog, "Sfd", 150, 40, "儲存檔案 (SaveFileDialog)"),
+        new("MessageBox", "對話方塊", ControlType.MessageBox, "Msg", 150, 40, "訊息方塊 (MessageBox)")
     ];
 
     public static IReadOnlyList<ToolboxItem> GetAvailableItems() => Items;

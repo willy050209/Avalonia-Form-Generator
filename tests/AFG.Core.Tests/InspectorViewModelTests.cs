@@ -110,4 +110,46 @@ public sealed class InspectorViewModelTests
         item.Parameters[1].Name.Should().Be("e");
         item.Parameters[1].Type.Should().Be("EventArgs");
     }
+
+    [Fact]
+    public void LoadNode_WhenOpenFileDialogLoaded_AddEventShouldProvideFileOkEvent()
+    {
+        // Arrange
+        var vm = new InspectorViewModel();
+        var node = new AstNode { Id = "ofd1", Name = "OpenFileDialog1", Type = ControlType.OpenFileDialog };
+        vm.LoadNode(node);
+
+        // Act
+        vm.AddEventCommand.Execute(null);
+
+        // Assert
+        vm.Events.Should().HaveCount(1);
+        var item = vm.Events[0];
+        item.EventName.Should().Be("FileOk");
+        item.Parameters.Should().HaveCount(2);
+        item.Parameters[0].Name.Should().Be("sender");
+        item.Parameters[1].Name.Should().Be("filePath");
+        item.Parameters[1].Type.Should().Be("string?");
+    }
+
+    [Fact]
+    public void LoadNode_WhenMessageBoxLoaded_AddEventShouldProvideConfirmedEvent()
+    {
+        // Arrange
+        var vm = new InspectorViewModel();
+        var node = new AstNode { Id = "msg1", Name = "MessageBox1", Type = ControlType.MessageBox };
+        vm.LoadNode(node);
+
+        // Act
+        vm.AddEventCommand.Execute(null);
+
+        // Assert
+        vm.Events.Should().HaveCount(1);
+        var item = vm.Events[0];
+        item.EventName.Should().Be("Confirmed");
+        item.Parameters.Should().HaveCount(2);
+        item.Parameters[0].Name.Should().Be("sender");
+        item.Parameters[1].Name.Should().Be("result");
+        item.Parameters[1].Type.Should().Be("bool?");
+    }
 }

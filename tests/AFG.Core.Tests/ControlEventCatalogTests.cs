@@ -214,4 +214,36 @@ public sealed class ControlEventCatalogTests
         types.Should().NotContain("SelectionChangedEventArgs");
         types.Should().NotContain("KeyEventArgs");
     }
+
+    [Theory]
+    [InlineData(ControlType.OpenFileDialog, "FileOk")]
+    [InlineData(ControlType.SaveFileDialog, "FileOk")]
+    [InlineData(ControlType.MessageBox, "Confirmed")]
+    public void GetSupportedEvents_ForDialogs_ShouldReturnCorrectEvents(ControlType controlType, string expectedEvent)
+    {
+        var events = ControlEventCatalog.GetSupportedEvents(controlType);
+        events.Should().Contain(expectedEvent);
+    }
+
+    [Fact]
+    public void GetDefaultParameters_ForFileOk_ShouldReturnSenderAndFilePath()
+    {
+        var parameters = ControlEventCatalog.GetDefaultParameters("FileOk");
+        parameters.Should().HaveCount(2);
+        parameters[0].Name.Should().Be("sender");
+        parameters[0].Type.Should().Be("object?");
+        parameters[1].Name.Should().Be("filePath");
+        parameters[1].Type.Should().Be("string?");
+    }
+
+    [Fact]
+    public void GetDefaultParameters_ForConfirmed_ShouldReturnSenderAndResult()
+    {
+        var parameters = ControlEventCatalog.GetDefaultParameters("Confirmed");
+        parameters.Should().HaveCount(2);
+        parameters[0].Name.Should().Be("sender");
+        parameters[0].Type.Should().Be("object?");
+        parameters[1].Name.Should().Be("result");
+        parameters[1].Type.Should().Be("bool?");
+    }
 }

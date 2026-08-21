@@ -156,7 +156,7 @@ AvaloniaFormGenerator/
   - [x] 10.1 **Phase 1: 物件名稱註解生成 (Object Name Comments in Generated Views)**
     - 在 `CSharpMarkupViewGenerator.GenerateNodeCode` 中，於每個控制項/容器建構子（`new Button()`, `new TextBox()`, `new Canvas()` 等）上方加入 `// {node.Name}` 註解。
     - 撰寫單元測試驗證所有控制項與巢狀容器均包含精準的名稱註解。
-  - [ ] 10.2 **Phase 2: 對話方塊 AST 模型、事件目錄與工具箱擴充 (Dialogs in AST & Toolbox)**
+  - [x] 10.2 **Phase 2: 對話方塊 AST 模型、事件目錄與工具箱擴充 (Dialogs in AST & Toolbox)**
     - 在 `ControlType` 加入 `OpenFileDialog`, `SaveFileDialog`, `MessageBox`。
     - 在 `ToolboxService` 新增「對話方塊」分類，包含三種對話方塊工具箱項目。
     - 在 `DesignCanvas` 支援不可視對話方塊徽章卡片渲染（`[OpenFileDialog]`, `[SaveFileDialog]`, `[MessageBox]`）。
