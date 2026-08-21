@@ -8,12 +8,15 @@
 
 AFG 將 UI AST 轉譯為純 C# 的宣告式結構，具備高型別安全性、IDE 完整導航 (F12) 與重構支援。
 
-### 1.1 基本鏈式調用結構 (Fluent Chaining)
+### 1.1 基本鏈式調用結構與物件名稱註解 (Fluent Chaining & Name Comments)
+在生成的 View 中，每個控制項與容器的建構子上方均會自動標記該物件名稱註解：
 ```csharp
+// RootCanvas
 Content = new Canvas()
     .Width(390)
     .Height(844)
     .Children(
+        // UsernameTextBox
         new TextBox()
             .Width(240)
             .Height(35)
@@ -21,6 +24,7 @@ Content = new Canvas()
             .CanvasTop(80)
             .Watermark("請輸入使用者名稱")
             .Text(nameof(LoginFormViewModel.Username), BindingMode.TwoWay),
+        // LoginButton
         new Button()
             .Width(120)
             .Height(35)
@@ -36,10 +40,13 @@ Content = new Canvas()
 ### 1.2 強型別編譯綁定 (Compiled / Lambda Bindings) 模式 (預設模式)
 AFG 預設採用強型別 Lambda 編譯綁定 (`FormDocument.UseCompiledBindings == true`)，生成具備 IDE 型別檢查與編譯期驗證之語法：
 ```csharp
+// RootCanvas
 Content = new Canvas()
     .Children(
+        // UsernameTextBox
         new TextBox()
             .Text((LoginFormViewModel vm) => vm.Username, BindingMode.TwoWay),
+        // LoginButton
         new Button()
             .Command((LoginFormViewModel vm) => vm.SubmitCommand)
     );

@@ -150,7 +150,7 @@ AvaloniaFormGenerator/
 ---
 
 ### 🔹 階段 10：物件名稱註解與對話方塊元件整合 (Object Name Comments & Dialogs Integration)
-- [ ] **階段狀態：進行中**
+- [x] **階段狀態：已完成**
 - **目標**：在生成的 View 中為每個控制項建構子上方產生該物件名稱註解；實作開檔 (`OpenFileDialog`)、存檔 (`SaveFileDialog`) 與 `MessageBox` 對話方塊並加入工具箱與程式碼生成器中。
 - **任務清單**：
   - [x] 10.1 **Phase 1: 物件名稱註解生成 (Object Name Comments in Generated Views)**
@@ -166,7 +166,7 @@ AvaloniaFormGenerator/
     - 在 `ProjectExportService` 產出跨平台 `IDialogService.cs`、`DialogService.cs` 與純 C# 原生現代化 `MessageBoxWindow.cs`。
     - 在 `MvvmViewModelGenerator` 支援不可視對話方塊欄位宣告與事件建構子掛載。
     - 撰寫單元與整合測試，包含匯出包含對話方塊的專案並驗證 `dotnet build`。
-  - [ ] 10.4 **Phase 4: 技術文件更新與全專案驗證 (Documentation & Final Verification)**
+  - [x] 10.4 **Phase 4: 技術文件更新與全專案驗證 (Documentation & Final Verification)**
     - 更新 `README.md`、`docs/architecture.md`、`docs/ast-schema.md`、`docs/csharp-markup-spec.md`、`docs/user-guide.md`。
     - 執行全專案 100% 測試驗證並完成各階段 Git Commit。
 

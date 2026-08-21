@@ -120,6 +120,7 @@ public sealed record FormProjectDefinition
 
 - **基本控制項**：`Button`, `TextBox`, `TextBlock`, `CheckBox`, `RadioButton`, `ComboBox`, `ListBox`, `DatePicker`, `TimePicker`, `Slider`, `ProgressBar`, `DataGrid`, `Image`, `PictureBox`, `Border`。
 - **佈局容器**：`Canvas`, `Grid`, `StackPanel`, `DockPanel`, `WrapPanel`, `ScrollViewer`。
+- **對話方塊元件**：`OpenFileDialog`, `SaveFileDialog`, `MessageBox`。
 - **不可視元件與通訊服務**：`DispatcherTimer`, `BackgroundWorker`, `BluetoothClient`, `SerialPortService`。
 
 ---
@@ -137,8 +138,8 @@ public sealed record FormProjectDefinition
 #### `EventParameterDefinition` 參數定義
 ```csharp
 public sealed record EventParameterDefinition(
-    string Name,                     // 參數識別名稱（如 "sender", "e", "param1"）
-    string Type = "object?",         // C# 型別（如 "object?", "RoutedEventArgs", "string"）
+    string Name,                     // 參數識別名稱（如 "sender", "e", "filePath", "result"）
+    string Type = "object?",         // C# 型別（如 "object?", "RoutedEventArgs", "string?", "bool?"）
     string? ValueOrPath = null,      // 傳遞常數值或 ViewModel 屬性路徑（若為 null 則傳遞原生事件參數）
     bool IsConstant = false          // 是否為常數字串
 );
@@ -158,6 +159,14 @@ public sealed record EventParameterDefinition(
 - **`PictureBox`** (圖片方塊 / Image)：`Click`, `DoubleClick`, `Tapped`, `DoubleTapped`, `PointerPressed`, `PointerReleased`, `LoadCompleted`, `SizeModeChanged`
 - **`Border` / 佈局容器**：`PointerPressed`, `PointerReleased`, `Tapped`, `DoubleTapped`
 
+#### 對話方塊元件專屬事件
+- **`OpenFileDialog`** (開啟檔案對話方塊)：
+  - `FileOk`：檔案選擇確認回呼（預設傳入 `(sender, object?)` 與 `(filePath, string?)`）。
+- **`SaveFileDialog`** (儲存檔案對話方塊)：
+  - `FileOk`：儲存路徑確認回呼（預設傳入 `(sender, object?)` 與 `(filePath, string?)`）。
+- **`MessageBox`** (訊息方塊)：
+  - `Confirmed`：對話框按鈕確認回呼（預設傳入 `(sender, object?)` 與 `(result, bool?)`）。
+
 #### 不可視元件與通訊硬體專屬回呼 (Callbacks)
 - **`DispatcherTimer`** (計時器)：
   - `Tick`：定時觸發回呼（預設傳入 `(sender, object?)` 與 `(e, EventArgs)`）。
@@ -175,6 +184,6 @@ public sealed record EventParameterDefinition(
   - `ErrorReceived`：序列埠通訊錯誤回呼。
   - `PinChanged`：Pin 狀態訊號變更回呼。
 
-- `commandProperty`: ViewModel 端的 Command 屬性名稱（如 `SubmitCommand`, `OnDataReceivedCommand`）。
+- `commandProperty`: ViewModel 端的 Command 屬性名稱（如 `SubmitCommand`, `DataReceivedCommand`, `FileOpenedCommand`）。
 - `parameters`: 多參數配置清單。生成器會自動將多參數包裝為可空的 `ValueTuple`，並在 View 端透過 `ExecuteCommandWithArgs` 或 ViewModel 建構子精準傳遞。
-- `isAsync`: `bool`（預設 `true`）。指定是否生成非同步 `async Task ...Async()` 方法或同步 `void ...()` 方法。不可視元件事件將在 ViewModel 建構子內自動訂閱並調用對應之 RelayCommand。
+- `isAsync`: `bool`（預設 `true`）。指定是否生成非同步 `async Task ...Async()` 方法或同步 `void ...()` 方法。不可視元件與對話方塊事件將在 ViewModel 建構子內自動訂閱並調用對應之 RelayCommand。

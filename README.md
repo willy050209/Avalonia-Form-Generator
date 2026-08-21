@@ -31,7 +31,8 @@ graph LR
 | :--- | :--- | :--- |
 | **基礎控制項** | `Button`, `TextBox`, `TextBlock`, `CheckBox`, `RadioButton`, `ComboBox`, `DatePicker`, `Slider`, `ProgressBar`, `PictureBox` | 支援完整幾何、外觀、雙向/單向資料綁定、影像來源 (Source/ImageLocation) 與縮放模式 (Stretch/SizeMode) 與命令事件轉換 |
 | **版面配置容器** | `Canvas`, `StackPanel`, `Grid`, `Border`, `DockPanel`, `WrapPanel`, `ScrollViewer` | 支援巢狀拖曳放入、自動流式排版、列/欄定義與視覺樹精準選取 |
-| **非視覺 / 硬體元件** | `DispatcherTimer`, `BackgroundWorker`, `BluetoothClient`, `SerialPortService` | 支援設計畫布視覺卡片預覽（[Timer], [Worker], [BLE], [COM] 標籤），自動註冊為 DI 服務並提供專屬回呼事件（`Tick`, `DoWork`, `ProgressChanged`, `DataReceived` 等）自動掛載 |
+| **對話方塊元件** | `OpenFileDialog`, `SaveFileDialog`, `MessageBox` | 支援開檔、存檔與訊息對話方塊，在畫布上具備獨立徽章預覽卡片，支援回呼事件（`FileOk`, `Confirmed`）與跨平台 `IDialogService` 服務注入呼叫 |
+| **不可視 / 硬體元件** | `DispatcherTimer`, `BackgroundWorker`, `BluetoothClient`, `SerialPortService` | 支援設計畫布視覺卡片預覽（[Timer], [Worker], [BLE], [COM] 標籤），自動註冊為 DI 服務並提供專屬回呼事件（`Tick`, `DoWork`, `ProgressChanged`, `DataReceived` 等）自動掛載 |
 
 ---
 
@@ -71,7 +72,8 @@ graph LR
 
 3. **相依性注入與跨平台多專案生成 (`AFG.Generators`)**
    - **全面整合 `Microsoft.Extensions.DependencyInjection`**：在 `App.cs` 配置 `ServiceCollection` / `ServiceProvider`，自動註冊 Services、ViewModels 與 Views，支援 ViewModel 建構子相依性注入。
-   - **純 C# Markup 宣告式 UI**：無 AXAML 依賴，採用 Fluent Method Chaining 鏈式調用，型別安全且編譯即時檢查。
+   - **純 C# Markup 宣告式 UI 與物件名稱註解**：無 AXAML 依賴，採用 Fluent Method Chaining 鏈式調用，並在 View 中每個物件的建構子上方自動加入該物件名稱註解（例如 `// LoginButton`、`// MainCanvas`），提升程式碼可讀性。
+   - **跨平台對話方塊服務 (`IDialogService` & `MessageBoxWindow`)**：匯出專案內建開檔、存檔與訊息對話方塊支援，整合 Avalonia 原生 `StorageProvider` 與現代化對話視窗。
    - **原生事件轉發擴充**：提供 `OnClick`、`OnTextChanged`、`OnSelectionChanged` 等擴充方法，由 View 端原生事件直接激勵 ViewModel 命令。
    - **可配置視窗尺寸**：依設計器與解析度規格生成標準視窗尺寸 (`Width` / `Height`)，預設不強制全螢幕。
    - **Roslyn 格式化與記憶體編譯診斷**：使用 Roslyn 語法樹標準化縮排，並在記憶體中編譯檢查，即時提供語法警告。
@@ -302,9 +304,15 @@ public partial class App : Application
 │   │   ├── GlobalUsings.cs                 # 共享專案全域引用配置
 │   │   ├── 📂 Markup                       # C# Declarative UI Fluent 擴充庫
 │   │   │   └── AvaloniaMarkupExtensions.cs
-│   │   ├── 📂 Services                     # 服務層 (跨表單導航與自訂 DI 服務)
+│   │   ├── 📂 Services                     # 服務層 (跨表單導航、對話方塊與自訂 DI 服務)
 │   │   │   ├── INavigationService.cs
-│   │   │   └── NavigationService.cs
+│   │   │   ├── NavigationService.cs
+│   │   │   ├── IDialogService.cs
+│   │   │   ├── DialogService.cs
+│   │   │   ├── MessageBoxWindow.cs
+│   │   │   ├── OpenFileDialog.cs
+│   │   │   ├── SaveFileDialog.cs
+│   │   │   └── MessageBox.cs
 │   │   ├── 📂 ViewModels                   # 檢視模型層 (CommunityToolkit.Mvvm)
 │   │   │   └── {ViewModelClassName}.cs
 │   │   └── 📂 Views                        # 檢視層 (純 C# Markup 宣告式元件)
@@ -327,7 +335,7 @@ public partial class App : Application
 
 本專案透過 GitHub Actions 提供完整的 CI/CD 跨平台建置與發布自動化流程：
 
-- **嚴格驗證機制**：僅在 `Windows`、`Linux`、`macOS` 全平台單元與整合測試（100+ 項測試）全數成功通過後，方可進入發布流程。
+- **嚴格驗證機制**：僅在 `Windows`、`Linux`、`macOS` 全平台單元與整合測試（177 項測試，涵蓋實體 dotnet build）全數成功通過後，方可進入發布流程。
 - **主流 4 大架構二進位檔案釋出**：
   | 平台 (OS) | 架構 (RID) | 發布產物 (Asset) | 說明 |
   | :--- | :--- | :--- | :--- |
