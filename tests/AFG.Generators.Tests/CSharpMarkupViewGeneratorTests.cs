@@ -67,6 +67,9 @@ public sealed class CSharpMarkupViewGeneratorTests
         result.FileType.Should().Be(SourceFileType.View);
         result.Content.Should().Contain("namespace MyApp.Views;");
         result.Content.Should().Contain("public partial class LoginFormView : UserControl");
+        result.Content.Should().Contain("// MainGrid");
+        result.Content.Should().Contain("// LoginButton");
+        result.Content.Should().Contain("// UsernameBox");
         result.Content.Should().Contain("new Grid()");
         result.Content.Should().Contain(".RowDefinitions(\"Auto\", \"*\")");
         result.Content.Should().Contain(".ColumnDefinitions(\"200\", \"*\")");
@@ -75,6 +78,40 @@ public sealed class CSharpMarkupViewGeneratorTests
         result.Content.Should().Contain(".Text((LoginFormViewModel vm) => vm.Username, BindingMode.TwoWay)");
 
         // 語法樹診斷檢查
+        var syntaxDiagnostics = RoslynCompilerService.CheckSyntaxDiagnostics(result.Content);
+        syntaxDiagnostics.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Generate_ShouldIncludeNodeNameCommentsAboveConstructors()
+    {
+        // Arrange
+        var doc = new FormDocument
+        {
+            RootNamespace = "TestApp.Views",
+            ViewClassName = "SampleFormView",
+            ViewModelClassName = "SampleFormViewModel",
+            RootNode = new AstNode
+            {
+                Id = "root",
+                Name = "RootCanvas",
+                Type = ControlType.Canvas,
+                Children =
+                [
+                    new AstNode { Id = "btn1", Name = "SubmitButton", Type = ControlType.Button, Content = "Submit" },
+                    new AstNode { Id = "txt1", Name = "EmailTextBox", Type = ControlType.TextBox }
+                ]
+            }
+        };
+
+        // Act
+        var result = _generator.Generate(doc);
+
+        // Assert
+        result.Content.Should().Contain("// RootCanvas");
+        result.Content.Should().Contain("// SubmitButton");
+        result.Content.Should().Contain("// EmailTextBox");
+
         var syntaxDiagnostics = RoslynCompilerService.CheckSyntaxDiagnostics(result.Content);
         syntaxDiagnostics.Should().BeEmpty();
     }

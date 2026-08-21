@@ -42,7 +42,9 @@ public sealed class CSharpMarkupViewGenerator : ICodeGenerator
         sb.AppendLine("    {");
 
         // 遞迴生成根節點
-        var rootCode = GenerateNodeCode(document.RootNode, indentLevel: 2, document.ViewModelClassName, document.UseCompiledBindings, parentNode: null);
+        var rootNodeName = !string.IsNullOrWhiteSpace(document.RootNode.Name) ? document.RootNode.Name.Trim() : document.RootNode.Type.ToString();
+        sb.AppendLine($"        // {rootNodeName}");
+        var rootCode = GenerateNodeCode(document.RootNode, indentLevel: 2, document.ViewModelClassName, document.UseCompiledBindings, parentNode: null, isRoot: true);
         sb.AppendLine($"        Content = {rootCode};");
 
         sb.AppendLine("    }");
@@ -57,13 +59,19 @@ public sealed class CSharpMarkupViewGenerator : ICodeGenerator
     /// <summary>
     /// 遞迴將 AST 節點轉換為 C# Fluent 鏈式調用語法。
     /// </summary>
-    public static string GenerateNodeCode(AstNode node, int indentLevel, string viewModelClassName, bool useCompiledBindings = false, AstNode? parentNode = null)
+    public static string GenerateNodeCode(AstNode node, int indentLevel, string viewModelClassName, bool useCompiledBindings = false, AstNode? parentNode = null, bool isRoot = false)
     {
         ArgumentNullException.ThrowIfNull(node);
 
         var indent = new string(' ', indentLevel * 4);
         var innerIndent = new string(' ', (indentLevel + 1) * 4);
         var sb = new StringBuilder();
+
+        var nodeName = !string.IsNullOrWhiteSpace(node.Name) ? node.Name.Trim() : node.Type.ToString();
+        if (!isRoot)
+        {
+            sb.AppendLine($"// {nodeName}");
+        }
 
         var controlTypeName = node.Type == ControlType.PictureBox ? "Image" : node.Type.ToString();
         sb.AppendLine($"new {controlTypeName}()");

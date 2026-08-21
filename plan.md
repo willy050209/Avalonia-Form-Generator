@@ -142,17 +142,33 @@ AvaloniaFormGenerator/
 - [x] **階段狀態：已完成**
 - **目標**：支援多表單架構、最佳化工作區佈局（可摺疊面板）、完善例外提示，並建立 GitHub Actions 跨平台 CI/CD。
 - **任務清單**：
-  - [x] 9.1 **多表單 (Multi-Form / Multi-View Navigation) 支援**：
-    - 建立 `FormProjectDefinition` 模型支援多表單文檔清單。
-    - 匯出專案時自動於 `.Shared` 生成 `INavigationService` 與 `NavigationService` 跨 View 導航服務並完成 DI 註冊。
-  - [x] 9.2 **畫面排版重構（可摺疊/可隱藏面板）**：
-    - 在頂部工具列增加「工具箱」、「程式碼」、「屬性欄」切換按鈕，支援側邊欄、底部預覽與屬性檢查器面板獨立摺疊/展開，最大化畫布可用空間。
-  - [x] 9.3 **例外與容錯處理 (Defensive & Friendly Errors)**：
-    - 在 `MainViewModel` 針對損毀或不完整的 `.afg.json` 進行結構化 `JsonException` 行數/欄位攔截與友善錯誤提示，防止崩潰。
-  - [x] 9.4 **GitHub Actions 跨平台 CI/CD 建置**：
-    - 建立 `.github/workflows/ci.yml`，針對 `ubuntu-latest`, `windows-latest`, `macos-latest` 自動執行 `dotnet restore`, `dotnet build (Release)` 與 `dotnet test`。
-- **驗證方式**：
-  - 匯出多表單方案並以 `dotnet build` 驗證導航機制；測試損毀 JSON 檔案之防禦攔截；驗證 GitHub Actions 跨平台工作流。
+  - [x] 9.1 **多表單 (Multi-Form / Multi-View Navigation) 支援**
+  - [x] 9.2 **畫面排版重構（可摺疊/可隱藏面板）**
+  - [x] 9.3 **例外與容錯處理 (Defensive & Friendly Errors)**
+  - [x] 9.4 **GitHub Actions 跨平台 CI/CD 建置**
+
+---
+
+### 🔹 階段 10：物件名稱註解與對話方塊元件整合 (Object Name Comments & Dialogs Integration)
+- [ ] **階段狀態：進行中**
+- **目標**：在生成的 View 中為每個控制項建構子上方產生該物件名稱註解；實作開檔 (`OpenFileDialog`)、存檔 (`SaveFileDialog`) 與 `MessageBox` 對話方塊並加入工具箱與程式碼生成器中。
+- **任務清單**：
+  - [x] 10.1 **Phase 1: 物件名稱註解生成 (Object Name Comments in Generated Views)**
+    - 在 `CSharpMarkupViewGenerator.GenerateNodeCode` 中，於每個控制項/容器建構子（`new Button()`, `new TextBox()`, `new Canvas()` 等）上方加入 `// {node.Name}` 註解。
+    - 撰寫單元測試驗證所有控制項與巢狀容器均包含精準的名稱註解。
+  - [ ] 10.2 **Phase 2: 對話方塊 AST 模型、事件目錄與工具箱擴充 (Dialogs in AST & Toolbox)**
+    - 在 `ControlType` 加入 `OpenFileDialog`, `SaveFileDialog`, `MessageBox`。
+    - 在 `ToolboxService` 新增「對話方塊」分類，包含三種對話方塊工具箱項目。
+    - 在 `DesignCanvas` 支援不可視對話方塊徽章卡片渲染（`[OpenFileDialog]`, `[SaveFileDialog]`, `[MessageBox]`）。
+    - 在 `ControlEventCatalog` 註冊對話方塊專屬事件（`FileOk`, `Confirmed` 等）與預設回呼參數。
+    - 撰寫單元測試驗證對話方塊的事件目錄、參數及工具箱整合。
+  - [ ] 10.3 **Phase 3: 專案匯出對話方塊服務與 ViewModel 整合 (Dialog Services & CodeGen Integration)**
+    - 在 `ProjectExportService` 產出跨平台 `IDialogService.cs`、`DialogService.cs` 與純 C# Markup 現代化 `MessageBoxWindow.cs`。
+    - 在 `MvvmViewModelGenerator` 支援不可視對話方塊欄位宣告與事件建構子掛載。
+    - 撰寫單元與整合測試，包含匯出包含對話方塊的專案並驗證 `dotnet build`。
+  - [ ] 10.4 **Phase 4: 技術文件更新與全專案驗證 (Documentation & Final Verification)**
+    - 更新 `README.md`、`docs/architecture.md`、`docs/ast-schema.md`、`docs/csharp-markup-spec.md`、`docs/user-guide.md`。
+    - 執行全專案 100% 測試驗證並完成各階段 Git Commit。
 
 ---
 
