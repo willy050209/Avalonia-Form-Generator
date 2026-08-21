@@ -457,6 +457,100 @@ public sealed class ProjectExportServiceTests
     }
 
     /// <summary>
+    /// 驗證包含 DebugConsole 元件的專案匯出後，能直接透過 dotnet CLI 成功編譯 (ExitCode 0)。
+    /// </summary>
+    [Fact]
+    public async Task ExportedProject_WithDebugConsole_ShouldCompileDirectlyWithDotnetCli()
+    {
+        var tempFolder = Path.Combine(Path.GetTempPath(), "AFG_DebugConsoleBuild_" + Guid.NewGuid().ToString("N"));
+        var doc = new FormDocument
+        {
+            ViewClassName = "LogViewerFormView",
+            ViewModelClassName = "LogViewerFormViewModel",
+            Title = "Debug Console 測試表單",
+            UseCompiledBindings = true,
+            RootNode = new AstNode
+            {
+                Id = "rootCanvas",
+                Type = ControlType.Canvas,
+                Children = [
+                    new AstNode
+                    {
+                        Id = "btnAction",
+                        Type = ControlType.Button,
+                        Content = "執行任務",
+                        Events = [new EventMappingDefinition { EventName = "Click", CommandProperty = "RunActionCommand", IsAsync = true }]
+                    },
+                    new AstNode
+                    {
+                        Id = "debugConsole",
+                        Name = "LiveConsole",
+                        Type = ControlType.DebugConsole,
+                        Width = 500,
+                        Height = 220,
+                        CanvasLeft = 10,
+                        CanvasTop = 60,
+                        Text = "執行期即時日誌"
+                    }
+                ]
+            }
+        };
+
+        var project = new FormProjectDefinition
+        {
+            ProjectName = "DebugConsoleApp",
+            RootNamespace = "DebugConsoleApp",
+            Title = "Debug Console App",
+            Documents = [doc]
+        };
+
+        try
+        {
+            await _exportService.ExportMultiFormToFolderAsync(project, tempFolder, new ProjectExportOptions { IncludeMobileProject = false, IncludeLicense = false });
+
+            var desktopCsproj = Path.Combine(tempFolder, "src", "DebugConsoleApp.Desktop", "DebugConsoleApp.Desktop.csproj");
+            File.Exists(desktopCsproj).Should().BeTrue();
+
+            var psi = new ProcessStartInfo
+            {
+                FileName = "dotnet",
+                Arguments = $"build \"{desktopCsproj}\" -c Release",
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            };
+
+            using var process = Process.Start(psi);
+            process.Should().NotBeNull();
+
+            var stdoutTask = process!.StandardOutput.ReadToEndAsync();
+            var stderrTask = process.StandardError.ReadToEndAsync();
+
+            var completedInTime = process.WaitForExit(90000);
+            completedInTime.Should().BeTrue("dotnet build 應在 90 秒內執行完成");
+
+            var stdout = await stdoutTask;
+            var stderr = await stderrTask;
+
+            process.ExitCode.Should().Be(0, $"含 DebugConsole 之匯出專案 dotnet build 應成功 (ExitCode 0)。\n標準輸出:\n{stdout}\n錯誤輸出:\n{stderr}");
+        }
+        finally
+        {
+            if (Directory.Exists(tempFolder))
+            {
+                try
+                {
+                    Directory.Delete(tempFolder, recursive: true);
+                }
+                catch
+                {
+                }
+            }
+        }
+    }
+
+    /// <summary>
     /// 驗證複雜資料綁定 (Text, IsChecked, Value, IsEnabled, Opacity, Width, Height) 與同步/非同步命令混合情境下的實體編譯。
     /// </summary>
     [Fact]

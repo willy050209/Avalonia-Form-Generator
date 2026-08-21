@@ -9,4 +9,5 @@ public static class PackageVersions
     public const string Avalonia = "11.2.5";
     public const string CommunityToolkitMvvm = "8.4.2";
     public const string MicrosoftExtensionsDependencyInjection = "9.0.2";
+    public const string MicrosoftExtensionsLogging = "9.0.2";
 }

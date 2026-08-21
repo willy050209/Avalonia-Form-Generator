@@ -348,6 +348,47 @@ public static class AvaloniaMarkupExtensionsSource
             return control;
         }
 
+        public static T BorderBrush<T>(this T control, IBrush brush) where T : Control
+        {
+            if (control is Border b) b.BorderBrush = brush;
+            else if (control is TemplatedControl tc) tc.BorderBrush = brush;
+            return control;
+        }
+
+        public static T BorderThickness<T>(this T control, Thickness thickness) where T : Control
+        {
+            if (control is Border b) b.BorderThickness = thickness;
+            else if (control is TemplatedControl tc) tc.BorderThickness = thickness;
+            return control;
+        }
+
+        public static T CornerRadius<T>(this T control, CornerRadius cornerRadius) where T : Control
+        {
+            if (control is Border b) b.CornerRadius = cornerRadius;
+            else if (control is TemplatedControl tc) tc.CornerRadius = cornerRadius;
+            return control;
+        }
+
+        public static Border Child(this Border border, Control child)
+        {
+            border.Child = child;
+            return border;
+        }
+
+        public static T FontWeight<T>(this T control, FontWeight weight) where T : Control
+        {
+            if (control is TextBlock tb) tb.FontWeight = weight;
+            else if (control is TemplatedControl tc) tc.FontWeight = weight;
+            return control;
+        }
+
+        public static T FontStyle<T>(this T control, FontStyle style) where T : Control
+        {
+            if (control is TextBlock tb) tb.FontStyle = style;
+            else if (control is TemplatedControl tc) tc.FontStyle = style;
+            return control;
+        }
+
         public static TextBox Watermark(this TextBox tb, string watermark) { tb.Watermark = watermark; return tb; }
         public static TextBox PlaceholderText(this TextBox tb, string placeholder) { tb.Watermark = placeholder; return tb; }
         public static TextBox Watermark(this TextBox tb, string path, BindingMode mode = BindingMode.Default)

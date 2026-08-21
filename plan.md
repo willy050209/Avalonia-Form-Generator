@@ -185,11 +185,11 @@ AvaloniaFormGenerator/
     - 在 `CSharpMarkupViewGenerator` 將 `DebugConsole` 轉譯為 C# Declarative UI 結構（Border, Grid, Header, Clear Button, ListBox ItemsSource）。
     - 在 `MvvmViewModelGenerator` 當偵測到 `DebugConsole` 時，自動注入 `InMemoryLogService` 與 `ILogger<TViewModel>`，宣告 `LogEntries` 與 `ClearLogsCommand`。
     - 撰寫單元測試驗證 View 與 ViewModel 生成及 Roslyn 語法診斷。
-  - [ ] 11.3 **Phase 3: 專案匯出服務、Logging DI 與 ConsoleRedirectWriter 實作 (Project Export Services, Logging & TextWriter Redirection)**
-    - 在 `PackageVersions` 新增 `MicrosoftExtensionsLogging` 常數，於匯出專案之 `Shared.csproj` 引入。
-    - 在 `ProjectExportService` 產出 `LogEntry.cs`、`InMemoryLogService.cs`、`InMemoryLoggerProvider.cs` 與 `ConsoleRedirectWriter.cs`（繼承 `System.IO.TextWriter`）。
-    - 在 `App.cs` 配置 `InMemoryLogService`、`services.AddLogging` 與標準輸出重定向。
-    - 撰寫整合測試，匯出包含 `DebugConsole` 的完整專案並執行實體 `dotnet build` 驗證。
+  - [x] 11.3 **Phase 3: 專案匯出服務、Logging DI 與 ConsoleRedirectWriter 實作 (Project Export Services, Logging & TextWriter Redirection)**
+    - 在 `PackageVersions` 定義 `MicrosoftExtensionsLogging = "9.0.2"`。
+    - 在 `ProjectExportService` 匯出 `LogEntry.cs`、`InMemoryLogService.cs`、`InMemoryLoggerProvider.cs` 與 `ConsoleRedirectWriter.cs`（繼承 `System.IO.TextWriter` 支援 `Console.Out` / `Console.Error` 重定向）。
+    - 在 `App.cs` 與 `GlobalUsings.cs` 配置全域 `Microsoft.Extensions.Logging` 與 `InMemoryLoggerProvider`。
+    - 撰寫匯出專案實體端到端編譯整合測試（執行 `dotnet build` 驗證 0 錯誤 0 警告成功通過）。
   - [ ] 11.4 **Phase 4: 技術文件更新與全專案驗證 (Documentation & Final Verification)**
     - 更新 `README.md`、`docs/architecture.md`、`docs/ast-schema.md`、`docs/csharp-markup-spec.md`、`docs/user-guide.md`。
     - 執行全專案 100% 測試驗證並完成各階段 Git Commit。
