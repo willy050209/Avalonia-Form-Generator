@@ -32,6 +32,7 @@ graph LR
 | **基礎控制項** | `Button`, `TextBox`, `TextBlock`, `CheckBox`, `RadioButton`, `ComboBox`, `DatePicker`, `Slider`, `ProgressBar`, `PictureBox` | 支援完整幾何、外觀、雙向/單向資料綁定、影像來源 (Source/ImageLocation) 與縮放模式 (Stretch/SizeMode) 與命令事件轉換 |
 | **版面配置容器** | `Canvas`, `StackPanel`, `Grid`, `Border`, `DockPanel`, `WrapPanel`, `ScrollViewer` | 支援巢狀拖曳放入、自動流式排版、列/欄定義與視覺樹精準選取 |
 | **對話方塊元件** | `OpenFileDialog`, `SaveFileDialog`, `MessageBox` | 支援開檔、存檔與訊息對話方塊，在畫布上具備獨立徽章預覽卡片，支援回呼事件（`FileOk`, `Confirmed`）與跨平台 `IDialogService` 服務注入呼叫 |
+| **除錯與日誌工具** | `DebugConsole` | 內嵌 Debug/Log 主控台元件，支援 `Microsoft.Extensions.Logging` 攔截、繼承 `System.IO.TextWriter` 支援標準輸出 (`Console.Out`/`Console.Error`) 重定向、即時日誌流過濾與一鍵清除 |
 | **不可視 / 硬體元件** | `DispatcherTimer`, `BackgroundWorker`, `BluetoothClient`, `SerialPortService` | 支援設計畫布視覺卡片預覽（[Timer], [Worker], [BLE], [COM] 標籤），自動註冊為 DI 服務並提供專屬回呼事件（`Tick`, `DoWork`, `ProgressChanged`, `DataReceived` 等）自動掛載 |
 
 ---
@@ -71,12 +72,15 @@ graph LR
    - **ValueTuple 安全性防護**：產生的命令參數宣告為可為空型別 (`(sender, e)? args = null`)，確保 CommunityToolkit.Mvvm 的 `CanExecute(null)` 正確判定，絕不引發按鈕禁用或閃退。
 
 3. **相依性注入與跨平台多專案生成 (`AFG.Generators`)**
-   - **全面整合 `Microsoft.Extensions.DependencyInjection`**：在 `App.cs` 配置 `ServiceCollection` / `ServiceProvider`，自動註冊 Services、ViewModels 與 Views，支援 ViewModel 建構子相依性注入。
+   - **全面整合 `Microsoft.Extensions.DependencyInjection`**：在 `App.cs` 配置 `ServiceCollection` / `ServiceProvider`，自動註冊 Services、ViewModels 與 Views，支援 ViewModel 建構子相依性注入。  - **全面整合 `Microsoft.Extensions.DependencyInjection` 與 `Microsoft.Extensions.Logging`**：在 `App.cs` 配置 `ServiceCollection` / `ServiceProvider`，自動註冊 Services、ViewModels、Views 與 Logging 體系，支援 ViewModel 建構子相依性注入與 `ILogger<T>` 注入。
+   - **開箱即用內嵌 Debug Console 與 TextWriter 重定向**：內建 `InMemoryLogService`、`InMemoryLoggerProvider` 與繼承自 `System.IO.TextWriter` 的 `ConsoleRedirectWriter`，無縫攔截 `ILogger` 與 `Console.Out` / `Console.Error`，提供一鍵清除與即時日誌流檢視。
    - **純 C# Markup 宣告式 UI 與物件名稱註解**：無 AXAML 依賴，採用 Fluent Method Chaining 鏈式調用，並在 View 中每個物件的建構子上方自動加入該物件名稱註解（例如 `// LoginButton`、`// MainCanvas`），提升程式碼可讀性。
    - **跨平台對話方塊服務 (`IDialogService` & `MessageBoxWindow`)**：匯出專案內建開檔、存檔與訊息對話方塊支援，整合 Avalonia 原生 `StorageProvider` 與現代化對話視窗。
    - **原生事件轉發擴充**：提供 `OnClick`、`OnTextChanged`、`OnSelectionChanged` 等擴充方法，由 View 端原生事件直接激勵 ViewModel 命令。
    - **可配置視窗尺寸**：依設計器與解析度規格生成標準視窗尺寸 (`Width` / `Height`)，預設不強制全螢幕。
    - **Roslyn 格式化與記憶體編譯診斷**：使用 Roslyn 語法樹標準化縮排，並在記憶體中編譯檢查，即時提供語法警告。
+   - **全面整合 `Microsoft.Extensions.DependencyInjection` 與 `Microsoft.Extensions.Logging`**：在 `App.cs` 配置 `ServiceCollection` / `ServiceProvider`，自動註冊 Services、ViewModels、Views 與 Logging 體系，支援 ViewModel 建構子相依性注入與 `ILogger<T>` 注入。
+   - **開箱即用內嵌 Debug Console 與 TextWriter 重定向**：內建 `InMemoryLogService`、`InMemoryLoggerProvider` 與繼承自 `System.IO.TextWriter` 的 `ConsoleRedirectWriter`，無縫攔截 `ILogger` 與 `Console.Out` / `Console.Error`，提供一鍵清除與即時日誌流檢視。
 
 4. **專案檔保存與載入 (`.afg.json`)**
    - 完整支援將設計中介語意樹序列化為 JSON 檔，方便團隊協同與二次編輯。
@@ -86,6 +90,25 @@ graph LR
 ## 系統架構與專案結構 (Solution Architecture)
 
 專案嚴格遵守 **模式 A (Avalonia UI 跨平台多專案分層結構)** 與 **SRP 單一職責原則**：
+
+```text
+AvaloniaFormGenerator/
+├── src/
+│   ├── AFG.Core/                         # [核心層] UI AST 中介模型、不可變結構、純函數樹操作、驗證與 JSON 序列化
+│   │   ├── Enums/                        # 控制項類型、佈局模式、綁定模式等列舉
+│   │   ├── Models/Ast/                   # AstNode, FormDocument, BindingDefinition, EventMapping, ControlEventCatalog
+│   │   ├── Models/Common/                # ThicknessModel, CornerRadiusModel, GridLengthModel
+│   │   ├── Serialization/                # AfgSerializer (.afg.json 專案檔讀寫)
+│   │  ### 2. 執行單元測試 (Run Tests)
+```bash
+dotnet test
+```
+> 目前包含 **182 / 182** 項單元與整合編譯測試，100% 全數通過，0 警告，0 錯誤。
+
+### 3. 啟動桌面設計器 (Run App)
+```bash
+dotnet run --project src/AFG.Desktop/AFG.Desktop.csproj
+```�，100% 全數通過，0 警告，0 錯誤。�專案分層結構)** 與 **SRP 單一職責原則**：
 
 ```text
 AvaloniaFormGenerator/
@@ -142,7 +165,7 @@ dotnet build
 ```bash
 dotnet test
 ```
-> 目前包含 **167 / 167** 項單元與整合編譯測試，100% 全數通過，0 警告，0 錯誤。
+> 目前包含 **182 / 182** 項單元與整合編譯測試，100% 全數通過，0 警告，0 錯誤。
 
 ### 3. 啟動桌面設計器 (Run App)
 ```bash

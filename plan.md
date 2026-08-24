@@ -173,7 +173,7 @@ AvaloniaFormGenerator/
 ---
 
 ### 🔹 階段 11：內嵌 Debug Console / Log Console 元件整合 (Embedded Debug Console & Logging Integration)
-- [ ] **階段狀態：進行中**
+- [x] **階段狀態：已完成 (Completed)**
 - **目標**：提供開箱即用的「內嵌 Debug Console」元件 (`DebugConsole`)，支援 `Microsoft.Extensions.Logging` 攔截、繼承 `System.IO.TextWriter` 支援標準輸出重定向、畫布視覺渲染、C# Declarative UI 綁定與 ViewModel 自動相依性注入。
 - **任務清單**：
   - [x] 11.1 **Phase 1: AST 模型、工具箱與畫布視覺支援 (AST, Toolbox & Canvas for DebugConsole)**
@@ -190,7 +190,7 @@ AvaloniaFormGenerator/
     - 在 `ProjectExportService` 匯出 `LogEntry.cs`、`InMemoryLogService.cs`、`InMemoryLoggerProvider.cs` 與 `ConsoleRedirectWriter.cs`（繼承 `System.IO.TextWriter` 支援 `Console.Out` / `Console.Error` 重定向）。
     - 在 `App.cs` 與 `GlobalUsings.cs` 配置全域 `Microsoft.Extensions.Logging` 與 `InMemoryLoggerProvider`。
     - 撰寫匯出專案實體端到端編譯整合測試（執行 `dotnet build` 驗證 0 錯誤 0 警告成功通過）。
-  - [ ] 11.4 **Phase 4: 技術文件更新與全專案驗證 (Documentation & Final Verification)**
+  - [x] 11.4 **Phase 4: 技術文件更新與全專案驗證 (Documentation & Final Verification)**
     - 更新 `README.md`、`docs/architecture.md`、`docs/ast-schema.md`、`docs/csharp-markup-spec.md`、`docs/user-guide.md`。
     - 執行全專案 100% 測試驗證並完成各階段 Git Commit。
 

@@ -120,6 +120,7 @@ public sealed record FormProjectDefinition
 
 - **基本控制項**：`Button`, `TextBox`, `TextBlock`, `CheckBox`, `RadioButton`, `ComboBox`, `ListBox`, `DatePicker`, `TimePicker`, `Slider`, `ProgressBar`, `DataGrid`, `Image`, `PictureBox`, `Border`。
 - **佈局容器**：`Canvas`, `Grid`, `StackPanel`, `DockPanel`, `WrapPanel`, `ScrollViewer`。
+- **除錯與日誌元件**：DebugConsole（內建深色主控台外觀、Clear 按鈕與日誌 ItemsSource 綁定）
 - **對話方塊元件**：`OpenFileDialog`, `SaveFileDialog`, `MessageBox`。
 - **不可視元件與通訊服務**：`DispatcherTimer`, `BackgroundWorker`, `BluetoothClient`, `SerialPortService`。
 
@@ -158,6 +159,11 @@ public sealed record EventParameterDefinition(
 - **`ScrollViewer`**：`ScrollChanged`, `PointerPressed`, `PointerReleased`
 - **`PictureBox`** (圖片方塊 / Image)：`Click`, `DoubleClick`, `Tapped`, `DoubleTapped`, `PointerPressed`, `PointerReleased`, `LoadCompleted`, `SizeModeChanged`
 - **`Border` / 佈局容器**：`PointerPressed`, `PointerReleased`, `Tapped`, `DoubleTapped`
+
+#### 除錯主控台專屬事件
+- **DebugConsole** (內嵌日誌主控台)：
+  - Cleared：日誌清除回呼事件，預設帶入 (sender, object?)。
+  - Tapped / PointerPressed：點擊日誌面板回呼。
 
 #### 對話方塊元件專屬事件
 - **`OpenFileDialog`** (開啟檔案對話方塊)：
