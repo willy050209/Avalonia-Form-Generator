@@ -64,6 +64,7 @@ graph LR
    - **智慧拖曳事務 (Drag Transaction)**：滑鼠拖曳移動期間不污染歷史堆疊，單次拖曳僅推入一次快照，`Ctrl+Z` 一步到位。
    - **智慧網格與邊界吸附 (`SnappingEngine`)**：提供 Snap to Grid 與節點間左/中/右、頂/中/底中心線即時對齊吸附。
    - **DOM 元件樹 (`VisualTreeExplorer`)**：階層式檢視目前畫布所有節點，即時連動選取狀態。
+   - **PictureBox 圖片體驗優化與靜態 Bitmap 工具庫**：支援視覺化對話框選圖、即時縮圖預覽、專案相對路徑 (`Assets/`) 自動複製與絕對路徑切換；支援快速初始化空白點陣圖 (`InitBitmap`, 預設背景色 `#F0F0F0`)；匯出專案開箱即用 `BitmapHelper` 與 `BitmapExtensions`（提供 `ConvertToWriteableBitmap()`, `ConvertToRenderTargetBitmap()`, `SetPixel()`, `GetPixel()`, `CreateInitializedBitmap()` 與 `LoadBitmap()`）。
 
 2. **屬性與事件檢查器 (`Property & Event Inspector`)**
    - **外觀與幾何屬性配置**：Text, Content, Watermark, Width/Height, Margins, Alignments, Opacity, IsEnabled 等。
@@ -72,7 +73,7 @@ graph LR
    - **ValueTuple 安全性防護**：產生的命令參數宣告為可為空型別 (`(sender, e)? args = null`)，確保 CommunityToolkit.Mvvm 的 `CanExecute(null)` 正確判定，絕不引發按鈕禁用或閃退。
 
 3. **相依性注入與跨平台多專案生成 (`AFG.Generators`)**
-   - **全面整合 `Microsoft.Extensions.DependencyInjection`**：在 `App.cs` 配置 `ServiceCollection` / `ServiceProvider`，自動註冊 Services、ViewModels 與 Views，支援 ViewModel 建構子相依性注入。  - **全面整合 `Microsoft.Extensions.DependencyInjection` 與 `Microsoft.Extensions.Logging`**：在 `App.cs` 配置 `ServiceCollection` / `ServiceProvider`，自動註冊 Services、ViewModels、Views 與 Logging 體系，支援 ViewModel 建構子相依性注入與 `ILogger<T>` 注入。
+   - **全面整合 `Microsoft.Extensions.DependencyInjection` 與 `Microsoft.Extensions.Logging`**：在 `App.cs` 配置 `ServiceCollection` / `ServiceProvider`，自動註冊 Services、ViewModels、Views 與 Logging 體系，支援 ViewModel 建構子相依性注入與 `ILogger<T>` 注入。
    - **開箱即用內嵌 Debug Console 與 TextWriter 重定向**：內建 `InMemoryLogService`、`InMemoryLoggerProvider` 與繼承自 `System.IO.TextWriter` 的 `ConsoleRedirectWriter`，無縫攔截 `ILogger` 與 `Console.Out` / `Console.Error`，提供一鍵清除與即時日誌流檢視。
    - **純 C# Markup 宣告式 UI 與物件名稱註解**：無 AXAML 依賴，採用 Fluent Method Chaining 鏈式調用，並在 View 中每個物件的建構子上方自動加入該物件名稱註解（例如 `// LoginButton`、`// MainCanvas`），提升程式碼可讀性。
    - **跨平台對話方塊服務 (`IDialogService` & `MessageBoxWindow`)**：匯出專案內建開檔、存檔與訊息對話方塊支援，整合 Avalonia 原生 `StorageProvider` 與現代化對話視窗。

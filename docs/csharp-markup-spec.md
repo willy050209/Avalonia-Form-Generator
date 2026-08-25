@@ -192,3 +192,47 @@ public partial class App : Application
     }
 }
 ```
+
+---
+
+## 4. PictureBox 點陣圖初始化與 BitmapHelper 擴充規範
+
+### 4.1 PictureBox 初始化程式碼生成
+當 PictureBox 勾選「初始化空白點陣圖 (`InitBitmap = true`)」時，View 生成器將產生呼叫 `BitmapHelper.CreateInitializedBitmap` 的鏈式語法：
+```csharp
+// DrawingCanvas
+new Image()
+    .Width(400)
+    .Height(300)
+    .Source(BitmapHelper.CreateInitializedBitmap(400, 300, Brush.Parse("#F0F0F0")))
+    .Stretch(Stretch.Uniform)
+```
+
+當指定本機圖片並勾選「使用專案相對路徑 (`UseRelativePath = true`)」時，匯出專案時會自動複製圖片至 `Assets/` 資料夾，並生成標準 `avares://` 資源路徑：
+```csharp
+// LogoPicture
+new Image()
+    .Width(120)
+    .Height(60)
+    .Source(BitmapHelper.LoadBitmap("avares://MyApp.Shared/Assets/logo.png"))
+    .Stretch(Stretch.Uniform)
+```
+
+### 4.2 BitmapHelper 靜態操作類別與擴充方法
+匯出的共用核心類別庫內建 `BitmapHelper` 與 `BitmapExtensions`，提供跨平台的高效能像素操作與點陣圖轉換：
+```csharp
+// 1. 建立已初始化指定尺寸與背景顏色的 WriteableBitmap
+var wb = BitmapHelper.CreateInitializedBitmap(300, 200, Color.Parse("#FAFAFA"));
+
+// 2. 格式轉換
+var writeable = bitmap.ConvertToWriteableBitmap();
+var renderTarget = bitmap.ConvertToRenderTargetBitmap();
+
+// 3. 像素快速讀寫 (具備邊界檢查與安全指針存取)
+wb.SetPixel(10, 20, Colors.Red);
+Color pixel = wb.GetPixel(10, 20);
+
+// 4. 動態載入點陣圖 (支援本機路徑與 avares:// 資源路徑)
+var loadedBitmap = BitmapHelper.LoadBitmap("avares://MyApp.Shared/Assets/logo.png");
+```
+

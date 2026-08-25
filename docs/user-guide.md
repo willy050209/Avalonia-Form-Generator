@@ -80,7 +80,12 @@
 ### 2.5 設定控制項屬性、顏色、資料綁定與多參數事件命令
 在右側 **「屬性檢查器」** 中：
 - **流暢輸入與焦點保護**：在編輯 ViewModel 屬性名稱或 Command 命令名稱時，系統具備防重入與焦點保護機制，連續打字輸入絕不丟失鍵盤焦點。
-- **「外觀」分頁**：支援設定名稱 (x:Name)、標題 (Content)、文字 (Text)、提示文字 (PlaceholderText)、影像來源 (Source / ImageLocation，支援檔案路徑、URL 或資源名稱)、縮放模式 (Stretch / SizeMode，支援 None, Fill, Uniform, UniformToFill)、背景色 (Background) 與前景色 (Foreground)（支援 `#RRGGBB` 色碼或顏色名稱）。
+- **「外觀」分頁**：支援設定名稱 (x:Name)、標題 (Content)、文字 (Text)、提示文字 (PlaceholderText)、背景色 (Background) 與前景色 (Foreground)（支援 `#RRGGBB` 色碼或顏色名稱）。
+  - **PictureBox 圖片方塊操作**：
+    - **視覺化檔案選擇**：點選「瀏覽...」按鈕開啟檔案對話框選取圖片檔案（支援 `.png`, `.jpg`, `.jpeg`, `.bmp`, `.gif`, `.webp`, `.ico` 等）。
+    - **即時圖片預覽與資訊**：屬性面板即時呈現選取檔案的檔名與檔案大小，且設計畫布上立即載入並即時預覽該圖片。
+    - **相對路徑 / 絕對路徑模式**：勾選「使用專案相對路徑」後，專案匯出時系統會自動將實體圖片複製至生成專案的 `Assets/` 資料夾，並生成 `avares://{AppName}.Shared/Assets/{filename}` 資源路徑；取消勾選則使用本機絕對路徑。
+    - **初始化空白點陣圖 (Init Bitmap)**：勾選後可快速建立空白點陣圖，指定背景顏色（預設 `#F0F0F0`）與寬高，表單載入時自動透過 `BitmapHelper.CreateInitializedBitmap()` 初始化。
 - **「排版」分頁**：設定寬度、高度、Canvas 座標、Grid 網格座標、對齊方式與外距 Margin。不可視元件（如 Timer、Worker、BLE、COM）在畫布上具備獨立的預覽卡片，支援自由拖曳排版與縮放。
 - **「資料綁定」分頁**：
   - **View 屬性 (TargetProperty)**：提供下拉選單（`Text`, `Content`, `IsChecked`, `Value`, `IsEnabled`, `IsVisible`, `Source`, `Stretch`, `ItemsSource`, `SelectedItem`, `SelectedIndex`, `Header` 等），選取時自動同步推斷合適的 C# 資料型別，徹底避免手動打字拼錯。

@@ -194,7 +194,7 @@ AvaloniaFormGenerator/
 ---
 
 ### 🔹 階段 12：PictureBox 體驗優化與 Bitmap 初始化/工具函式庫整合 (PictureBox UX Enhancement, Bitmap Initialization & Helper Library)
-- [ ] **階段狀態：進行中**
+- [x] **階段狀態：已完成 (Completed)**
 - **目標**：優化 PictureBox 使用者體驗（檔案對話框選取、即時縮圖預覽、相對/絕對路徑切換與專案匯出 Assets 自動複製）；支援 PictureBox 快速初始化（尺寸、背景色預設 #F0F0F0、表單載入建立 Bitmap）；提供操作 Bitmap 的靜態類別（`ConvertToWriteableBitmap`, `ConvertToRenderTargetBitmap`, `SetPixel`, `GetPixel`）。
 - **任務清單**：
   - [x] 12.1 **Phase 1: AST 模型擴充、Inspector 視覺化選檔與即時縮圖預覽 (AST Models, Inspector UX & Live Thumbnail Preview)**
@@ -211,7 +211,7 @@ AvaloniaFormGenerator/
     - 在 `CSharpMarkupViewGenerator` 與 `MvvmViewModelGenerator` 支援 PictureBox Bitmap 初始化生成與相對資源路徑 (`avares://`) 產生。
     - 在 `ProjectExportService` 匯出 `Helpers/BitmapHelper.cs`，並於匯出時自動複製相對路徑圖片至 `src/{AppName}.Shared/Assets/`，在 `.Shared.csproj` 加入 `<AvaloniaResource Include="Assets\**" />`。
     - 撰寫單元與實體端到端編譯整合測試（執行 `dotnet build` 驗證 0 錯誤通過）。
-  - [ ] 12.4 **Phase 4: 技術文件更新與全專案驗證 (Documentation & Final Verification)**
+  - [x] 12.4 **Phase 4: 技術文件更新與全專案驗證 (Documentation & Final Verification)**
     - 更新 `README.md`、`docs/architecture.md`、`docs/ast-schema.md`、`docs/csharp-markup-spec.md`、`docs/user-guide.md` 與 `plan.md`。
     - 執行全專案 100% 測試驗證並完成各階段 Git Commit。
 

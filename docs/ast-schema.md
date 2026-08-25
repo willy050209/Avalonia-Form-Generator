@@ -97,6 +97,10 @@ public sealed record FormProjectDefinition
   "gridRowSpan": 1,
   "gridColumnSpan": 1,
   "content": "登入",
+  "source": "assets/logo.png",
+  "useRelativePath": true,
+  "initBitmap": false,
+  "bitmapBackgroundColor": "#F0F0F0",
   "bindings": [
     {
       "targetProperty": "IsEnabled",
