@@ -884,4 +884,93 @@ public sealed class ProjectExportServiceTests
             }
         }
     }
+
+    [Fact]
+    public async Task ExportToFolderAsync_WithPictureBoxAssetsAndInitBitmap_ShouldCopyAssetsAndBuildSuccessfully()
+    {
+        // Arrange
+        var tempFolder = Path.Combine(Path.GetTempPath(), "AFG_PicTest_" + Guid.NewGuid().ToString("N"));
+        var dummyImageDir = Path.Combine(Path.GetTempPath(), "AFG_PicSource_" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(dummyImageDir);
+        var dummyImagePath = Path.Combine(dummyImageDir, "sample_logo.png");
+        // Write minimal dummy binary/bytes
+        await File.WriteAllBytesAsync(dummyImagePath, [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]);
+
+        var doc = new FormDocument
+        {
+            ProjectName = "PhotoManagerApp",
+            RootNamespace = "PhotoManagerApp",
+            ViewClassName = "PhotoManagerView",
+            ViewModelClassName = "PhotoManagerViewModel",
+            Title = "相片管理與 Bitmap 初始化測試",
+            RootNode = new AstNode
+            {
+                Id = "root",
+                Type = ControlType.Canvas,
+                Children = [
+                    new AstNode
+                    {
+                        Id = "pic1",
+                        Name = "LogoPicture",
+                        Type = ControlType.PictureBox,
+                        Width = 120,
+                        Height = 60,
+                        Source = dummyImagePath,
+                        UseRelativePath = true,
+                        Stretch = Stretch.Uniform
+                    },
+                    new AstNode
+                    {
+                        Id = "pic2",
+                        Name = "DrawingCanvas",
+                        Type = ControlType.PictureBox,
+                        Width = 300,
+                        Height = 200,
+                        InitBitmap = true,
+                        BitmapBackgroundColor = "#FAFAFA"
+                    }
+                ]
+            }
+        };
+
+        try
+        {
+            // Act
+            await _exportService.ExportToFolderAsync(doc, tempFolder, new ProjectExportOptions(IncludeMobileProject: false));
+
+            // Assert: Assets file should be copied to .Shared/Assets/
+            var targetAssetPath = Path.Combine(tempFolder, "src", "PhotoManagerApp.Shared", "Assets", "sample_logo.png");
+            File.Exists(targetAssetPath).Should().BeTrue();
+
+            var desktopCsprojPath = Path.Combine(tempFolder, "src", "PhotoManagerApp.Desktop", "PhotoManagerApp.Desktop.csproj");
+
+            var psi = new ProcessStartInfo
+            {
+                FileName = "dotnet",
+                Arguments = $"build \"{desktopCsprojPath}\" -c Release",
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            };
+
+            using var process = Process.Start(psi);
+            var stdout = await process!.StandardOutput.ReadToEndAsync();
+            var stderr = await process.StandardError.ReadToEndAsync();
+            await process.WaitForExitAsync();
+
+            process.ExitCode.Should().Be(0, $"包含 PictureBox 與 Bitmap 初始化的專案應成功編譯。\n標準輸出:\n{stdout}\n錯誤輸出:\n{stderr}");
+        }
+        finally
+        {
+            if (Directory.Exists(tempFolder))
+            {
+                try { Directory.Delete(tempFolder, recursive: true); } catch { }
+            }
+            if (Directory.Exists(dummyImageDir))
+            {
+                try { Directory.Delete(dummyImageDir, recursive: true); } catch { }
+            }
+        }
+    }
 }

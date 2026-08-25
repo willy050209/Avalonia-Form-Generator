@@ -207,7 +207,7 @@ AvaloniaFormGenerator/
     - 實作靜態類別 `BitmapHelper`，提供 `ConvertToWriteableBitmap`、`ConvertToRenderTargetBitmap`、`SetPixel`、`GetPixel`、`CreateInitializedBitmap` 與 `LoadBitmap`。
     - 在 `AvaloniaMarkupExtensionsSource.cs` 整合靜態影像載入與擴充方法。
     - 撰寫單元測試驗證 `BitmapHelper` 各功能（像素讀寫、色彩格式轉換、邊界保護）。
-  - [ ] 12.3 **Phase 3: View/ViewModel 生成與專案匯出 Assets 自動複製 (CodeGen & Project Export Assets Integration)**
+  - [x] 12.3 **Phase 3: View/ViewModel 生成與專案匯出 Assets 自動複製 (CodeGen & Project Export Assets Integration)**
     - 在 `CSharpMarkupViewGenerator` 與 `MvvmViewModelGenerator` 支援 PictureBox Bitmap 初始化生成與相對資源路徑 (`avares://`) 產生。
     - 在 `ProjectExportService` 匯出 `Helpers/BitmapHelper.cs`，並於匯出時自動複製相對路徑圖片至 `src/{AppName}.Shared/Assets/`，在 `.Shared.csproj` 加入 `<AvaloniaResource Include="Assets\**" />`。
     - 撰寫單元與實體端到端編譯整合測試（執行 `dotnet build` 驗證 0 錯誤通過）。

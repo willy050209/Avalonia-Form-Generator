@@ -156,6 +156,10 @@ public sealed class ProjectExportService(FormCodeGenerator? codeGenerator = null
             <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="{PackageVersions.MicrosoftExtensionsDependencyInjection}" />
             <PackageReference Include="Microsoft.Extensions.Logging" Version="{PackageVersions.MicrosoftExtensionsLogging}" />
           </ItemGroup>
+
+          <ItemGroup>
+            <AvaloniaResource Include="Assets\**" />
+          </ItemGroup>
         </Project>
         """;
         files.Add(new GeneratedSourceFile(Path.Combine(sharedDir, $"{sharedProjectName}.csproj"), sharedCsprojContent, SourceFileType.ProjectFile));
@@ -333,6 +337,7 @@ public sealed class ProjectExportService(FormCodeGenerator? codeGenerator = null
         global using Avalonia.Data;
         global using Avalonia.Layout;
         global using Avalonia.Media;
+        global using Avalonia.Media.Imaging;
         global using Avalonia.Styling;
         global using Avalonia.Themes.Fluent;
         global using Avalonia.Threading;
@@ -1262,6 +1267,33 @@ public sealed class ProjectExportService(FormCodeGenerator? codeGenerator = null
             }
 
             await File.WriteAllTextAsync(fullFilePath, file.Content, Encoding.UTF8, cancellationToken);
+        }
+
+        // 自動複製 PictureBox 相對路徑實體圖片至 .Shared/Assets/ 資料夾
+        var rawProjectName = string.IsNullOrWhiteSpace(options?.CustomProjectName) ? project.ProjectName : options.CustomProjectName;
+        var baseProjectName = SanitizeProjectName(rawProjectName);
+        var sharedAssetsDir = Path.Combine(fullDestinationDir, "src", $"{baseProjectName}.Shared", "Assets");
+
+        var pictureBoxNodes = project.Documents
+            .SelectMany(d => AstTreeOperations.Flatten(d.RootNode))
+            .Where(n => n.Type is ControlType.PictureBox or ControlType.Image)
+            .ToList();
+
+        foreach (var picNode in pictureBoxNodes)
+        {
+            if (picNode.UseRelativePath && !string.IsNullOrWhiteSpace(picNode.Source))
+            {
+                var sourcePath = picNode.Source.Trim();
+                if (File.Exists(sourcePath))
+                {
+                    if (!Directory.Exists(sharedAssetsDir))
+                    {
+                        Directory.CreateDirectory(sharedAssetsDir);
+                    }
+                    var targetAssetFile = Path.Combine(sharedAssetsDir, Path.GetFileName(sourcePath));
+                    File.Copy(sourcePath, targetAssetFile, overwrite: true);
+                }
+            }
         }
     }
 

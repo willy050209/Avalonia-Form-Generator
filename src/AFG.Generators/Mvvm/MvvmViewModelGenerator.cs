@@ -100,6 +100,8 @@ public sealed class MvvmViewModelGenerator : ICodeGenerator
         sb.AppendLine("using System.Threading.Tasks;");
         sb.AppendLine("using Avalonia.Input;");
         sb.AppendLine("using Avalonia.Interactivity;");
+        sb.AppendLine("using Avalonia.Media;");
+        sb.AppendLine("using Avalonia.Media.Imaging;");
         sb.AppendLine("using Avalonia.Threading;");
         sb.AppendLine("using CommunityToolkit.Mvvm.ComponentModel;");
         sb.AppendLine("using CommunityToolkit.Mvvm.Input;");
@@ -393,7 +395,8 @@ public sealed class MvvmViewModelGenerator : ICodeGenerator
         {
             "Text" => !string.IsNullOrEmpty(node.Text) ? $"\"{Roslyn.CSharpSyntaxSanitizer.EscapeStringLiteral(node.Text)}\"" : null,
             "Content" => !string.IsNullOrEmpty(node.Content) ? $"\"{Roslyn.CSharpSyntaxSanitizer.EscapeStringLiteral(node.Content)}\"" : null,
-            "Source" => !string.IsNullOrEmpty(node.Source) ? $"\"{Roslyn.CSharpSyntaxSanitizer.EscapeStringLiteral(node.Source)}\"" : null,
+            "Source" when node.InitBitmap => $"BitmapHelper.CreateInitializedBitmap({(node.Width ?? 200).ToString(System.Globalization.CultureInfo.InvariantCulture)}, {(node.Height ?? 150).ToString(System.Globalization.CultureInfo.InvariantCulture)}, Brush.Parse(\"{(string.IsNullOrWhiteSpace(node.BitmapBackgroundColor) ? "#F0F0F0" : node.BitmapBackgroundColor)}\"))",
+            "Source" when !string.IsNullOrEmpty(node.Source) => $"BitmapHelper.LoadBitmap(\"{Roslyn.CSharpSyntaxSanitizer.EscapeStringLiteral(node.Source)}\")",
             "IsChecked" when node.IsChecked.HasValue => node.IsChecked.Value ? "true" : "false",
             "Value" when node.Value.HasValue => node.Value.Value.ToString(System.Globalization.CultureInfo.InvariantCulture),
             _ => null

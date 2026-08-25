@@ -277,9 +277,48 @@ public sealed class CSharpMarkupViewGeneratorTests
         result.Content.Should().Contain("new Image()");
         result.Content.Should().Contain(".Width(200)");
         result.Content.Should().Contain(".Height(150)");
-        result.Content.Should().Contain(".Source(\"assets/avatar.png\")");
+        result.Content.Should().Contain(".Source(BitmapHelper.LoadBitmap(\"avares://MyApp.Views/Assets/avatar.png\"))");
         result.Content.Should().Contain(".Stretch(Stretch.Uniform)");
         result.Content.Should().Contain(".OnClick((PhotoViewModel vm) => vm.SelectPhotoCommand)");
+
+        var syntaxDiagnostics = RoslynCompilerService.CheckSyntaxDiagnostics(result.Content);
+        syntaxDiagnostics.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Generate_ForPictureBoxWithInitBitmap_ShouldGenerateCreateInitializedBitmap()
+    {
+        // Arrange
+        var doc = new FormDocument
+        {
+            RootNamespace = "MyApp.Views",
+            ViewClassName = "CanvasView",
+            ViewModelClassName = "CanvasViewModel",
+            RootNode = new AstNode
+            {
+                Id = "root",
+                Type = ControlType.Canvas,
+                Children = [
+                    new AstNode
+                    {
+                        Id = "canvasPic",
+                        Name = "DrawingCanvas",
+                        Type = ControlType.PictureBox,
+                        Width = 400,
+                        Height = 300,
+                        InitBitmap = true,
+                        BitmapBackgroundColor = "#F5F5F5"
+                    }
+                ]
+            }
+        };
+
+        // Act
+        var result = _generator.Generate(doc);
+
+        // Assert
+        result.Content.Should().Contain("new Image()");
+        result.Content.Should().Contain(".Source(BitmapHelper.CreateInitializedBitmap(400, 300, Brush.Parse(\"#F5F5F5\")))");
 
         var syntaxDiagnostics = RoslynCompilerService.CheckSyntaxDiagnostics(result.Content);
         syntaxDiagnostics.Should().BeEmpty();

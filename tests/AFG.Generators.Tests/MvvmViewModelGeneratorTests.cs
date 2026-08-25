@@ -420,6 +420,46 @@ public sealed class MvvmViewModelGeneratorTests
     }
 
     [Fact]
+    public void Generate_ForPictureBoxWithInitBitmap_ShouldGenerateInitializedDefaultValue()
+    {
+        // Arrange
+        var doc = new FormDocument
+        {
+            RootNamespace = "MyApp.ViewModels",
+            ViewModelClassName = "CanvasEditorViewModel",
+            RootNode = new AstNode
+            {
+                Id = "root",
+                Type = ControlType.Canvas,
+                Children = [
+                    new AstNode
+                    {
+                        Id = "pic",
+                        Name = "CanvasBox",
+                        Type = ControlType.PictureBox,
+                        Width = 500,
+                        Height = 400,
+                        InitBitmap = true,
+                        BitmapBackgroundColor = "#EEEEEE",
+                        Bindings = [
+                            new BindingDefinition { TargetProperty = "Source", ViewModelProperty = "CanvasBitmap" }
+                        ]
+                    }
+                ]
+            }
+        };
+
+        // Act
+        var result = _generator.Generate(doc);
+
+        // Assert
+        result.Content.Should().Contain("private Avalonia.Media.IImage? _canvasBitmap = BitmapHelper.CreateInitializedBitmap(500, 400, Brush.Parse(\"#EEEEEE\"));");
+
+        var diagnostics = RoslynCompilerService.CheckSyntaxDiagnostics(result.Content);
+        diagnostics.Should().BeEmpty();
+    }
+
+    [Fact]
     public void Generate_ForDispatcherTimer_ShouldIncludeConfiguredInterval()
     {
         // Arrange

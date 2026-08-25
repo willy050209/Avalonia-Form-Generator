@@ -1,5 +1,6 @@
 // filepath: src/AFG.Generators/CSharpMarkup/CSharpMarkupViewGenerator.cs
 using System.Globalization;
+using System.Text;
 using AFG.Generators.Roslyn;
 
 namespace AFG.Generators.CSharpMarkup;
@@ -27,6 +28,7 @@ public sealed class CSharpMarkupViewGenerator : ICodeGenerator
         sb.AppendLine("using Avalonia.Interactivity;");
         sb.AppendLine("using Avalonia.Layout;");
         sb.AppendLine("using Avalonia.Media;");
+        sb.AppendLine("using Avalonia.Media.Imaging;");
         sb.AppendLine("using Avalonia.Threading;");
         sb.AppendLine();
         sb.AppendLine($"namespace {document.RootNamespace};");
@@ -44,7 +46,7 @@ public sealed class CSharpMarkupViewGenerator : ICodeGenerator
         // 遞迴生成根節點
         var rootNodeName = !string.IsNullOrWhiteSpace(document.RootNode.Name) ? document.RootNode.Name.Trim() : document.RootNode.Type.ToString();
         sb.AppendLine($"        // {rootNodeName}");
-        var rootCode = GenerateNodeCode(document.RootNode, indentLevel: 2, document.ViewModelClassName, document.UseCompiledBindings, parentNode: null, isRoot: true);
+        var rootCode = GenerateNodeCode(document.RootNode, indentLevel: 2, document.ViewModelClassName, document.UseCompiledBindings, parentNode: null, isRoot: true, rootNamespace: document.RootNamespace);
         sb.AppendLine($"        Content = {rootCode};");
 
         sb.AppendLine("    }");
@@ -59,7 +61,7 @@ public sealed class CSharpMarkupViewGenerator : ICodeGenerator
     /// <summary>
     /// 遞迴將 AST 節點轉換為 C# Fluent 鏈式調用語法。
     /// </summary>
-    public static string GenerateNodeCode(AstNode node, int indentLevel, string viewModelClassName, bool useCompiledBindings = false, AstNode? parentNode = null, bool isRoot = false)
+    public static string GenerateNodeCode(AstNode node, int indentLevel, string viewModelClassName, bool useCompiledBindings = false, AstNode? parentNode = null, bool isRoot = false, string rootNamespace = "MainFormApp")
     {
         ArgumentNullException.ThrowIfNull(node);
 
@@ -273,9 +275,31 @@ public sealed class CSharpMarkupViewGenerator : ICodeGenerator
             sb.AppendLine($"{innerIndent}.Foreground(Brush.Parse(\"{CSharpSyntaxSanitizer.EscapeStringLiteral(node.Foreground)}\"))");
         }
 
-        if (!boundProps.Contains("Source") && !string.IsNullOrWhiteSpace(node.Source))
+        if (!boundProps.Contains("Source"))
         {
-            sb.AppendLine($"{innerIndent}.Source(\"{CSharpSyntaxSanitizer.EscapeStringLiteral(node.Source)}\")");
+            if (node.InitBitmap)
+            {
+                var w = (node.Width ?? 200).ToString(CultureInfo.InvariantCulture);
+                var h = (node.Height ?? 150).ToString(CultureInfo.InvariantCulture);
+                var bg = string.IsNullOrWhiteSpace(node.BitmapBackgroundColor) ? "#F0F0F0" : node.BitmapBackgroundColor.Trim();
+                sb.AppendLine($"{innerIndent}.Source(BitmapHelper.CreateInitializedBitmap({w}, {h}, Brush.Parse(\"{CSharpSyntaxSanitizer.EscapeStringLiteral(bg)}\")))");
+            }
+            else if (!string.IsNullOrWhiteSpace(node.Source))
+            {
+                var sourcePath = node.Source.Trim();
+                if (node.UseRelativePath)
+                {
+                    var fileName = System.IO.Path.GetFileName(sourcePath);
+                    var assetUri = sourcePath.StartsWith("avares://", StringComparison.OrdinalIgnoreCase) || sourcePath.StartsWith("http", StringComparison.OrdinalIgnoreCase)
+                        ? sourcePath
+                        : $"avares://{rootNamespace}/Assets/{fileName}";
+                    sb.AppendLine($"{innerIndent}.Source(BitmapHelper.LoadBitmap(\"{CSharpSyntaxSanitizer.EscapeStringLiteral(assetUri)}\"))");
+                }
+                else
+                {
+                    sb.AppendLine($"{innerIndent}.Source(BitmapHelper.LoadBitmap(\"{CSharpSyntaxSanitizer.EscapeStringLiteral(sourcePath)}\"))");
+                }
+            }
         }
 
         if (!boundProps.Contains("Stretch") && node.Stretch.HasValue)
@@ -369,7 +393,7 @@ public sealed class CSharpMarkupViewGenerator : ICodeGenerator
             sb.AppendLine($"{innerIndent}.{containerMethod}(");
             for (var i = 0; i < visualChildren.Count; i++)
             {
-                var childCode = GenerateNodeCode(visualChildren[i], indentLevel + 2, viewModelClassName, useCompiledBindings, parentNode: node);
+                var childCode = GenerateNodeCode(visualChildren[i], indentLevel + 2, viewModelClassName, useCompiledBindings, parentNode: node, rootNamespace: rootNamespace);
                 var isLast = i == visualChildren.Count - 1;
                 var trailingComma = isLast ? string.Empty : ",";
                 sb.AppendLine($"{childCode}{trailingComma}");
