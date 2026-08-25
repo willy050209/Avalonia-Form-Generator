@@ -264,7 +264,10 @@ public sealed class AfgSerializerTests
                         Width = 320,
                         Height = 240,
                         Source = "images/product.png",
-                        Stretch = Stretch.Uniform
+                        Stretch = Stretch.Uniform,
+                        UseRelativePath = true,
+                        InitBitmap = true,
+                        BitmapBackgroundColor = "#FAFAFA"
                     }
                 ]
             }
@@ -282,6 +285,9 @@ public sealed class AfgSerializerTests
         child.Height.Should().Be(240);
         child.Source.Should().Be("images/product.png");
         child.Stretch.Should().Be(Stretch.Uniform);
+        child.UseRelativePath.Should().BeTrue();
+        child.InitBitmap.Should().BeTrue();
+        child.BitmapBackgroundColor.Should().Be("#FAFAFA");
     }
 
     [Fact]

@@ -159,6 +159,79 @@ public sealed class InspectorTests
         inspector.IsVisualControl.Should().BeTrue();
         inspector.Source.Should().Be("assets/logo.png");
         inspector.Stretch.Should().Be(Stretch.UniformToFill);
+        inspector.UseRelativePath.Should().BeTrue();
+        inspector.InitBitmap.Should().BeFalse();
+        inspector.BitmapBackgroundColor.Should().Be("#F0F0F0");
+    }
+
+    [Fact]
+    public async Task BrowseImageCommand_WhenFileDialogServiceReturnsPath_ShouldUpdateSourceAndNotifyNodeUpdated()
+    {
+        // Arrange
+        var picNode = new AstNode
+        {
+            Id = "pic1",
+            Name = "LogoImage",
+            Type = ControlType.PictureBox
+        };
+
+        var mockDialog = new MockImageFileDialogService("C:/test/sample.png");
+        var inspector = new InspectorViewModel(mockDialog);
+        inspector.LoadNode(picNode);
+
+        AstNode? updated = null;
+        inspector.NodeUpdated += n => updated = n;
+
+        // Act
+        await inspector.BrowseImageCommand.ExecuteAsync(null);
+
+        // Assert
+        inspector.Source.Should().Be("C:/test/sample.png");
+        inspector.HasImageSource.Should().BeTrue();
+        updated.Should().NotBeNull();
+        updated!.Source.Should().Be("C:/test/sample.png");
+    }
+
+    [Fact]
+    public void PropertyChanged_WhenInitBitmapModified_ShouldNotifyNodeUpdatedWithBackgroundColor()
+    {
+        // Arrange
+        var picNode = new AstNode
+        {
+            Id = "pic1",
+            Name = "CanvasPic",
+            Type = ControlType.PictureBox
+        };
+
+        var inspector = new InspectorViewModel();
+        inspector.LoadNode(picNode);
+
+        AstNode? updated = null;
+        inspector.NodeUpdated += n => updated = n;
+
+        // Act
+        inspector.InitBitmap = true;
+        inspector.BitmapBackgroundColor = "#E0E0E0";
+
+        // Assert
+        updated.Should().NotBeNull();
+        updated!.InitBitmap.Should().BeTrue();
+        updated.BitmapBackgroundColor.Should().Be("#E0E0E0");
+    }
+
+    private sealed class MockImageFileDialogService(string? returnPath) : AFG.Shared.Services.IFileDialogService
+    {
+        public Task<string?> OpenFileDialogAsync(string title, string filterExtension = "afg.json", string filterName = "AFG 表單模型") =>
+            Task.FromResult(returnPath);
+
+        public Task<string?> OpenImageFileDialogAsync(string title = "選擇圖片檔案") =>
+            Task.FromResult(returnPath);
+
+        public Task<string?> SaveFileDialogAsync(string title, string defaultFileName, string filterExtension, string filterName) =>
+            Task.FromResult(returnPath);
+
+        public Task<string?> OpenFolderDialogAsync(string title) =>
+            Task.FromResult(returnPath);
     }
 
     [Fact]

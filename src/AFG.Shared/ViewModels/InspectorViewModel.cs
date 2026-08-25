@@ -20,10 +20,16 @@ namespace AFG.Shared.ViewModels;
 /// </summary>
 public sealed partial class InspectorViewModel : ObservableObject
 {
+    private readonly Services.IFileDialogService? _fileDialogService;
     private bool _isUpdating;
     private AstNode? _currentNode;
 
     public event Action<AstNode>? NodeUpdated;
+
+    public InspectorViewModel(Services.IFileDialogService? fileDialogService = null)
+    {
+        _fileDialogService = fileDialogService;
+    }
 
     [ObservableProperty]
     private bool _hasSelectedNode;
@@ -126,6 +132,21 @@ public sealed partial class InspectorViewModel : ObservableObject
 
     [ObservableProperty]
     private Core.Enums.Stretch? _stretch = Core.Enums.Stretch.Uniform;
+
+    [ObservableProperty]
+    private bool _useRelativePath = true;
+
+    [ObservableProperty]
+    private bool _initBitmap;
+
+    [ObservableProperty]
+    private string? _bitmapBackgroundColor = "#F0F0F0";
+
+    [ObservableProperty]
+    private string? _imageFileInfo;
+
+    [ObservableProperty]
+    private bool _hasImageSource;
 
     // --- 控制項特性可見度旗標 (Property Visibility Capabilities) ---
     [ObservableProperty]
@@ -290,6 +311,10 @@ public sealed partial class InspectorViewModel : ObservableObject
         Value = node.Value;
         Source = node.Source ?? string.Empty;
         Stretch = node.Stretch;
+        UseRelativePath = node.UseRelativePath;
+        InitBitmap = node.InitBitmap;
+        BitmapBackgroundColor = string.IsNullOrWhiteSpace(node.BitmapBackgroundColor) ? "#F0F0F0" : node.BitmapBackgroundColor;
+        UpdateImagePreviewInfo();
 
         // 計算控制項支援之特定屬性
         var type = node.Type;
@@ -462,6 +487,9 @@ public sealed partial class InspectorViewModel : ObservableObject
                 Value = Value,
                 Source = string.IsNullOrWhiteSpace(Source) ? null : Source.Trim(),
                 Stretch = Stretch,
+                UseRelativePath = UseRelativePath,
+                InitBitmap = InitBitmap,
+                BitmapBackgroundColor = string.IsNullOrWhiteSpace(BitmapBackgroundColor) ? "#F0F0F0" : BitmapBackgroundColor.Trim(),
                 Bindings = Bindings.Select(b => b.ToDefinition()).ToImmutableList(),
                 Events = Events.Select(e => e.ToDefinition()).ToImmutableList()
             };
@@ -473,6 +501,45 @@ public sealed partial class InspectorViewModel : ObservableObject
         catch
         {
             // 防護任何異常輸入與格式轉換錯誤，保持 UI 穩定
+        }
+    }
+
+    [RelayCommand]
+    public async Task BrowseImageAsync()
+    {
+        if (_fileDialogService is null) return;
+        var selectedFile = await _fileDialogService.OpenImageFileDialogAsync("選擇 PictureBox 圖片檔案");
+        if (!string.IsNullOrWhiteSpace(selectedFile))
+        {
+            Source = selectedFile;
+        }
+    }
+
+    private void UpdateImagePreviewInfo()
+    {
+        if (string.IsNullOrWhiteSpace(Source))
+        {
+            HasImageSource = false;
+            ImageFileInfo = null;
+            return;
+        }
+
+        HasImageSource = true;
+        try
+        {
+            if (System.IO.File.Exists(Source))
+            {
+                var fi = new System.IO.FileInfo(Source);
+                ImageFileInfo = $"{fi.Name} ({(fi.Length / 1024.0):F1} KB)";
+            }
+            else
+            {
+                ImageFileInfo = Source;
+            }
+        }
+        catch
+        {
+            ImageFileInfo = Source;
         }
     }
 
@@ -493,8 +560,11 @@ public sealed partial class InspectorViewModel : ObservableObject
     partial void OnContentChanged(string value) => ApplyChanges();
     partial void OnHeaderChanged(string value) => ApplyChanges();
     partial void OnWatermarkChanged(string value) => ApplyChanges();
-    partial void OnSourceChanged(string value) => ApplyChanges();
+    partial void OnSourceChanged(string value) { UpdateImagePreviewInfo(); ApplyChanges(); }
     partial void OnStretchChanged(Core.Enums.Stretch? value) => ApplyChanges();
+    partial void OnUseRelativePathChanged(bool value) => ApplyChanges();
+    partial void OnInitBitmapChanged(bool value) => ApplyChanges();
+    partial void OnBitmapBackgroundColorChanged(string? value) => ApplyChanges();
     partial void OnWidthChanged(double? value) => ApplyChanges();
     partial void OnHeightChanged(double? value) => ApplyChanges();
     partial void OnAutoSizeChanged(bool value) => ApplyChanges();

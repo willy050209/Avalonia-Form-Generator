@@ -67,7 +67,7 @@ public sealed partial class MainViewModel : ObservableObject
         Canvas = new CanvasViewModel();
         Toolbox = new ToolboxViewModel();
         VisualTree = new VisualTreeViewModel();
-        Inspector = new InspectorViewModel();
+        Inspector = new InspectorViewModel(fileDialogService);
 
         // 綁定事件連動
         Canvas.DocumentChanged += OnDocumentChanged;

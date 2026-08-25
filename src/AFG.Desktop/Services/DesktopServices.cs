@@ -36,6 +36,31 @@ public sealed class DesktopFileDialogService(Func<TopLevel?> topLevelProvider) :
         return files.Count > 0 ? files[0].Path.LocalPath : null;
     }
 
+    public async Task<string?> OpenImageFileDialogAsync(string title = "選擇圖片檔案")
+    {
+        var topLevel = _topLevelProvider();
+        if (topLevel is null) return null;
+
+        var files = await topLevel.StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
+        {
+            Title = title,
+            AllowMultiple = false,
+            FileTypeFilter =
+            [
+                new FilePickerFileType("所有支援的圖片檔案")
+                {
+                    Patterns = ["*.png", "*.jpg", "*.jpeg", "*.bmp", "*.gif", "*.webp", "*.ico"]
+                },
+                new FilePickerFileType("PNG 影像檔 (*.png)") { Patterns = ["*.png"] },
+                new FilePickerFileType("JPEG 影像檔 (*.jpg;*.jpeg)") { Patterns = ["*.jpg", "*.jpeg"] },
+                new FilePickerFileType("點陣圖 (*.bmp)") { Patterns = ["*.bmp"] },
+                new FilePickerFileType("所有檔案 (*.*)") { Patterns = ["*.*"] }
+            ]
+        });
+
+        return files.Count > 0 ? files[0].Path.LocalPath : null;
+    }
+
     public async Task<string?> SaveFileDialogAsync(string title, string defaultFileName, string filterExtension, string filterName)
     {
         var topLevel = _topLevelProvider();

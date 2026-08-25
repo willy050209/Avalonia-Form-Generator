@@ -7,6 +7,7 @@ namespace AFG.Shared.Services;
 public interface IFileDialogService
 {
     Task<string?> OpenFileDialogAsync(string title, string filterExtension = "afg.json", string filterName = "AFG 表單模型");
+    Task<string?> OpenImageFileDialogAsync(string title = "選擇圖片檔案");
     Task<string?> SaveFileDialogAsync(string title, string defaultFileName, string filterExtension, string filterName);
     Task<string?> OpenFolderDialogAsync(string title);
 }

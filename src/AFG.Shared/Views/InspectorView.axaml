@@ -102,10 +102,43 @@
                                 <NumericUpDown Value="{Binding Interval, Mode=TwoWay}" Minimum="1" Maximum="86400000" Increment="100" />
                             </StackPanel>
 
-                            <!-- 影像來源 (Source) - 僅適用於 PictureBox / Image -->
+                            <!-- 影像來源 (Source) 與瀏覽選擇 - 僅適用於 PictureBox / Image -->
                             <StackPanel Spacing="4" IsVisible="{Binding IsImageSupported}">
                                 <TextBlock Text="影像來源 (Source / ImageLocation)" FontSize="11" Foreground="#A1A1AA" />
-                                <TextBox Text="{Binding Source, Mode=TwoWay}" PlaceholderText="例如: assets/logo.png 或 URL" />
+                                <Grid ColumnDefinitions="*, Auto">
+                                    <TextBox Text="{Binding Source, Mode=TwoWay}"
+                                             PlaceholderText="輸入路徑、點擊右側瀏覽或 URL" />
+                                    <Button Grid.Column="1"
+                                            Content="瀏覽..."
+                                            Command="{Binding BrowseImageCommand}"
+                                            Margin="4,0,0,0"
+                                            Padding="8,4"
+                                            FontSize="11" />
+                                </Grid>
+                            </StackPanel>
+
+                            <!-- 即時圖片資訊與預覽卡片 -->
+                            <Border Background="#18181B"
+                                    BorderBrush="#27272A"
+                                    BorderThickness="1"
+                                    CornerRadius="4"
+                                    Padding="8"
+                                    IsVisible="{Binding HasImageSource}">
+                                <StackPanel Spacing="4">
+                                    <TextBlock Text="已選取影像檔案：" FontSize="10" Foreground="#71717A" />
+                                    <TextBlock Text="{Binding ImageFileInfo}"
+                                               FontSize="11"
+                                               FontWeight="SemiBold"
+                                               Foreground="#38BDF8"
+                                               TextWrapping="Wrap" />
+                                </StackPanel>
+                            </Border>
+
+                            <!-- 路徑模式選項 (相對路徑 / 絕對路徑) -->
+                            <StackPanel Spacing="4" IsVisible="{Binding IsImageSupported}">
+                                <CheckBox Content="使用專案相對路徑 (匯出時自動複製至 Assets)"
+                                          IsChecked="{Binding UseRelativePath, Mode=TwoWay}"
+                                          FontSize="11" />
                             </StackPanel>
 
                             <!-- 縮放模式 (Stretch) - 僅適用於 PictureBox / Image -->
@@ -114,6 +147,20 @@
                                 <ComboBox ItemsSource="{Binding StretchOptions}"
                                           SelectedItem="{Binding Stretch, Mode=TwoWay}"
                                           HorizontalAlignment="Stretch" />
+                            </StackPanel>
+
+                            <!-- 初始化空白 Bitmap (Init Bitmap) -->
+                            <StackPanel Spacing="6" IsVisible="{Binding IsImageSupported}">
+                                <CheckBox Content="初始化空白點陣圖 (Init Bitmap)"
+                                          IsChecked="{Binding InitBitmap, Mode=TwoWay}"
+                                          FontWeight="SemiBold"
+                                          FontSize="11"
+                                          Foreground="#A78BFA" />
+                                <StackPanel Spacing="4" IsVisible="{Binding InitBitmap}">
+                                    <TextBlock Text="Bitmap 背景顏色 (預設 #F0F0F0)" FontSize="10" Foreground="#A1A1AA" />
+                                    <TextBox Text="{Binding BitmapBackgroundColor, Mode=TwoWay}"
+                                             PlaceholderText="#F0F0F0" />
+                                </StackPanel>
                             </StackPanel>
 
                             <!-- 選取狀態 (IsChecked) - 僅適用於 CheckBox / RadioButton -->

@@ -191,7 +191,28 @@ AvaloniaFormGenerator/
     - 在 `App.cs` 與 `GlobalUsings.cs` 配置全域 `Microsoft.Extensions.Logging` 與 `InMemoryLoggerProvider`。
     - 撰寫匯出專案實體端到端編譯整合測試（執行 `dotnet build` 驗證 0 錯誤 0 警告成功通過）。
   - [x] 11.4 **Phase 4: 技術文件更新與全專案驗證 (Documentation & Final Verification)**
-    - 更新 `README.md`、`docs/architecture.md`、`docs/ast-schema.md`、`docs/csharp-markup-spec.md`、`docs/user-guide.md`。
+---
+
+### 🔹 階段 12：PictureBox 體驗優化與 Bitmap 初始化/工具函式庫整合 (PictureBox UX Enhancement, Bitmap Initialization & Helper Library)
+- [ ] **階段狀態：進行中**
+- **目標**：優化 PictureBox 使用者體驗（檔案對話框選取、即時縮圖預覽、相對/絕對路徑切換與專案匯出 Assets 自動複製）；支援 PictureBox 快速初始化（尺寸、背景色預設 #F0F0F0、表單載入建立 Bitmap）；提供操作 Bitmap 的靜態類別（`ConvertToWriteableBitmap`, `ConvertToRenderTargetBitmap`, `SetPixel`, `GetPixel`）。
+- **任務清單**：
+  - [x] 12.1 **Phase 1: AST 模型擴充、Inspector 視覺化選檔與即時縮圖預覽 (AST Models, Inspector UX & Live Thumbnail Preview)**
+    - 在 `AstNode` 新增 `UseRelativePath`（預設 true）、`InitBitmap`（預設 false）、`BitmapBackgroundColor`（預設 `#F0F0F0`）屬性。
+    - 在 `IFileDialogService` 與 `DesktopFileDialogService` 新增圖片選擇對話框方法（支援常見圖片副檔名過濾）。
+    - 在 `InspectorViewModel` 與 `InspectorView.axaml` 實作瀏覽圖片命令、即時縮圖預覽、相對/絕對路徑切換、Bitmap 初始化開關與背景色選擇。
+    - 在 `DesignCanvas.cs` 支援本機實體圖片預覽與 Bitmap 初始化背景色視覺預覽。
+    - 撰寫單元測試驗證 AST 序列化、Inspector 屬性同步與選檔互動。
+  - [ ] 12.2 **Phase 2: 靜態類別 BitmapHelper / BitmapExtensions 與 C# Markup 擴充 (Bitmap Helper Library & C# Markup Source)**
+    - 實作靜態類別 `BitmapHelper`，提供 `ConvertToWriteableBitmap`、`ConvertToRenderTargetBitmap`、`SetPixel`、`GetPixel`、`CreateInitializedBitmap` 與 `LoadBitmap`。
+    - 在 `AvaloniaMarkupExtensionsSource.cs` 整合靜態影像載入與擴充方法。
+    - 撰寫單元測試驗證 `BitmapHelper` 各功能（像素讀寫、色彩格式轉換、邊界保護）。
+  - [ ] 12.3 **Phase 3: View/ViewModel 生成與專案匯出 Assets 自動複製 (CodeGen & Project Export Assets Integration)**
+    - 在 `CSharpMarkupViewGenerator` 與 `MvvmViewModelGenerator` 支援 PictureBox Bitmap 初始化生成與相對資源路徑 (`avares://`) 產生。
+    - 在 `ProjectExportService` 匯出 `Helpers/BitmapHelper.cs`，並於匯出時自動複製相對路徑圖片至 `src/{AppName}.Shared/Assets/`，在 `.Shared.csproj` 加入 `<AvaloniaResource Include="Assets\**" />`。
+    - 撰寫單元與實體端到端編譯整合測試（執行 `dotnet build` 驗證 0 錯誤通過）。
+  - [ ] 12.4 **Phase 4: 技術文件更新與全專案驗證 (Documentation & Final Verification)**
+    - 更新 `README.md`、`docs/architecture.md`、`docs/ast-schema.md`、`docs/csharp-markup-spec.md`、`docs/user-guide.md` 與 `plan.md`。
     - 執行全專案 100% 測試驗證並完成各階段 Git Commit。
 
 ---
@@ -201,3 +222,4 @@ AvaloniaFormGenerator/
 1. **單元測試覆蓋率**：所有純函式、AST 操作、歷史堆疊、生成器與序列化演算法 100% 覆蓋。
 2. **零警告與零錯誤**：`dotnet build` 與 `dotnet test` 保持 0 Error, 0 Warning。
 3. **實體跨平台編譯保障**：匯出之專案在 Windows / macOS / Linux 平台均可一鍵執行 `dotnet run` 成功啟動。
+

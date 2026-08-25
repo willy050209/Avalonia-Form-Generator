@@ -71,6 +71,9 @@ public sealed record AstNode
     public string? SelectedItem { get; init; }
     public string? Source { get; init; }
     public Stretch? Stretch { get; init; }
+    public bool UseRelativePath { get; init; } = true;
+    public bool InitBitmap { get; init; }
+    public string? BitmapBackgroundColor { get; init; } = "#F0F0F0";
     public bool AutoSize { get; init; }
     public int? Interval { get; init; }
 

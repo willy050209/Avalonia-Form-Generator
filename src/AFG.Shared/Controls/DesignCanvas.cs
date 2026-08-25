@@ -254,38 +254,92 @@ public sealed class DesignCanvas : Grid
                 control = new ProgressBar { Minimum = 0, Maximum = 100, Value = 60 };
                 break;
             case ControlType.PictureBox or ControlType.Image:
+                var picBgColor = !string.IsNullOrWhiteSpace(node.Background)
+                    ? Color.Parse(node.Background)
+                    : (node.InitBitmap
+                        ? (Color.TryParse(node.BitmapBackgroundColor ?? "#F0F0F0", out var parsedBg) ? parsedBg : Color.Parse("#F0F0F0"))
+                        : Color.FromArgb(25, 255, 255, 255));
+
                 var picBorder = new Border
                 {
-                    Background = new SolidColorBrush(Color.FromArgb(25, 255, 255, 255)),
+                    Background = new SolidColorBrush(picBgColor),
                     BorderBrush = new SolidColorBrush(Color.FromArgb(90, 255, 255, 255)),
                     BorderThickness = new Thickness(1),
-                    CornerRadius = new CornerRadius(4)
+                    CornerRadius = new CornerRadius(4),
+                    ClipToBounds = true
                 };
-                var picPanel = new StackPanel
+
+                // 若有實體圖片且存在本機檔案系統，嘗試直接載入 Bitmap 預覽
+                bool imageLoaded = false;
+                if (!string.IsNullOrWhiteSpace(node.Source))
                 {
-                    VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center,
-                    HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center,
-                    Spacing = 4
-                };
-                picPanel.Children.Add(new TextBlock
+                    try
+                    {
+                        if (System.IO.File.Exists(node.Source))
+                        {
+                            var avaloniaStretch = node.Stretch switch
+                            {
+                                Core.Enums.Stretch.None => Avalonia.Media.Stretch.None,
+                                Core.Enums.Stretch.Fill => Avalonia.Media.Stretch.Fill,
+                                Core.Enums.Stretch.UniformToFill => Avalonia.Media.Stretch.UniformToFill,
+                                _ => Avalonia.Media.Stretch.Uniform
+                            };
+                            var bitmap = new Avalonia.Media.Imaging.Bitmap(node.Source);
+                            var imgControl = new Image
+                            {
+                                Source = bitmap,
+                                Stretch = avaloniaStretch
+                            };
+                            picBorder.Child = imgControl;
+                            imageLoaded = true;
+                        }
+                    }
+                    catch
+                    {
+                        imageLoaded = false;
+                    }
+                }
+
+                if (!imageLoaded)
                 {
-                    Text = "PictureBox",
-                    FontSize = 12,
-                    FontWeight = FontWeight.SemiBold,
-                    Foreground = new SolidColorBrush(Color.Parse("#A1A1AA")),
-                    HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center
-                });
-                var sourceText = !string.IsNullOrWhiteSpace(node.Source)
-                    ? node.Source
-                    : (!string.IsNullOrWhiteSpace(node.Text) ? node.Text : (!string.IsNullOrWhiteSpace(node.Content) ? node.Content : "(無影像來源)"));
-                picPanel.Children.Add(new TextBlock
-                {
-                    Text = sourceText,
-                    FontSize = 10,
-                    Foreground = new SolidColorBrush(Color.Parse("#71717A")),
-                    HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center
-                });
-                picBorder.Child = picPanel;
+                    var picPanel = new StackPanel
+                    {
+                        VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center,
+                        HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center,
+                        Spacing = 4
+                    };
+
+                    var picTitleText = node.InitBitmap ? "PictureBox [Bitmap Init]" : "PictureBox";
+                    var picTitleColor = node.InitBitmap ? Color.Parse("#A78BFA") : Color.Parse("#A1A1AA");
+
+                    picPanel.Children.Add(new TextBlock
+                    {
+                        Text = picTitleText,
+                        FontSize = 12,
+                        FontWeight = FontWeight.SemiBold,
+                        Foreground = new SolidColorBrush(picTitleColor),
+                        HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center
+                    });
+
+                    var sourceText = node.InitBitmap
+                        ? $"Size: {(node.Width ?? 200)}x{(node.Height ?? 150)} | Bg: {node.BitmapBackgroundColor ?? "#F0F0F0"}"
+                        : (!string.IsNullOrWhiteSpace(node.Source)
+                            ? node.Source
+                            : (!string.IsNullOrWhiteSpace(node.Text) ? node.Text : (!string.IsNullOrWhiteSpace(node.Content) ? node.Content : "(無影像來源)")));
+
+                    picPanel.Children.Add(new TextBlock
+                    {
+                        Text = sourceText,
+                        FontSize = 10,
+                        Foreground = new SolidColorBrush(Color.Parse("#71717A")),
+                        HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center,
+                        TextWrapping = TextWrapping.Wrap,
+                        MaxWidth = 180
+                    });
+
+                    picBorder.Child = picPanel;
+                }
+
                 control = picBorder;
                 break;
             case ControlType.Border:
