@@ -144,6 +144,7 @@ public sealed class ProjectExportService(FormCodeGenerator? codeGenerator = null
             <ImplicitUsings>enable</ImplicitUsings>
             <LangVersion>latest</LangVersion>
             <RootNamespace>{project.RootNamespace}</RootNamespace>
+            <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
             <NoWarn>$(NoWarn);NU1903</NoWarn>
           </PropertyGroup>
 

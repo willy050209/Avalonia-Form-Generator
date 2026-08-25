@@ -203,7 +203,7 @@ AvaloniaFormGenerator/
     - 在 `InspectorViewModel` 與 `InspectorView.axaml` 實作瀏覽圖片命令、即時縮圖預覽、相對/絕對路徑切換、Bitmap 初始化開關與背景色選擇。
     - 在 `DesignCanvas.cs` 支援本機實體圖片預覽與 Bitmap 初始化背景色視覺預覽。
     - 撰寫單元測試驗證 AST 序列化、Inspector 屬性同步與選檔互動。
-  - [ ] 12.2 **Phase 2: 靜態類別 BitmapHelper / BitmapExtensions 與 C# Markup 擴充 (Bitmap Helper Library & C# Markup Source)**
+  - [x] 12.2 **Phase 2: 靜態類別 BitmapHelper / BitmapExtensions 與 C# Markup 擴充 (Bitmap Helper Library & C# Markup Source)**
     - 實作靜態類別 `BitmapHelper`，提供 `ConvertToWriteableBitmap`、`ConvertToRenderTargetBitmap`、`SetPixel`、`GetPixel`、`CreateInitializedBitmap` 與 `LoadBitmap`。
     - 在 `AvaloniaMarkupExtensionsSource.cs` 整合靜態影像載入與擴充方法。
     - 撰寫單元測試驗證 `BitmapHelper` 各功能（像素讀寫、色彩格式轉換、邊界保護）。
