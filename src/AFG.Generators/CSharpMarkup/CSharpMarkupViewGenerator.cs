@@ -75,11 +75,18 @@ public sealed class CSharpMarkupViewGenerator : ICodeGenerator
         var nodeName = !string.IsNullOrWhiteSpace(node.Name) ? node.Name.Trim() : node.Type.ToString();
         if (!isRoot)
         {
-            sb.AppendLine($"// {nodeName}");
+            sb.AppendLine($"{indent}// {nodeName}");
         }
 
         var controlTypeName = node.Type == ControlType.PictureBox ? "Image" : node.Type.ToString();
-        sb.AppendLine($"new {controlTypeName}()");
+        if (isRoot)
+        {
+            sb.AppendLine($"new {controlTypeName}()");
+        }
+        else
+        {
+            sb.AppendLine($"{indent}new {controlTypeName}()");
+        }
 
         // 1. 幾何與佈局屬性
         if (!node.AutoSize)
@@ -350,20 +357,22 @@ public sealed class CSharpMarkupViewGenerator : ICodeGenerator
             sb.AppendLine($"{innerIndent}{cmdCall}");
         }
 
-        // 7. 遞迴子節點 (Children - 傳遞目前 node 作為 parentNode 參數)
+        // 7. 遞迴生成子節點 (Children - 傳遞當前 node 作為 parentNode 參數)
         var visualChildren = node.Children
             .Where(c => !IsNonVisualComponent(c.Type))
             .ToList();
 
         if (visualChildren.Count > 0)
         {
-            sb.AppendLine($"{innerIndent}.Children(");
+            var isBorder = node.Type == ControlType.Border;
+            var containerMethod = isBorder ? "Child" : "Children";
+            sb.AppendLine($"{innerIndent}.{containerMethod}(");
             for (var i = 0; i < visualChildren.Count; i++)
             {
                 var childCode = GenerateNodeCode(visualChildren[i], indentLevel + 2, viewModelClassName, useCompiledBindings, parentNode: node);
                 var isLast = i == visualChildren.Count - 1;
                 var trailingComma = isLast ? string.Empty : ",";
-                sb.AppendLine($"{new string(' ', (indentLevel + 2) * 4)}{childCode}{trailingComma}");
+                sb.AppendLine($"{childCode}{trailingComma}");
             }
             sb.Append($"{innerIndent})");
         }
@@ -380,10 +389,13 @@ public sealed class CSharpMarkupViewGenerator : ICodeGenerator
         var nodeName = !string.IsNullOrWhiteSpace(node.Name) ? node.Name.Trim() : "DebugConsole";
         if (!isRoot)
         {
-            sb.AppendLine($"// {nodeName}");
+            sb.AppendLine($"{indent}// {nodeName}");
+            sb.AppendLine($"{indent}new Border()");
         }
-
-        sb.AppendLine("new Border()");
+        else
+        {
+            sb.AppendLine("new Border()");
+        }
         sb.AppendLine($"{innerIndent}.Background(Brush.Parse(\"#09090B\"))");
         sb.AppendLine($"{innerIndent}.BorderBrush(Brush.Parse(\"#27272A\"))");
         sb.AppendLine($"{innerIndent}.BorderThickness(new Thickness(1))");

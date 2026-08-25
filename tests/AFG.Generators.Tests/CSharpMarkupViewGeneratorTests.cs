@@ -625,6 +625,53 @@ public sealed class CSharpMarkupViewGeneratorTests
     }
 
     [Fact]
+    public void Generate_WithNestedChildren_ShouldFormatIndentationAndCommentsCorrectly()
+    {
+        // Arrange
+        var doc = new FormDocument
+        {
+            RootNamespace = "MyApp.Views",
+            ViewClassName = "NestedView",
+            ViewModelClassName = "NestedViewModel",
+            RootNode = new AstNode
+            {
+                Id = "root",
+                Name = "RootCanvas",
+                Type = ControlType.Canvas,
+                Children =
+                [
+                    new AstNode
+                    {
+                        Id = "btn1",
+                        Name = "SubmitBtn",
+                        Type = ControlType.Button,
+                        Width = 100,
+                        Height = 30
+                    },
+                    new AstNode
+                    {
+                        Id = "txt1",
+                        Name = "InputBox",
+                        Type = ControlType.TextBox,
+                        Width = 200
+                    }
+                ]
+            }
+        };
+
+        // Act
+        var result = _generator.Generate(doc);
+
+        // Assert
+        result.Content.Should().Contain("        // RootCanvas\r\n        Content = new Canvas()");
+        result.Content.Should().Contain("            .Children(\r\n                // SubmitBtn\r\n                new Button()\r\n                    .Width(100)\r\n                    .Height(30),");
+        result.Content.Should().Contain("                // InputBox\r\n                new TextBox()\r\n                    .Width(200)\r\n            );");
+
+        var syntaxDiagnostics = RoslynCompilerService.CheckSyntaxDiagnostics(result.Content);
+        syntaxDiagnostics.Should().BeEmpty();
+    }
+
+    [Fact]
     public void Generate_ShouldThrowArgumentNullException_WhenDocumentIsNull()
     {
         var act = () => _generator.Generate(null!);
