@@ -231,6 +231,28 @@ AvaloniaFormGenerator/
     - 執行包含 `dotnet build` 的全專案測試並確認 0 Error, 0 Warning。
     - 更新 `docs/csharp-markup-spec.md`、`docs/user-guide.md` 與 `plan.md`，並完成 Git Commit。
 
+### 🔹 階段 14：表單與視窗控制屬性系統 (Form & Window Control Properties System)
+- [ ] **階段狀態：進行中**
+- **目標**：為表單與視窗加入完整控制屬性（如 Title、BackgroundColor、Size/CanvasWidth/CanvasHeight、MinWidth/MinHeight/MaxWidth/MaxHeight、WindowStartupLocation、WindowState、CanResize、Topmost、ShowInTaskbar、Icon 等），支援 Inspector 視覺化設定、畫布即時渲染、歷史堆疊與 View/MainWindow 程式碼生成。
+- **任務清單**：
+  - [x] 14.1 **Phase 1: AST 與 FormDocument 模型擴充、列舉定義與單元測試 (Form Model & Enum Extensions)**
+    - 在 `AFG.Core.Enums` 新增 `WindowStartupLocation` (`CenterScreen`, `CenterOwner`, `Manual`), `WindowState` (`Normal`, `Maximized`, `Minimized`, `FullScreen`), `SystemDecorations` (`Full`, `None`, `BorderOnly`)。
+    - 在 `FormDocument` 擴充完整表單與視窗屬性（`BackgroundColor`、`MinWidth`、`MinHeight`、`MaxWidth`、`MaxHeight`、`WindowStartupLocation`、`WindowState`、`CanResize`、`Topmost`、`ShowInTaskbar`、`Icon`、`SystemDecorations` 等）。
+    - 撰寫 `FormDocument` 序列化/反序列化與預設值單元測試。
+  - [ ] 14.2 **Phase 2: Inspector 表單屬性編輯面板、畫布即時渲染與歷史堆疊 (Inspector Form UI, Live Canvas Sync & Undo/Redo)**
+    - 在 `InspectorViewModel` 與 `InspectorView.axaml` 實作「表單/視窗屬性 (Form Properties)」編輯模式（未選取控制項或選取 RootCanvas/Form 時呈現）。
+    - 提供標題、背景色快捷色票與色碼、寬高/Min/Max、起始位置、視窗狀態、CanResize、Topmost、ShowInTaskbar、圖示選取等分類視覺編輯器。
+    - 在 `DesignCanvas.cs` 與 `MainView.axaml` 支援畫布背景色即時渲染、尺寸邊界與空白點選自動選取 Form 根節點。
+    - 在 `CanvasViewModel` 與 `MainViewModel` 支援表單屬性 Undo/Redo 歷史堆疊與狀態列/預設解析度連動。
+    - 撰寫 Inspector 與畫布表單屬性單元測試。
+  - [ ] 14.3 **Phase 3: C# Markup View 生成器與多專案匯出 MainWindow / Config 整合 (CodeGen & Project Export Integration)**
+    - 在 `CSharpMarkupViewGenerator` 產出 View (`UserControl`) 背景色、尺寸等屬性。
+    - 在 `ProjectExportService` 為 `App.cs` / `MainWindow` 與 `Config.cs` 生成完整的視窗屬性設定（Title, Width, Height, Min/Max, Background, WindowStartupLocation, WindowState, CanResize, Topmost, ShowInTaskbar, Icon 等）。
+    - 撰寫生成器與專案匯出實體編譯測試（執行 `dotnet build` 驗證 0 錯誤通過）。
+  - [ ] 14.4 **Phase 4: 全套技術文件更新與最終全專案驗證 (Documentation & Final Verification)**
+    - 更新 `README.md`、`docs/architecture.md`、`docs/ast-schema.md`、`docs/csharp-markup-spec.md`、`docs/user-guide.md` 與 `plan.md`。
+    - 執行全專案 100% 測試驗證（0 Error, 0 Warning）並完成各階段 Git Commit。
+
 ---
 
 ## 4. 驗證標準與品質指標

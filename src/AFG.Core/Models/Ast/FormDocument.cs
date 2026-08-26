@@ -1,4 +1,6 @@
 // filepath: src/AFG.Core/Models/Ast/FormDocument.cs
+using AFG.Core.Enums;
+
 namespace AFG.Core.Models.Ast;
 
 /// <summary>
@@ -37,6 +39,11 @@ public sealed record FormDocument
     public string Title { get; init; } = "Avalonia Form";
 
     /// <summary>
+    /// 表單與視窗背景顏色（例如 #FFFFFF, #F0F0F0）。為 null 時使用系統/主題預設色。
+    /// </summary>
+    public string? BackgroundColor { get; init; }
+
+    /// <summary>
     /// 預設設計畫布寬度。
     /// </summary>
     public double CanvasWidth { get; init; } = 800;
@@ -45,6 +52,61 @@ public sealed record FormDocument
     /// 預設設計畫布高度。
     /// </summary>
     public double CanvasHeight { get; init; } = 600;
+
+    /// <summary>
+    /// 視窗最小寬度。
+    /// </summary>
+    public double? MinWidth { get; init; }
+
+    /// <summary>
+    /// 視窗最小高度。
+    /// </summary>
+    public double? MinHeight { get; init; }
+
+    /// <summary>
+    /// 視窗最大寬度。
+    /// </summary>
+    public double? MaxWidth { get; init; }
+
+    /// <summary>
+    /// 視窗最大高度。
+    /// </summary>
+    public double? MaxHeight { get; init; }
+
+    /// <summary>
+    /// 視窗啟動定位位置。
+    /// </summary>
+    public WindowStartupLocation WindowStartupLocation { get; init; } = WindowStartupLocation.CenterScreen;
+
+    /// <summary>
+    /// 初始視窗顯示狀態。
+    /// </summary>
+    public WindowState WindowState { get; init; } = WindowState.Normal;
+
+    /// <summary>
+    /// 視窗是否允許使用者調整大小。
+    /// </summary>
+    public bool CanResize { get; init; } = true;
+
+    /// <summary>
+    /// 視窗是否永遠置頂。
+    /// </summary>
+    public bool Topmost { get; init; }
+
+    /// <summary>
+    /// 視窗是否在工作列顯示圖示與標籤。
+    /// </summary>
+    public bool ShowInTaskbar { get; init; } = true;
+
+    /// <summary>
+    /// 視窗圖示路徑（支援本機路徑或 Assets 資源路徑）。
+    /// </summary>
+    public string? Icon { get; init; }
+
+    /// <summary>
+    /// 視窗系統標題列與邊框裝飾樣式。
+    /// </summary>
+    public SystemDecorations SystemDecorations { get; init; } = SystemDecorations.Full;
 
     /// <summary>
     /// 是否在此表單啟用相依性注入架構配置。

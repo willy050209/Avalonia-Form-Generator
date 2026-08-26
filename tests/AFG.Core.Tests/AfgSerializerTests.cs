@@ -291,6 +291,51 @@ public sealed class AfgSerializerTests
     }
 
     [Fact]
+    public void Roundtrip_FormDocument_ShouldPreserveFormAndWindowProperties()
+    {
+        // Arrange
+        var doc = new FormDocument
+        {
+            Title = "POS 終端收銀系統",
+            BackgroundColor = "#2D3748",
+            CanvasWidth = 1280,
+            CanvasHeight = 800,
+            MinWidth = 800,
+            MinHeight = 600,
+            MaxWidth = 1920,
+            MaxHeight = 1080,
+            WindowStartupLocation = WindowStartupLocation.CenterScreen,
+            WindowState = WindowState.Normal,
+            CanResize = false,
+            Topmost = true,
+            ShowInTaskbar = true,
+            Icon = "Assets/pos_icon.ico",
+            SystemDecorations = SystemDecorations.Full
+        };
+
+        // Act
+        var json = AfgSerializer.SerializeDocument(doc);
+        var result = AfgSerializer.DeserializeDocument(json);
+
+        // Assert
+        result.Title.Should().Be("POS 終端收銀系統");
+        result.BackgroundColor.Should().Be("#2D3748");
+        result.CanvasWidth.Should().Be(1280);
+        result.CanvasHeight.Should().Be(800);
+        result.MinWidth.Should().Be(800);
+        result.MinHeight.Should().Be(600);
+        result.MaxWidth.Should().Be(1920);
+        result.MaxHeight.Should().Be(1080);
+        result.WindowStartupLocation.Should().Be(WindowStartupLocation.CenterScreen);
+        result.WindowState.Should().Be(WindowState.Normal);
+        result.CanResize.Should().BeFalse();
+        result.Topmost.Should().BeTrue();
+        result.ShowInTaskbar.Should().BeTrue();
+        result.Icon.Should().Be("Assets/pos_icon.ico");
+        result.SystemDecorations.Should().Be(SystemDecorations.Full);
+    }
+
+    [Fact]
     public void DeserializeDocument_ShouldThrowArgumentNullException_WhenInputIsNull()
     {
         var act = () => AfgSerializer.DeserializeDocument(null!);
