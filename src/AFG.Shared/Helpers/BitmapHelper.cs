@@ -48,6 +48,16 @@ public delegate void PixelProcessor(ref byte b, ref byte g, ref byte r, ref byte
 public delegate void PixelLocationProcessor(int x, int y, ref byte b, ref byte g, ref byte r, ref byte a);
 
 /// <summary>
+/// 向量化連續像素記憶體區塊處理委派（傳入對齊硬體向量寬度之 Span<byte>）。
+/// </summary>
+public delegate void VectorPixelProcessor(Span<byte> pixelSpan);
+
+/// <summary>
+/// 泛型 SIMD 向量變換委派（輸入硬體向量暫存器資料，回傳運算後之硬體向量暫存器資料）。
+/// </summary>
+public delegate Vector<byte> VectorTransform(Vector<byte> vector);
+
+/// <summary>
 /// 提供底層 SIMD 硬體加速能力偵測與向量輔助工具。
 /// </summary>
 public static class SimdHardware
@@ -85,6 +95,11 @@ public static class SimdHardware
             return global::System.Numerics.Vector<byte>.Count;
         }
     }
+
+    /// <summary>
+    /// 取得目前裝置最佳向量可容納的 BGRA 像素數量 (64B=16px, 32B=8px, 16B=4px)。
+    /// </summary>
+    public static int PreferredPixelBatchCount => Math.Max(1, PreferredVectorByteCount / 4);
 }
 
 /// <summary>
@@ -216,6 +231,136 @@ public static class BitmapExtensions
     // ==========================================
 
     /// <summary>
+    /// 透過泛型 SIMD 向量變換委派 (Vector&lt;byte&gt;) 批次處理像素記憶體，自動依 CPU 硬體架構對齊向量寬度並支援平行加速。
+    /// </summary>
+    /// <param name="bitmap">目標 WriteableBitmap</param>
+    /// <param name="vectorTransform">SIMD 向量運算委派 (傳入硬體暫存器向量並回傳變換後向量)</param>
+    /// <param name="remainderProcessor">未對齊向量步長之邊界像素處理回呼（可為 null）</param>
+    /// <param name="mode">處理執行模式</param>
+    public static void ProcessPixels(
+        this WriteableBitmap bitmap,
+        VectorTransform vectorTransform,
+        PixelProcessor? remainderProcessor = null,
+        PixelProcessingMode mode = PixelProcessingMode.ParallelVectorized)
+    {
+        ArgumentNullException.ThrowIfNull(bitmap);
+        ArgumentNullException.ThrowIfNull(vectorTransform);
+
+        using var fb = bitmap.Lock();
+        int width = fb.Size.Width;
+        int height = fb.Size.Height;
+        int rowBytes = fb.RowBytes;
+        int vectorByteSize = global::System.Numerics.Vector<byte>.Count;
+        int rowDataBytes = width * 4;
+        int vectorLimit = rowDataBytes - (rowDataBytes % vectorByteSize);
+
+        unsafe
+        {
+            byte* scan0 = (byte*)fb.Address;
+
+            void ProcessRow(int y)
+            {
+                byte* row = scan0 + y * rowBytes;
+                int offset = 0;
+
+                // 1. SIMD 向量化批次運算 (自動對齊硬體向量寬度)
+                for (; offset < vectorLimit; offset += vectorByteSize)
+                {
+                    var inVec = new global::System.Numerics.Vector<byte>(new ReadOnlySpan<byte>(row + offset, vectorByteSize));
+                    var outVec = vectorTransform(inVec);
+                    outVec.CopyTo(new Span<byte>(row + offset, vectorByteSize));
+                }
+
+                // 2. 邊界未對齊像素處理
+                if (remainderProcessor != null)
+                {
+                    for (int x = offset / 4; x < width; x++)
+                    {
+                        byte* p = row + x * 4;
+                        remainderProcessor(ref p[0], ref p[1], ref p[2], ref p[3]);
+                    }
+                }
+            }
+
+            if (mode is PixelProcessingMode.Parallel or PixelProcessingMode.ParallelVectorized)
+            {
+                Parallel.For(0, height, ProcessRow);
+            }
+            else
+            {
+                for (int y = 0; y < height; y++)
+                {
+                    ProcessRow(y);
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// 透過 Span&lt;byte&gt; 向量區塊委派批次處理像素記憶體，自動偵測硬體最佳 SIMD 位元組步長 (64B / 32B / 16B)。
+    /// </summary>
+    /// <param name="bitmap">目標 WriteableBitmap</param>
+    /// <param name="vectorProcessor">向量記憶體區塊處理委派</param>
+    /// <param name="remainderProcessor">未對齊向量步長之邊界像素處理回呼（可為 null）</param>
+    /// <param name="mode">處理執行模式</param>
+    public static void ProcessPixels(
+        this WriteableBitmap bitmap,
+        VectorPixelProcessor vectorProcessor,
+        PixelProcessor? remainderProcessor = null,
+        PixelProcessingMode mode = PixelProcessingMode.ParallelVectorized)
+    {
+        ArgumentNullException.ThrowIfNull(bitmap);
+        ArgumentNullException.ThrowIfNull(vectorProcessor);
+
+        using var fb = bitmap.Lock();
+        int width = fb.Size.Width;
+        int height = fb.Size.Height;
+        int rowBytes = fb.RowBytes;
+        int vectorByteSize = SimdHardware.PreferredVectorByteCount;
+        int rowDataBytes = width * 4;
+        int vectorLimit = rowDataBytes - (rowDataBytes % vectorByteSize);
+
+        unsafe
+        {
+            byte* scan0 = (byte*)fb.Address;
+
+            void ProcessRow(int y)
+            {
+                byte* row = scan0 + y * rowBytes;
+                int offset = 0;
+
+                // 1. 硬體最佳化向量區塊批次呼叫
+                for (; offset < vectorLimit; offset += vectorByteSize)
+                {
+                    vectorProcessor(new Span<byte>(row + offset, vectorByteSize));
+                }
+
+                // 2. 邊界未對齊像素處理
+                if (remainderProcessor != null)
+                {
+                    for (int x = offset / 4; x < width; x++)
+                    {
+                        byte* p = row + x * 4;
+                        remainderProcessor(ref p[0], ref p[1], ref p[2], ref p[3]);
+                    }
+                }
+            }
+
+            if (mode is PixelProcessingMode.Parallel or PixelProcessingMode.ParallelVectorized)
+            {
+                Parallel.For(0, height, ProcessRow);
+            }
+            else
+            {
+                for (int y = 0; y < height; y++)
+                {
+                    ProcessRow(y);
+                }
+            }
+        }
+    }
+
+    /// <summary>
     /// 直接對記憶體緩衝區進行像素遍歷處理，支援串列、串列向量化、平行與平行向量化四種執行模式。
     /// </summary>
     /// <param name="bitmap">目標 WriteableBitmap</param>
@@ -233,85 +378,50 @@ public static class BitmapExtensions
         int width = fb.Size.Width;
         int height = fb.Size.Height;
         int rowBytes = fb.RowBytes;
+        int batchSize = SimdHardware.PreferredPixelBatchCount;
 
         unsafe
         {
             byte* scan0 = (byte*)fb.Address;
 
+            void ProcessRow(int y, bool vectorized)
+            {
+                byte* row = scan0 + y * rowBytes;
+                int x = 0;
+
+                if (vectorized && width >= batchSize)
+                {
+                    int unrollLimit = width - (width % batchSize);
+                    for (; x < unrollLimit; x += batchSize)
+                    {
+                        for (int i = 0; i < batchSize; i++)
+                        {
+                            byte* p = row + (x + i) * 4;
+                            processor(ref p[0], ref p[1], ref p[2], ref p[3]);
+                        }
+                    }
+                }
+
+                for (; x < width; x++)
+                {
+                    byte* p = row + x * 4;
+                    processor(ref p[0], ref p[1], ref p[2], ref p[3]);
+                }
+            }
+
             switch (mode)
             {
                 case PixelProcessingMode.Sequential:
-                    for (int y = 0; y < height; y++)
-                    {
-                        byte* row = scan0 + y * rowBytes;
-                        for (int x = 0; x < width; x++)
-                        {
-                            byte* p = row + x * 4;
-                            processor(ref p[0], ref p[1], ref p[2], ref p[3]);
-                        }
-                    }
+                    for (int y = 0; y < height; y++) ProcessRow(y, vectorized: false);
                     break;
-
                 case PixelProcessingMode.SequentialVectorized:
-                    for (int y = 0; y < height; y++)
-                    {
-                        byte* row = scan0 + y * rowBytes;
-                        int x = 0;
-                        int unrollLimit = width - (width % 4);
-                        for (; x < unrollLimit; x += 4)
-                        {
-                            byte* p0 = row + (x + 0) * 4;
-                            byte* p1 = row + (x + 1) * 4;
-                            byte* p2 = row + (x + 2) * 4;
-                            byte* p3 = row + (x + 3) * 4;
-                            processor(ref p0[0], ref p0[1], ref p0[2], ref p0[3]);
-                            processor(ref p1[0], ref p1[1], ref p1[2], ref p1[3]);
-                            processor(ref p2[0], ref p2[1], ref p2[2], ref p2[3]);
-                            processor(ref p3[0], ref p3[1], ref p3[2], ref p3[3]);
-                        }
-                        for (; x < width; x++)
-                        {
-                            byte* p = row + x * 4;
-                            processor(ref p[0], ref p[1], ref p[2], ref p[3]);
-                        }
-                    }
+                    for (int y = 0; y < height; y++) ProcessRow(y, vectorized: true);
                     break;
-
                 case PixelProcessingMode.Parallel:
-                    Parallel.For(0, height, y =>
-                    {
-                        byte* row = scan0 + y * rowBytes;
-                        for (int x = 0; x < width; x++)
-                        {
-                            byte* p = row + x * 4;
-                            processor(ref p[0], ref p[1], ref p[2], ref p[3]);
-                        }
-                    });
+                    Parallel.For(0, height, y => ProcessRow(y, vectorized: false));
                     break;
-
                 case PixelProcessingMode.ParallelVectorized:
-                    Parallel.For(0, height, y =>
-                    {
-                        byte* row = scan0 + y * rowBytes;
-                        int x = 0;
-                        int unrollLimit = width - (width % 4);
-                        for (; x < unrollLimit; x += 4)
-                        {
-                            byte* p0 = row + (x + 0) * 4;
-                            byte* p1 = row + (x + 1) * 4;
-                            byte* p2 = row + (x + 2) * 4;
-                            byte* p3 = row + (x + 3) * 4;
-                            processor(ref p0[0], ref p0[1], ref p0[2], ref p0[3]);
-                            processor(ref p1[0], ref p1[1], ref p1[2], ref p1[3]);
-                            processor(ref p2[0], ref p2[1], ref p2[2], ref p2[3]);
-                            processor(ref p3[0], ref p3[1], ref p3[2], ref p3[3]);
-                        }
-                        for (; x < width; x++)
-                        {
-                            byte* p = row + x * 4;
-                            processor(ref p[0], ref p[1], ref p[2], ref p[3]);
-                        }
-                    });
+                    Parallel.For(0, height, y => ProcessRow(y, vectorized: true));
                     break;
             }
         }
@@ -332,85 +442,50 @@ public static class BitmapExtensions
         int width = fb.Size.Width;
         int height = fb.Size.Height;
         int rowBytes = fb.RowBytes;
+        int batchSize = SimdHardware.PreferredPixelBatchCount;
 
         unsafe
         {
             byte* scan0 = (byte*)fb.Address;
 
+            void ProcessRow(int y, bool vectorized)
+            {
+                byte* row = scan0 + y * rowBytes;
+                int x = 0;
+
+                if (vectorized && width >= batchSize)
+                {
+                    int unrollLimit = width - (width % batchSize);
+                    for (; x < unrollLimit; x += batchSize)
+                    {
+                        for (int i = 0; i < batchSize; i++)
+                        {
+                            byte* p = row + (x + i) * 4;
+                            processor(x + i, y, ref p[0], ref p[1], ref p[2], ref p[3]);
+                        }
+                    }
+                }
+
+                for (; x < width; x++)
+                {
+                    byte* p = row + x * 4;
+                    processor(x, y, ref p[0], ref p[1], ref p[2], ref p[3]);
+                }
+            }
+
             switch (mode)
             {
                 case PixelProcessingMode.Sequential:
-                    for (int y = 0; y < height; y++)
-                    {
-                        byte* row = scan0 + y * rowBytes;
-                        for (int x = 0; x < width; x++)
-                        {
-                            byte* p = row + x * 4;
-                            processor(x, y, ref p[0], ref p[1], ref p[2], ref p[3]);
-                        }
-                    }
+                    for (int y = 0; y < height; y++) ProcessRow(y, vectorized: false);
                     break;
-
                 case PixelProcessingMode.SequentialVectorized:
-                    for (int y = 0; y < height; y++)
-                    {
-                        byte* row = scan0 + y * rowBytes;
-                        int x = 0;
-                        int unrollLimit = width - (width % 4);
-                        for (; x < unrollLimit; x += 4)
-                        {
-                            byte* p0 = row + (x + 0) * 4;
-                            byte* p1 = row + (x + 1) * 4;
-                            byte* p2 = row + (x + 2) * 4;
-                            byte* p3 = row + (x + 3) * 4;
-                            processor(x + 0, y, ref p0[0], ref p0[1], ref p0[2], ref p0[3]);
-                            processor(x + 1, y, ref p1[0], ref p1[1], ref p1[2], ref p1[3]);
-                            processor(x + 2, y, ref p2[0], ref p2[1], ref p2[2], ref p2[3]);
-                            processor(x + 3, y, ref p3[0], ref p3[1], ref p3[2], ref p3[3]);
-                        }
-                        for (; x < width; x++)
-                        {
-                            byte* p = row + x * 4;
-                            processor(x, y, ref p[0], ref p[1], ref p[2], ref p[3]);
-                        }
-                    }
+                    for (int y = 0; y < height; y++) ProcessRow(y, vectorized: true);
                     break;
-
                 case PixelProcessingMode.Parallel:
-                    Parallel.For(0, height, y =>
-                    {
-                        byte* row = scan0 + y * rowBytes;
-                        for (int x = 0; x < width; x++)
-                        {
-                            byte* p = row + x * 4;
-                            processor(x, y, ref p[0], ref p[1], ref p[2], ref p[3]);
-                        }
-                    });
+                    Parallel.For(0, height, y => ProcessRow(y, vectorized: false));
                     break;
-
                 case PixelProcessingMode.ParallelVectorized:
-                    Parallel.For(0, height, y =>
-                    {
-                        byte* row = scan0 + y * rowBytes;
-                        int x = 0;
-                        int unrollLimit = width - (width % 4);
-                        for (; x < unrollLimit; x += 4)
-                        {
-                            byte* p0 = row + (x + 0) * 4;
-                            byte* p1 = row + (x + 1) * 4;
-                            byte* p2 = row + (x + 2) * 4;
-                            byte* p3 = row + (x + 3) * 4;
-                            processor(x + 0, y, ref p0[0], ref p0[1], ref p0[2], ref p0[3]);
-                            processor(x + 1, y, ref p1[0], ref p1[1], ref p1[2], ref p1[3]);
-                            processor(x + 2, y, ref p2[0], ref p2[1], ref p2[2], ref p2[3]);
-                            processor(x + 3, y, ref p3[0], ref p3[1], ref p3[2], ref p3[3]);
-                        }
-                        for (; x < width; x++)
-                        {
-                            byte* p = row + x * 4;
-                            processor(x, y, ref p[0], ref p[1], ref p[2], ref p[3]);
-                        }
-                    });
+                    Parallel.For(0, height, y => ProcessRow(y, vectorized: true));
                     break;
             }
         }
@@ -500,23 +575,45 @@ public static class BitmapExtensions
     private static unsafe void ApplyGrayscaleRowSimd(byte* row, int width)
     {
         int x = 0;
-        int unrollLimit = width - (width % 4);
-        for (; x < unrollLimit; x += 4)
+
+        if (SimdHardware.HasVector512 && width >= 16)
         {
-            byte* p0 = row + (x + 0) * 4;
-            byte* p1 = row + (x + 1) * 4;
-            byte* p2 = row + (x + 2) * 4;
-            byte* p3 = row + (x + 3) * 4;
-
-            byte g0 = (byte)((299 * p0[2] + 587 * p0[1] + 114 * p0[0] + 500) / 1000);
-            byte g1 = (byte)((299 * p1[2] + 587 * p1[1] + 114 * p1[0] + 500) / 1000);
-            byte g2 = (byte)((299 * p2[2] + 587 * p2[1] + 114 * p2[0] + 500) / 1000);
-            byte g3 = (byte)((299 * p3[2] + 587 * p3[1] + 114 * p3[0] + 500) / 1000);
-
-            p0[0] = g0; p0[1] = g0; p0[2] = g0;
-            p1[0] = g1; p1[1] = g1; p1[2] = g1;
-            p2[0] = g2; p2[1] = g2; p2[2] = g2;
-            p3[0] = g3; p3[1] = g3; p3[2] = g3;
+            int unrollLimit = width - (width % 16);
+            for (; x < unrollLimit; x += 16)
+            {
+                for (int i = 0; i < 16; i++)
+                {
+                    byte* p = row + (x + i) * 4;
+                    byte gray = (byte)((299 * p[2] + 587 * p[1] + 114 * p[0] + 500) / 1000);
+                    p[0] = gray; p[1] = gray; p[2] = gray;
+                }
+            }
+        }
+        else if (SimdHardware.HasVector256 && width >= 8)
+        {
+            int unrollLimit = width - (width % 8);
+            for (; x < unrollLimit; x += 8)
+            {
+                for (int i = 0; i < 8; i++)
+                {
+                    byte* p = row + (x + i) * 4;
+                    byte gray = (byte)((299 * p[2] + 587 * p[1] + 114 * p[0] + 500) / 1000);
+                    p[0] = gray; p[1] = gray; p[2] = gray;
+                }
+            }
+        }
+        else if (SimdHardware.HasVector128 && width >= 4)
+        {
+            int unrollLimit = width - (width % 4);
+            for (; x < unrollLimit; x += 4)
+            {
+                for (int i = 0; i < 4; i++)
+                {
+                    byte* p = row + (x + i) * 4;
+                    byte gray = (byte)((299 * p[2] + 587 * p[1] + 114 * p[0] + 500) / 1000);
+                    p[0] = gray; p[1] = gray; p[2] = gray;
+                }
+            }
         }
 
         for (; x < width; x++)
@@ -1030,6 +1127,20 @@ public static class BitmapHelper
     public static Color GetPixel(WriteableBitmap bitmap, int x, int y) => bitmap.GetPixel(x, y);
 
     public static Bitmap? LoadBitmap(string? pathOrUri) => BitmapExtensions.LoadBitmap(pathOrUri);
+
+    public static void ProcessPixels(
+        WriteableBitmap bitmap,
+        VectorTransform vectorTransform,
+        PixelProcessor? remainderProcessor = null,
+        PixelProcessingMode mode = PixelProcessingMode.ParallelVectorized) =>
+        bitmap.ProcessPixels(vectorTransform, remainderProcessor, mode);
+
+    public static void ProcessPixels(
+        WriteableBitmap bitmap,
+        VectorPixelProcessor vectorProcessor,
+        PixelProcessor? remainderProcessor = null,
+        PixelProcessingMode mode = PixelProcessingMode.ParallelVectorized) =>
+        bitmap.ProcessPixels(vectorProcessor, remainderProcessor, mode);
 
     public static void ProcessPixels(
         WriteableBitmap bitmap,

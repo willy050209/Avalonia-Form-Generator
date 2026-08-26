@@ -375,4 +375,80 @@ public class BitmapHelperTests
         center.R.Should().BeGreaterThan(0);
         neighbor.R.Should().BeGreaterThan(0);
     }
+
+    [Theory]
+    [InlineData(PixelProcessingMode.Sequential)]
+    [InlineData(PixelProcessingMode.SequentialVectorized)]
+    [InlineData(PixelProcessingMode.Parallel)]
+    [InlineData(PixelProcessingMode.ParallelVectorized)]
+    public void ProcessPixels_WithVectorTransform_ShouldTransformViaSimdRegisters(PixelProcessingMode mode)
+    {
+        // Arrange: 17x11 non-aligned dimensions to test both SIMD batching and remainder handling
+        var wb = BitmapHelper.CreateInitializedBitmap(17, 11, Color.FromArgb(255, 100, 150, 200));
+
+        // Act: Vector bitwise NOT or 255 - x
+        var all255 = new System.Numerics.Vector<byte>(255);
+        wb.ProcessPixels(
+            vectorTransform: vec => all255 - vec,
+            remainderProcessor: (ref byte b, ref byte g, ref byte r, ref byte a) =>
+            {
+                b = (byte)(255 - b);
+                g = (byte)(255 - g);
+                r = (byte)(255 - r);
+                a = (byte)(255 - a);
+            },
+            mode: mode);
+
+        // Assert: First pixel and remainder edge pixel should both be inverted
+        var p0 = wb.GetPixel(0, 0);
+        p0.R.Should().Be(155); // 255 - 100
+        p0.G.Should().Be(105); // 255 - 150
+        p0.B.Should().Be(55);  // 255 - 200
+        p0.A.Should().Be(0);   // 255 - 255
+
+        var pRemainder = wb.GetPixel(16, 10);
+        pRemainder.R.Should().Be(155);
+        pRemainder.G.Should().Be(105);
+        pRemainder.B.Should().Be(55);
+        pRemainder.A.Should().Be(0);
+    }
+
+    [Theory]
+    [InlineData(PixelProcessingMode.Sequential)]
+    [InlineData(PixelProcessingMode.SequentialVectorized)]
+    [InlineData(PixelProcessingMode.Parallel)]
+    [InlineData(PixelProcessingMode.ParallelVectorized)]
+    public void ProcessPixels_WithVectorPixelProcessor_ShouldProcessSpanBatches(PixelProcessingMode mode)
+    {
+        // Arrange: 23x13 non-aligned dimensions
+        var wb = BitmapHelper.CreateInitializedBitmap(23, 13, Color.FromArgb(255, 50, 80, 120));
+
+        // Act: Vector Span Processor sets all bytes in span to 200
+        wb.ProcessPixels(
+            vectorProcessor: span =>
+            {
+                span.Fill(200);
+            },
+            remainderProcessor: (ref byte b, ref byte g, ref byte r, ref byte a) =>
+            {
+                b = 200;
+                g = 200;
+                r = 200;
+                a = 200;
+            },
+            mode: mode);
+
+        // Assert
+        var p0 = wb.GetPixel(0, 0);
+        p0.R.Should().Be(200);
+        p0.G.Should().Be(200);
+        p0.B.Should().Be(200);
+        p0.A.Should().Be(200);
+
+        var pLast = wb.GetPixel(22, 12);
+        pLast.R.Should().Be(200);
+        pLast.G.Should().Be(200);
+        pLast.B.Should().Be(200);
+        pLast.A.Should().Be(200);
+    }
 }

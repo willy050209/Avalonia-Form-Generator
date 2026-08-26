@@ -390,7 +390,35 @@ else if (SimdHardware.HasVector128) { /* SSE2 / ARM Neon 16-byte batch */ }
 ```
 
 ### 7.3 像素遍歷擴充方法 (`ProcessPixels`)
-提供直接記憶體像素回呼（透過 `ref byte` 傳遞 BGRA 4 個色板，零開銷直接修改）：
+
+#### 1. 泛型硬體 SIMD 向量運算 (`VectorTransform`)
+直接透過 `System.Numerics.Vector<byte>` 暫存器進行批次運算，由 JIT 自動依 CPU 硬體架構對齊向量寬度（128-bit / 256-bit）：
+```csharp
+// 向量反相變換 (Invert Channels via SIMD)
+var all255 = new Vector<byte>(255);
+writeableBitmap.ProcessPixels(
+    vectorTransform: vec => all255 - vec,
+    remainderProcessor: (ref byte b, ref byte g, ref byte r, ref byte a) =>
+    {
+        b = (byte)(255 - b); g = (byte)(255 - g); r = (byte)(255 - r); a = (byte)(255 - a);
+    },
+    mode: PixelProcessingMode.ParallelVectorized);
+```
+
+#### 2. 連續記憶體區塊向量批次處理 (`VectorPixelProcessor`)
+自動透過 `SimdHardware.PreferredVectorByteCount` 偵測最佳步長（64B / 32B / 16B），傳遞 `Span<byte>` 進行極速區塊讀寫：
+```csharp
+writeableBitmap.ProcessPixels(
+    vectorProcessor: span =>
+    {
+        // span 長度精確對齊硬體向量位元組寬度 (e.g. 32 bytes on AVX2)
+        span.Fill(255);
+    },
+    mode: PixelProcessingMode.ParallelVectorized);
+```
+
+#### 3. 純像素與帶座標直接記憶體回呼 (`PixelProcessor` / `PixelLocationProcessor`)
+自動依硬體向量寬度展開迴圈（Unrolled Loops）：
 ```csharp
 // 1. 顏色色板變換 (Invert RGB)
 writeableBitmap.ProcessPixels((ref byte b, ref byte g, ref byte r, ref byte a) =>
@@ -411,7 +439,7 @@ writeableBitmap.ProcessPixels((int x, int y, ref byte b, ref byte g, ref byte r,
 ### 7.4 常用影像處理函數 (Image Processing Filters)
 1. **灰階化 (`ToGrayscale` / `ApplyGrayscale`)**：
    - 採用 ITU-R BT.601 亮度加權演算法：`Gray = (299*R + 587*G + 114*B + 500) / 1000`。
-   - 原地修改與新實例建立雙重 API：
+   - 原地修改與新實例建立雙重 API，支援 `ParallelVectorized` SIMD 批次運算：
      ```csharp
      var grayBmp = bitmap.ToGrayscale(PixelProcessingMode.ParallelVectorized);
      writeableBitmap.ApplyGrayscale(PixelProcessingMode.ParallelVectorized);
@@ -429,6 +457,7 @@ writeableBitmap.ProcessPixels((int x, int y, ref byte b, ref byte g, ref byte r,
      writeableBitmap.ApplyGaussianBlur(radius: 3);
      writeableBitmap.ApplyBoxBlur(radius: 2);
      ```
+
 
 
 
