@@ -195,4 +195,184 @@ public class BitmapHelperTests
             }
         }
     }
+
+    [Fact]
+    public void SimdHardware_Properties_ShouldReturnValidHardwareCapabilities()
+    {
+        SimdHardware.PreferredVectorByteCount.Should().BeGreaterThan(0);
+        (SimdHardware.PreferredVectorByteCount is 16 or 32 or 64).Should().BeTrue();
+    }
+
+    [Theory]
+    [InlineData(PixelProcessingMode.Sequential)]
+    [InlineData(PixelProcessingMode.SequentialVectorized)]
+    [InlineData(PixelProcessingMode.Parallel)]
+    [InlineData(PixelProcessingMode.ParallelVectorized)]
+    public void ProcessPixels_ShouldProcessAllPixelsCorrectly_AcrossAllModes(PixelProcessingMode mode)
+    {
+        // Arrange
+        var wb = BitmapHelper.CreateInitializedBitmap(23, 17, Color.FromArgb(255, 50, 100, 150));
+
+        // Act: Invert RGB channels
+        wb.ProcessPixels((ref byte b, ref byte g, ref byte r, ref byte a) =>
+        {
+            b = (byte)(255 - b);
+            g = (byte)(255 - g);
+            r = (byte)(255 - r);
+        }, mode);
+
+        // Assert
+        for (int y = 0; y < 17; y++)
+        {
+            for (int x = 0; x < 23; x++)
+            {
+                var p = wb.GetPixel(x, y);
+                p.R.Should().Be((byte)(255 - 50));
+                p.G.Should().Be((byte)(255 - 100));
+                p.B.Should().Be((byte)(255 - 150));
+                p.A.Should().Be(255);
+            }
+        }
+    }
+
+    [Theory]
+    [InlineData(PixelProcessingMode.Sequential)]
+    [InlineData(PixelProcessingMode.Parallel)]
+    [InlineData(PixelProcessingMode.SequentialVectorized)]
+    [InlineData(PixelProcessingMode.ParallelVectorized)]
+    public void ProcessPixels_WithCoordinates_ShouldApplyLocationBasedTransformation(PixelProcessingMode mode)
+    {
+        // Arrange
+        var wb = BitmapHelper.CreateInitializedBitmap(16, 16, Colors.Black);
+
+        // Act: Set Red = x * 10, Blue = y * 10
+        wb.ProcessPixels((int x, int y, ref byte b, ref byte g, ref byte r, ref byte a) =>
+        {
+            r = (byte)(x * 10);
+            b = (byte)(y * 10);
+            a = 255;
+        }, mode);
+
+        // Assert
+        var p0 = wb.GetPixel(0, 0);
+        p0.R.Should().Be(0);
+        p0.B.Should().Be(0);
+
+        var pMid = wb.GetPixel(5, 7);
+        pMid.R.Should().Be(50);
+        pMid.B.Should().Be(70);
+    }
+
+    [Theory]
+    [InlineData(PixelProcessingMode.Sequential)]
+    [InlineData(PixelProcessingMode.SequentialVectorized)]
+    [InlineData(PixelProcessingMode.Parallel)]
+    [InlineData(PixelProcessingMode.ParallelVectorized)]
+    public void ApplyGrayscale_ShouldConvertToMonochrome_AcrossAllModes(PixelProcessingMode mode)
+    {
+        // Arrange
+        var wb = BitmapHelper.CreateInitializedBitmap(19, 13, Color.FromArgb(255, 200, 100, 50));
+
+        // Act
+        BitmapHelper.ApplyGrayscale(wb, mode);
+
+        // Assert: In ITU-R BT.601, Gray = (299*200 + 587*100 + 114*50 + 500) / 1000 = (59800 + 58700 + 5700 + 500) / 1000 = 124700 / 1000 = 124
+        var p = wb.GetPixel(5, 5);
+        p.R.Should().Be(p.G);
+        p.G.Should().Be(p.B);
+        p.R.Should().Be(124);
+        p.A.Should().Be(255);
+    }
+
+    [Fact]
+    public void ToGrayscale_ShouldReturnNewGrayscaleWriteableBitmap()
+    {
+        // Arrange
+        var original = BitmapHelper.CreateInitializedBitmap(10, 10, Colors.Red);
+
+        // Act
+        var gray = BitmapHelper.ToGrayscale(original);
+
+        // Assert
+        gray.Should().NotBeNull();
+        gray.PixelSize.Width.Should().Be(10);
+        var p = gray.GetPixel(0, 0);
+        p.R.Should().Be(p.G);
+        p.G.Should().Be(p.B);
+        p.R.Should().BeGreaterThan(0);
+    }
+
+    [Fact]
+    public void DetectEdges_ShouldHighlightIntensityTransitions()
+    {
+        // Arrange: Left half Black, Right half White
+        var wb = BitmapHelper.CreateInitializedBitmap(20, 20, Colors.Black);
+        for (int y = 0; y < 20; y++)
+        {
+            for (int x = 10; x < 20; x++)
+            {
+                wb.SetPixel(x, y, Colors.White);
+            }
+        }
+
+        // Act
+        var edges = BitmapHelper.DetectEdges(wb, threshold: 50);
+
+        // Assert: The boundary between x=9 and x=10 should have strong edge response
+        var edgePixel = edges.GetPixel(9, 10);
+        var edgePixel2 = edges.GetPixel(10, 10);
+        (edgePixel.R > 0 || edgePixel2.R > 0).Should().BeTrue();
+
+        // Far away from edge (e.g. x=2, y=10) should be 0 (black)
+        var flatPixel = edges.GetPixel(2, 10);
+        flatPixel.R.Should().Be(0);
+    }
+
+    [Fact]
+    public void ApplySobel_InPlace_ShouldModifyWriteableBitmap()
+    {
+        // Arrange
+        var wb = BitmapHelper.CreateInitializedBitmap(15, 15, Colors.White);
+        wb.SetPixel(7, 7, Colors.Black);
+
+        // Act
+        BitmapHelper.ApplySobel(wb, threshold: 0);
+
+        // Assert
+        var centerNeighbor = wb.GetPixel(6, 7);
+        centerNeighbor.R.Should().BeGreaterThan(0);
+    }
+
+    [Fact]
+    public void ApplyGaussianBlur_ShouldSmoothPixelTransitions()
+    {
+        // Arrange: Single bright white pixel on black canvas
+        var wb = BitmapHelper.CreateInitializedBitmap(15, 15, Colors.Black);
+        wb.SetPixel(7, 7, Colors.White);
+
+        // Act
+        BitmapHelper.ApplyGaussianBlur(wb, radius: 2);
+
+        // Assert: Neighbors should now have non-zero diffused intensity
+        var neighbor = wb.GetPixel(8, 7);
+        neighbor.R.Should().BeGreaterThan(0);
+        neighbor.R.Should().BeLessThan(255);
+    }
+
+    [Fact]
+    public void ApplyBoxBlur_ShouldAverageNeighboringPixels()
+    {
+        // Arrange
+        var wb = BitmapHelper.CreateInitializedBitmap(11, 11, Colors.Black);
+        wb.SetPixel(5, 5, Colors.White);
+
+        // Act
+        BitmapHelper.ApplyBoxBlur(wb, radius: 1);
+
+        // Assert
+        var center = wb.GetPixel(5, 5);
+        var neighbor = wb.GetPixel(6, 5);
+        center.R.Should().BeGreaterThan(0);
+        neighbor.R.Should().BeGreaterThan(0);
+    }
 }

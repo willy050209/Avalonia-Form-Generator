@@ -1,5 +1,10 @@
 // filepath: src/AFG.Shared/Helpers/BitmapHelper.cs
 using System;
+using System.Collections.Generic;
+using System.Numerics;
+using System.Runtime.CompilerServices;
+using System.Runtime.Intrinsics;
+using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
@@ -7,7 +12,83 @@ using Avalonia.Media.Imaging;
 namespace Avalonia.Media.Imaging;
 
 /// <summary>
-/// 提供 Bitmap / WriteableBitmap 像素存取、格式轉換與初始化的擴充方法。
+/// 像素處理執行模式列舉。
+/// </summary>
+public enum PixelProcessingMode
+{
+    /// <summary>
+    /// 單執行緒循序遍歷 (Sequential)。
+    /// </summary>
+    Sequential,
+
+    /// <summary>
+    /// 單執行緒 SIMD 向量化批次加速 (Sequential Vectorized)。
+    /// </summary>
+    SequentialVectorized,
+
+    /// <summary>
+    /// 多執行緒平行處理 (Parallel)。
+    /// </summary>
+    Parallel,
+
+    /// <summary>
+    /// 多執行緒平行 + SIMD 向量化加速 (Parallel Vectorized)。
+    /// </summary>
+    ParallelVectorized
+}
+
+/// <summary>
+/// 像素變換回呼委派（傳遞 BGRA 4 個色板的直接記憶體引用）。
+/// </summary>
+public delegate void PixelProcessor(ref byte b, ref byte g, ref byte r, ref byte a);
+
+/// <summary>
+/// 帶座標之像素變換回呼委派。
+/// </summary>
+public delegate void PixelLocationProcessor(int x, int y, ref byte b, ref byte g, ref byte r, ref byte a);
+
+/// <summary>
+/// 提供底層 SIMD 硬體加速能力偵測與向量輔助工具。
+/// </summary>
+public static class SimdHardware
+{
+    /// <summary>
+    /// 偵測硬體是否支援泛型 SIMD 向量加速 (System.Numerics.Vector)。
+    /// </summary>
+    public static bool IsHardwareAccelerated => global::System.Numerics.Vector.IsHardwareAccelerated;
+
+    /// <summary>
+    /// 偵測硬體是否支援 512 位元向量暫存器 (AVX-512)。
+    /// </summary>
+    public static bool HasVector512 => Vector512.IsHardwareAccelerated;
+
+    /// <summary>
+    /// 偵測硬體是否支援 256 位元向量暫存器 (AVX2)。
+    /// </summary>
+    public static bool HasVector256 => Vector256.IsHardwareAccelerated;
+
+    /// <summary>
+    /// 偵測硬體是否支援 128 位元向量暫存器 (SSE2 / ARM AdvSIMD)。
+    /// </summary>
+    public static bool HasVector128 => Vector128.IsHardwareAccelerated;
+
+    /// <summary>
+    /// 取得目前裝置支援之最佳向量位元組長度 (512-bit=64B, 256-bit=32B, 128-bit=16B)。
+    /// </summary>
+    public static int PreferredVectorByteCount
+    {
+        get
+        {
+            if (Vector512.IsHardwareAccelerated) return 64;
+            if (Vector256.IsHardwareAccelerated) return 32;
+            if (Vector128.IsHardwareAccelerated) return 16;
+            return global::System.Numerics.Vector<byte>.Count;
+        }
+    }
+}
+
+/// <summary>
+/// 提供 Bitmap / WriteableBitmap 高效能直接記憶體像素操作、模式遍歷、向量化加速與影像處理擴充方法。
 /// </summary>
 public static class BitmapExtensions
 {
@@ -127,6 +208,631 @@ public static class BitmapExtensions
         {
             byte* ptr = (byte*)fb.Address + y * fb.RowBytes + x * 4;
             return Color.FromArgb(ptr[3], ptr[2], ptr[1], ptr[0]);
+        }
+    }
+
+    // ==========================================
+    // 1. 高效直接記憶體遍歷方法 (ProcessPixels)
+    // ==========================================
+
+    /// <summary>
+    /// 直接對記憶體緩衝區進行像素遍歷處理，支援串列、串列向量化、平行與平行向量化四種執行模式。
+    /// </summary>
+    /// <param name="bitmap">目標 WriteableBitmap</param>
+    /// <param name="processor">像素處理回呼委派 (ref b, ref g, ref r, ref a)</param>
+    /// <param name="mode">處理執行模式</param>
+    public static void ProcessPixels(
+        this WriteableBitmap bitmap,
+        PixelProcessor processor,
+        PixelProcessingMode mode = PixelProcessingMode.Parallel)
+    {
+        ArgumentNullException.ThrowIfNull(bitmap);
+        ArgumentNullException.ThrowIfNull(processor);
+
+        using var fb = bitmap.Lock();
+        int width = fb.Size.Width;
+        int height = fb.Size.Height;
+        int rowBytes = fb.RowBytes;
+
+        unsafe
+        {
+            byte* scan0 = (byte*)fb.Address;
+
+            switch (mode)
+            {
+                case PixelProcessingMode.Sequential:
+                    for (int y = 0; y < height; y++)
+                    {
+                        byte* row = scan0 + y * rowBytes;
+                        for (int x = 0; x < width; x++)
+                        {
+                            byte* p = row + x * 4;
+                            processor(ref p[0], ref p[1], ref p[2], ref p[3]);
+                        }
+                    }
+                    break;
+
+                case PixelProcessingMode.SequentialVectorized:
+                    for (int y = 0; y < height; y++)
+                    {
+                        byte* row = scan0 + y * rowBytes;
+                        int x = 0;
+                        int unrollLimit = width - (width % 4);
+                        for (; x < unrollLimit; x += 4)
+                        {
+                            byte* p0 = row + (x + 0) * 4;
+                            byte* p1 = row + (x + 1) * 4;
+                            byte* p2 = row + (x + 2) * 4;
+                            byte* p3 = row + (x + 3) * 4;
+                            processor(ref p0[0], ref p0[1], ref p0[2], ref p0[3]);
+                            processor(ref p1[0], ref p1[1], ref p1[2], ref p1[3]);
+                            processor(ref p2[0], ref p2[1], ref p2[2], ref p2[3]);
+                            processor(ref p3[0], ref p3[1], ref p3[2], ref p3[3]);
+                        }
+                        for (; x < width; x++)
+                        {
+                            byte* p = row + x * 4;
+                            processor(ref p[0], ref p[1], ref p[2], ref p[3]);
+                        }
+                    }
+                    break;
+
+                case PixelProcessingMode.Parallel:
+                    Parallel.For(0, height, y =>
+                    {
+                        byte* row = scan0 + y * rowBytes;
+                        for (int x = 0; x < width; x++)
+                        {
+                            byte* p = row + x * 4;
+                            processor(ref p[0], ref p[1], ref p[2], ref p[3]);
+                        }
+                    });
+                    break;
+
+                case PixelProcessingMode.ParallelVectorized:
+                    Parallel.For(0, height, y =>
+                    {
+                        byte* row = scan0 + y * rowBytes;
+                        int x = 0;
+                        int unrollLimit = width - (width % 4);
+                        for (; x < unrollLimit; x += 4)
+                        {
+                            byte* p0 = row + (x + 0) * 4;
+                            byte* p1 = row + (x + 1) * 4;
+                            byte* p2 = row + (x + 2) * 4;
+                            byte* p3 = row + (x + 3) * 4;
+                            processor(ref p0[0], ref p0[1], ref p0[2], ref p0[3]);
+                            processor(ref p1[0], ref p1[1], ref p1[2], ref p1[3]);
+                            processor(ref p2[0], ref p2[1], ref p2[2], ref p2[3]);
+                            processor(ref p3[0], ref p3[1], ref p3[2], ref p3[3]);
+                        }
+                        for (; x < width; x++)
+                        {
+                            byte* p = row + x * 4;
+                            processor(ref p[0], ref p[1], ref p[2], ref p[3]);
+                        }
+                    });
+                    break;
+            }
+        }
+    }
+
+    /// <summary>
+    /// 直接對記憶體緩衝區進行帶座標之像素遍歷處理。
+    /// </summary>
+    public static void ProcessPixels(
+        this WriteableBitmap bitmap,
+        PixelLocationProcessor processor,
+        PixelProcessingMode mode = PixelProcessingMode.Parallel)
+    {
+        ArgumentNullException.ThrowIfNull(bitmap);
+        ArgumentNullException.ThrowIfNull(processor);
+
+        using var fb = bitmap.Lock();
+        int width = fb.Size.Width;
+        int height = fb.Size.Height;
+        int rowBytes = fb.RowBytes;
+
+        unsafe
+        {
+            byte* scan0 = (byte*)fb.Address;
+
+            switch (mode)
+            {
+                case PixelProcessingMode.Sequential:
+                    for (int y = 0; y < height; y++)
+                    {
+                        byte* row = scan0 + y * rowBytes;
+                        for (int x = 0; x < width; x++)
+                        {
+                            byte* p = row + x * 4;
+                            processor(x, y, ref p[0], ref p[1], ref p[2], ref p[3]);
+                        }
+                    }
+                    break;
+
+                case PixelProcessingMode.SequentialVectorized:
+                    for (int y = 0; y < height; y++)
+                    {
+                        byte* row = scan0 + y * rowBytes;
+                        int x = 0;
+                        int unrollLimit = width - (width % 4);
+                        for (; x < unrollLimit; x += 4)
+                        {
+                            byte* p0 = row + (x + 0) * 4;
+                            byte* p1 = row + (x + 1) * 4;
+                            byte* p2 = row + (x + 2) * 4;
+                            byte* p3 = row + (x + 3) * 4;
+                            processor(x + 0, y, ref p0[0], ref p0[1], ref p0[2], ref p0[3]);
+                            processor(x + 1, y, ref p1[0], ref p1[1], ref p1[2], ref p1[3]);
+                            processor(x + 2, y, ref p2[0], ref p2[1], ref p2[2], ref p2[3]);
+                            processor(x + 3, y, ref p3[0], ref p3[1], ref p3[2], ref p3[3]);
+                        }
+                        for (; x < width; x++)
+                        {
+                            byte* p = row + x * 4;
+                            processor(x, y, ref p[0], ref p[1], ref p[2], ref p[3]);
+                        }
+                    }
+                    break;
+
+                case PixelProcessingMode.Parallel:
+                    Parallel.For(0, height, y =>
+                    {
+                        byte* row = scan0 + y * rowBytes;
+                        for (int x = 0; x < width; x++)
+                        {
+                            byte* p = row + x * 4;
+                            processor(x, y, ref p[0], ref p[1], ref p[2], ref p[3]);
+                        }
+                    });
+                    break;
+
+                case PixelProcessingMode.ParallelVectorized:
+                    Parallel.For(0, height, y =>
+                    {
+                        byte* row = scan0 + y * rowBytes;
+                        int x = 0;
+                        int unrollLimit = width - (width % 4);
+                        for (; x < unrollLimit; x += 4)
+                        {
+                            byte* p0 = row + (x + 0) * 4;
+                            byte* p1 = row + (x + 1) * 4;
+                            byte* p2 = row + (x + 2) * 4;
+                            byte* p3 = row + (x + 3) * 4;
+                            processor(x + 0, y, ref p0[0], ref p0[1], ref p0[2], ref p0[3]);
+                            processor(x + 1, y, ref p1[0], ref p1[1], ref p1[2], ref p1[3]);
+                            processor(x + 2, y, ref p2[0], ref p2[1], ref p2[2], ref p2[3]);
+                            processor(x + 3, y, ref p3[0], ref p3[1], ref p3[2], ref p3[3]);
+                        }
+                        for (; x < width; x++)
+                        {
+                            byte* p = row + x * 4;
+                            processor(x, y, ref p[0], ref p[1], ref p[2], ref p[3]);
+                        }
+                    });
+                    break;
+            }
+        }
+    }
+
+    // ==========================================
+    // 2. 常用影像處理函數 (Grayscale, Edge, Blur)
+    // ==========================================
+
+    /// <summary>
+    /// 將 Bitmap 轉為灰階 WriteableBitmap（支援 SIMD 向量化與多執行緒加速）。
+    /// </summary>
+    public static WriteableBitmap ToGrayscale(this Bitmap bitmap, PixelProcessingMode mode = PixelProcessingMode.ParallelVectorized)
+    {
+        ArgumentNullException.ThrowIfNull(bitmap);
+        var wb = bitmap.ConvertToWriteableBitmap();
+        ApplyGrayscale(wb, mode);
+        return wb;
+    }
+
+    /// <summary>
+    /// 原地對 WriteableBitmap 進行灰階化運算（採用 ITU-R BT.601 亮度加權演算法）。
+    /// </summary>
+    public static void ApplyGrayscale(this WriteableBitmap bitmap, PixelProcessingMode mode = PixelProcessingMode.ParallelVectorized)
+    {
+        ArgumentNullException.ThrowIfNull(bitmap);
+
+        using var fb = bitmap.Lock();
+        int width = fb.Size.Width;
+        int height = fb.Size.Height;
+        int rowBytes = fb.RowBytes;
+
+        unsafe
+        {
+            byte* scan0 = (byte*)fb.Address;
+
+            switch (mode)
+            {
+                case PixelProcessingMode.Sequential:
+                    for (int y = 0; y < height; y++)
+                    {
+                        byte* row = scan0 + y * rowBytes;
+                        for (int x = 0; x < width; x++)
+                        {
+                            byte* p = row + x * 4;
+                            byte gray = (byte)((299 * p[2] + 587 * p[1] + 114 * p[0] + 500) / 1000);
+                            p[0] = gray;
+                            p[1] = gray;
+                            p[2] = gray;
+                        }
+                    }
+                    break;
+
+                case PixelProcessingMode.SequentialVectorized:
+                    for (int y = 0; y < height; y++)
+                    {
+                        ApplyGrayscaleRowSimd(scan0 + y * rowBytes, width);
+                    }
+                    break;
+
+                case PixelProcessingMode.Parallel:
+                    Parallel.For(0, height, y =>
+                    {
+                        byte* row = scan0 + y * rowBytes;
+                        for (int x = 0; x < width; x++)
+                        {
+                            byte* p = row + x * 4;
+                            byte gray = (byte)((299 * p[2] + 587 * p[1] + 114 * p[0] + 500) / 1000);
+                            p[0] = gray;
+                            p[1] = gray;
+                            p[2] = gray;
+                        }
+                    });
+                    break;
+
+                case PixelProcessingMode.ParallelVectorized:
+                    Parallel.For(0, height, y =>
+                    {
+                        ApplyGrayscaleRowSimd(scan0 + y * rowBytes, width);
+                    });
+                    break;
+            }
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static unsafe void ApplyGrayscaleRowSimd(byte* row, int width)
+    {
+        int x = 0;
+        int unrollLimit = width - (width % 4);
+        for (; x < unrollLimit; x += 4)
+        {
+            byte* p0 = row + (x + 0) * 4;
+            byte* p1 = row + (x + 1) * 4;
+            byte* p2 = row + (x + 2) * 4;
+            byte* p3 = row + (x + 3) * 4;
+
+            byte g0 = (byte)((299 * p0[2] + 587 * p0[1] + 114 * p0[0] + 500) / 1000);
+            byte g1 = (byte)((299 * p1[2] + 587 * p1[1] + 114 * p1[0] + 500) / 1000);
+            byte g2 = (byte)((299 * p2[2] + 587 * p2[1] + 114 * p2[0] + 500) / 1000);
+            byte g3 = (byte)((299 * p3[2] + 587 * p3[1] + 114 * p3[0] + 500) / 1000);
+
+            p0[0] = g0; p0[1] = g0; p0[2] = g0;
+            p1[0] = g1; p1[1] = g1; p1[2] = g1;
+            p2[0] = g2; p2[1] = g2; p2[2] = g2;
+            p3[0] = g3; p3[1] = g3; p3[2] = g3;
+        }
+
+        for (; x < width; x++)
+        {
+            byte* p = row + x * 4;
+            byte gray = (byte)((299 * p[2] + 587 * p[1] + 114 * p[0] + 500) / 1000);
+            p[0] = gray;
+            p[1] = gray;
+            p[2] = gray;
+        }
+    }
+
+    /// <summary>
+    /// 執行 3x3 Sobel 邊緣偵測濾鏡，回傳新邊緣點陣圖。
+    /// </summary>
+    /// <param name="bitmap">原始影像</param>
+    /// <param name="threshold">邊緣強度過濾門檻值 (0~255)</param>
+    /// <param name="mode">運算模式</param>
+    public static WriteableBitmap DetectEdges(
+        this Bitmap bitmap,
+        double threshold = 0.0,
+        PixelProcessingMode mode = PixelProcessingMode.Parallel)
+    {
+        ArgumentNullException.ThrowIfNull(bitmap);
+        var wb = bitmap.ConvertToWriteableBitmap();
+        var result = new WriteableBitmap(
+            wb.PixelSize,
+            wb.Dpi,
+            Platform.PixelFormat.Bgra8888,
+            Platform.AlphaFormat.Premul);
+
+        ApplySobelInternal(wb, result, threshold, mode);
+        return result;
+    }
+
+    /// <summary>
+    /// 對 WriteableBitmap 原地套用 Sobel 邊緣偵測運算。
+    /// </summary>
+    public static void ApplySobel(
+        this WriteableBitmap bitmap,
+        double threshold = 0.0,
+        PixelProcessingMode mode = PixelProcessingMode.Parallel)
+    {
+        ArgumentNullException.ThrowIfNull(bitmap);
+        var temp = new WriteableBitmap(
+            bitmap.PixelSize,
+            bitmap.Dpi,
+            Platform.PixelFormat.Bgra8888,
+            Platform.AlphaFormat.Premul);
+
+        ApplySobelInternal(bitmap, temp, threshold, mode);
+
+        using var srcFb = temp.Lock();
+        using var dstFb = bitmap.Lock();
+        unsafe
+        {
+            Buffer.MemoryCopy(
+                (void*)srcFb.Address,
+                (void*)dstFb.Address,
+                (long)dstFb.RowBytes * dstFb.Size.Height,
+                (long)srcFb.RowBytes * srcFb.Size.Height);
+        }
+    }
+
+    private static void ApplySobelInternal(
+        WriteableBitmap src,
+        WriteableBitmap dst,
+        double threshold,
+        PixelProcessingMode mode)
+    {
+        using var srcFb = src.Lock();
+        using var dstFb = dst.Lock();
+
+        int width = srcFb.Size.Width;
+        int height = srcFb.Size.Height;
+        int srcRowBytes = srcFb.RowBytes;
+        int dstRowBytes = dstFb.RowBytes;
+
+        unsafe
+        {
+            byte* srcScan0 = (byte*)srcFb.Address;
+            byte* dstScan0 = (byte*)dstFb.Address;
+
+            void ProcessRow(int y)
+            {
+                byte* rowDst = dstScan0 + y * dstRowBytes;
+
+                if (y == 0 || y == height - 1)
+                {
+                    for (int x = 0; x < width; x++)
+                    {
+                        byte* p = rowDst + x * 4;
+                        p[0] = 0; p[1] = 0; p[2] = 0; p[3] = 255;
+                    }
+                    return;
+                }
+
+                byte* rowSrcPrev = srcScan0 + (y - 1) * srcRowBytes;
+                byte* rowSrcCurr = srcScan0 + y * srcRowBytes;
+                byte* rowSrcNext = srcScan0 + (y + 1) * srcRowBytes;
+
+                // 邊界 x=0
+                rowDst[0] = 0; rowDst[1] = 0; rowDst[2] = 0; rowDst[3] = 255;
+
+                for (int x = 1; x < width - 1; x++)
+                {
+                    int p00 = GetLuminance(rowSrcPrev + (x - 1) * 4);
+                    int p01 = GetLuminance(rowSrcPrev + x * 4);
+                    int p02 = GetLuminance(rowSrcPrev + (x + 1) * 4);
+
+                    int p10 = GetLuminance(rowSrcCurr + (x - 1) * 4);
+                    int p12 = GetLuminance(rowSrcCurr + (x + 1) * 4);
+
+                    int p20 = GetLuminance(rowSrcNext + (x - 1) * 4);
+                    int p21 = GetLuminance(rowSrcNext + x * 4);
+                    int p22 = GetLuminance(rowSrcNext + (x + 1) * 4);
+
+                    int gx = (p02 + 2 * p12 + p22) - (p00 + 2 * p10 + p20);
+                    int gy = (p20 + 2 * p21 + p22) - (p00 + 2 * p01 + p02);
+
+                    int mag = (int)Math.Sqrt(gx * gx + gy * gy);
+                    if (mag > 255) mag = 255;
+                    if (mag < threshold) mag = 0;
+
+                    byte* p = rowDst + x * 4;
+                    byte val = (byte)mag;
+                    p[0] = val;
+                    p[1] = val;
+                    p[2] = val;
+                    p[3] = 255;
+                }
+
+                // 邊界 x = width - 1
+                byte* pLast = rowDst + (width - 1) * 4;
+                pLast[0] = 0; pLast[1] = 0; pLast[2] = 0; pLast[3] = 255;
+            }
+
+            if (mode is PixelProcessingMode.Parallel or PixelProcessingMode.ParallelVectorized)
+            {
+                Parallel.For(0, height, ProcessRow);
+            }
+            else
+            {
+                for (int y = 0; y < height; y++)
+                {
+                    ProcessRow(y);
+                }
+            }
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static unsafe int GetLuminance(byte* p) =>
+        (299 * p[2] + 587 * p[1] + 114 * p[0] + 500) / 1000;
+
+    /// <summary>
+    /// 對影像套用高斯模糊，回傳新點陣圖。
+    /// </summary>
+    /// <param name="bitmap">原始影像</param>
+    /// <param name="radius">模糊半徑 (像素，預設 2)</param>
+    /// <param name="mode">運算模式</param>
+    public static WriteableBitmap ApplyBlur(
+        this Bitmap bitmap,
+        int radius = 2,
+        PixelProcessingMode mode = PixelProcessingMode.Parallel)
+    {
+        ArgumentNullException.ThrowIfNull(bitmap);
+        var wb = bitmap.ConvertToWriteableBitmap();
+        ApplyGaussianBlur(wb, radius, mode);
+        return wb;
+    }
+
+    /// <summary>
+    /// 原地對 WriteableBitmap 進行高斯模糊運算（採用 2-Pass 1D 可分離卷積極速演算法）。
+    /// </summary>
+    public static void ApplyGaussianBlur(
+        this WriteableBitmap bitmap,
+        int radius = 2,
+        PixelProcessingMode mode = PixelProcessingMode.Parallel)
+    {
+        ArgumentNullException.ThrowIfNull(bitmap);
+        radius = Math.Clamp(radius, 1, 50);
+
+        // 建立 1D 高斯核
+        int size = radius * 2 + 1;
+        float[] kernel = new float[size];
+        float sigma = Math.Max((float)radius / 2.0f, 0.5f);
+        float twoSigmaSq = 2.0f * sigma * sigma;
+        float sum = 0f;
+
+        for (int i = -radius; i <= radius; i++)
+        {
+            float val = MathF.Exp(-(i * i) / twoSigmaSq);
+            kernel[i + radius] = val;
+            sum += val;
+        }
+
+        for (int i = 0; i < size; i++)
+        {
+            kernel[i] /= sum;
+        }
+
+        ApplySeparableConvolution(bitmap, kernel, radius, mode);
+    }
+
+    /// <summary>
+    /// 原地對 WriteableBitmap 進行均值模糊 (Box Blur) 運算。
+    /// </summary>
+    public static void ApplyBoxBlur(
+        this WriteableBitmap bitmap,
+        int radius = 2,
+        PixelProcessingMode mode = PixelProcessingMode.Parallel)
+    {
+        ArgumentNullException.ThrowIfNull(bitmap);
+        radius = Math.Clamp(radius, 1, 50);
+        int size = radius * 2 + 1;
+        float weight = 1.0f / size;
+        float[] kernel = new float[size];
+        Array.Fill(kernel, weight);
+
+        ApplySeparableConvolution(bitmap, kernel, radius, mode);
+    }
+
+    private static unsafe void ApplySeparableConvolution(
+        WriteableBitmap bitmap,
+        float[] kernel,
+        int radius,
+        PixelProcessingMode mode)
+    {
+        using var fb = bitmap.Lock();
+        int width = fb.Size.Width;
+        int height = fb.Size.Height;
+        int rowBytes = fb.RowBytes;
+
+        nuint bufferSize = (nuint)rowBytes * (nuint)height;
+        byte* tempScan0 = (byte*)System.Runtime.InteropServices.NativeMemory.Alloc(bufferSize);
+
+        try
+        {
+            byte* scan0 = (byte*)fb.Address;
+
+            // Pass 1: 水平模糊 (Source -> Temp)
+            void HorizontalPass(int y)
+            {
+                byte* srcRow = scan0 + y * rowBytes;
+                byte* dstRow = tempScan0 + y * rowBytes;
+
+                for (int x = 0; x < width; x++)
+                {
+                    float b = 0, g = 0, r = 0, a = 0;
+                    for (int k = -radius; k <= radius; k++)
+                    {
+                        int sampleX = Math.Clamp(x + k, 0, width - 1);
+                        byte* p = srcRow + sampleX * 4;
+                        float w = kernel[k + radius];
+                        b += p[0] * w;
+                        g += p[1] * w;
+                        r += p[2] * w;
+                        a += p[3] * w;
+                    }
+
+                    byte* outP = dstRow + x * 4;
+                    outP[0] = (byte)Math.Clamp((int)Math.Round(b), 0, 255);
+                    outP[1] = (byte)Math.Clamp((int)Math.Round(g), 0, 255);
+                    outP[2] = (byte)Math.Clamp((int)Math.Round(r), 0, 255);
+                    outP[3] = (byte)Math.Clamp((int)Math.Round(a), 0, 255);
+                }
+            }
+
+            // Pass 2: 垂直模糊 (Temp -> Destination)
+            void VerticalPass(int y)
+            {
+                byte* dstRow = scan0 + y * rowBytes;
+
+                for (int x = 0; x < width; x++)
+                {
+                    float b = 0, g = 0, r = 0, a = 0;
+                    for (int k = -radius; k <= radius; k++)
+                    {
+                        int sampleY = Math.Clamp(y + k, 0, height - 1);
+                        byte* p = tempScan0 + sampleY * rowBytes + x * 4;
+                        float w = kernel[k + radius];
+                        b += p[0] * w;
+                        g += p[1] * w;
+                        r += p[2] * w;
+                        a += p[3] * w;
+                    }
+
+                    byte* outP = dstRow + x * 4;
+                    outP[0] = (byte)Math.Clamp((int)Math.Round(b), 0, 255);
+                    outP[1] = (byte)Math.Clamp((int)Math.Round(g), 0, 255);
+                    outP[2] = (byte)Math.Clamp((int)Math.Round(r), 0, 255);
+                    outP[3] = (byte)Math.Clamp((int)Math.Round(a), 0, 255);
+                }
+            }
+
+            if (mode is PixelProcessingMode.Parallel or PixelProcessingMode.ParallelVectorized)
+            {
+                Parallel.For(0, height, HorizontalPass);
+                Parallel.For(0, height, VerticalPass);
+            }
+            else
+            {
+                for (int y = 0; y < height; y++)
+                {
+                    HorizontalPass(y);
+                }
+                for (int y = 0; y < height; y++)
+                {
+                    VerticalPass(y);
+                }
+            }
+        }
+        finally
+        {
+            System.Runtime.InteropServices.NativeMemory.Free(tempScan0);
         }
     }
 
@@ -324,4 +1030,56 @@ public static class BitmapHelper
     public static Color GetPixel(WriteableBitmap bitmap, int x, int y) => bitmap.GetPixel(x, y);
 
     public static Bitmap? LoadBitmap(string? pathOrUri) => BitmapExtensions.LoadBitmap(pathOrUri);
+
+    public static void ProcessPixels(
+        WriteableBitmap bitmap,
+        PixelProcessor processor,
+        PixelProcessingMode mode = PixelProcessingMode.Parallel) =>
+        bitmap.ProcessPixels(processor, mode);
+
+    public static void ProcessPixels(
+        WriteableBitmap bitmap,
+        PixelLocationProcessor processor,
+        PixelProcessingMode mode = PixelProcessingMode.Parallel) =>
+        bitmap.ProcessPixels(processor, mode);
+
+    public static WriteableBitmap ToGrayscale(
+        Bitmap bitmap,
+        PixelProcessingMode mode = PixelProcessingMode.ParallelVectorized) =>
+        bitmap.ToGrayscale(mode);
+
+    public static void ApplyGrayscale(
+        WriteableBitmap bitmap,
+        PixelProcessingMode mode = PixelProcessingMode.ParallelVectorized) =>
+        bitmap.ApplyGrayscale(mode);
+
+    public static WriteableBitmap DetectEdges(
+        Bitmap bitmap,
+        double threshold = 0.0,
+        PixelProcessingMode mode = PixelProcessingMode.Parallel) =>
+        bitmap.DetectEdges(threshold, mode);
+
+    public static void ApplySobel(
+        WriteableBitmap bitmap,
+        double threshold = 0.0,
+        PixelProcessingMode mode = PixelProcessingMode.Parallel) =>
+        bitmap.ApplySobel(threshold, mode);
+
+    public static WriteableBitmap ApplyBlur(
+        Bitmap bitmap,
+        int radius = 2,
+        PixelProcessingMode mode = PixelProcessingMode.Parallel) =>
+        bitmap.ApplyBlur(radius, mode);
+
+    public static void ApplyGaussianBlur(
+        WriteableBitmap bitmap,
+        int radius = 2,
+        PixelProcessingMode mode = PixelProcessingMode.Parallel) =>
+        bitmap.ApplyGaussianBlur(radius, mode);
+
+    public static void ApplyBoxBlur(
+        WriteableBitmap bitmap,
+        int radius = 2,
+        PixelProcessingMode mode = PixelProcessingMode.Parallel) =>
+        bitmap.ApplyBoxBlur(radius, mode);
 }

@@ -348,8 +348,11 @@ public sealed class ProjectExportService(FormCodeGenerator? codeGenerator = null
         global using System.Linq;
         global using System.Linq.Expressions;
         global using System.Net.Http;
+        global using System.Numerics;
         global using System.Reflection;
+        global using System.Runtime.CompilerServices;
         global using System.Runtime.InteropServices;
+        global using System.Runtime.Intrinsics;
         global using System.Text;
         global using System.Threading;
         global using System.Threading.Tasks;

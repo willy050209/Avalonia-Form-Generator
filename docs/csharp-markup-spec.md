@@ -329,8 +329,11 @@ global using System.Globalization;
 global using System.IO;
 global using System.Linq;
 global using System.Linq.Expressions;
+global using System.Numerics;
 global using System.Reflection;
+global using System.Runtime.CompilerServices;
 global using System.Runtime.InteropServices;
+global using System.Runtime.Intrinsics;
 global using System.Text;
 global using System.Threading;
 global using System.Threading.Tasks;
@@ -364,5 +367,68 @@ global using MessageBox = {RootNamespace}.Services.MessageBox;
 global using LogEntry = {RootNamespace}.Services.LogEntry;
 global using InMemoryLogService = {RootNamespace}.Services.InMemoryLogService;
 ```
+
+---
+
+## 7. 高效能直接記憶體 Bitmap 擴充方法與 SIMD 影像處理 (High-Performance Bitmap Extensions & Image Filters)
+
+AFG 提供極致效能的點陣圖處理套裝（支援於 AFG 內部設計畫布與匯出之應用程式），直接對底層記憶體指標 (`ILockedFramebuffer.Address`) 進行無 GC、零拷貝像素存取與 SIMD 向量化加速。
+
+### 7.1 執行模式 (`PixelProcessingMode`)
+像素遍歷與影像處理均支援四種硬體最佳化執行模式：
+- `Sequential`：單執行緒循序遍歷，記憶體連續快取命中率高。
+- `SequentialVectorized`：單執行緒 + SIMD 向量化展開 (Unrolled Loop)，提升 CPU 管線執行吞吐量。
+- `Parallel`：多核心平行排程處理 (`Parallel.For`)，適合高解析度畫面。
+- `ParallelVectorized`：多核心平行 + SIMD 向量化展開，釋放多核心與 SIMD 暫存器之極限算力。
+
+### 7.2 SIMD 硬體能力自動偵測 (`SimdHardware`)
+自動偵測宿主硬體指令集架構，動態挑選最適合的運算步長：
+```csharp
+if (SimdHardware.HasVector512) { /* AVX-512 64-byte batch */ }
+else if (SimdHardware.HasVector256) { /* AVX2 32-byte batch */ }
+else if (SimdHardware.HasVector128) { /* SSE2 / ARM Neon 16-byte batch */ }
+```
+
+### 7.3 像素遍歷擴充方法 (`ProcessPixels`)
+提供直接記憶體像素回呼（透過 `ref byte` 傳遞 BGRA 4 個色板，零開銷直接修改）：
+```csharp
+// 1. 顏色色板變換 (Invert RGB)
+writeableBitmap.ProcessPixels((ref byte b, ref byte g, ref byte r, ref byte a) =>
+{
+    b = (byte)(255 - b);
+    g = (byte)(255 - g);
+    r = (byte)(255 - r);
+}, PixelProcessingMode.ParallelVectorized);
+
+// 2. 帶座標變換
+writeableBitmap.ProcessPixels((int x, int y, ref byte b, ref byte g, ref byte r, ref byte a) =>
+{
+    r = (byte)(x * 255 / width);
+    b = (byte)(y * 255 / height);
+}, PixelProcessingMode.Parallel);
+```
+
+### 7.4 常用影像處理函數 (Image Processing Filters)
+1. **灰階化 (`ToGrayscale` / `ApplyGrayscale`)**：
+   - 採用 ITU-R BT.601 亮度加權演算法：`Gray = (299*R + 587*G + 114*B + 500) / 1000`。
+   - 原地修改與新實例建立雙重 API：
+     ```csharp
+     var grayBmp = bitmap.ToGrayscale(PixelProcessingMode.ParallelVectorized);
+     writeableBitmap.ApplyGrayscale(PixelProcessingMode.ParallelVectorized);
+     ```
+2. **邊緣偵測 (`DetectEdges` / `ApplySobel`)**：
+   - 採用 3x3 Sobel 梯度卷積核 ($Gx$, $Gy$)，計算梯度幅值 $\sqrt{Gx^2 + Gy^2}$，支援設定過濾門檻值 (`threshold`)。
+     ```csharp
+     var edgeBmp = bitmap.DetectEdges(threshold: 30.0, PixelProcessingMode.Parallel);
+     writeableBitmap.ApplySobel(threshold: 50.0);
+     ```
+3. **模糊處理 (`ApplyBlur` / `ApplyGaussianBlur` / `ApplyBoxBlur`)**：
+   - 採用 2-Pass 1D 可分離卷積（Separable Convolution）結合 `NativeMemory` 零 GC 中間緩衝區，將時間複雜度降至 $O(r \cdot W \cdot H)$：
+     ```csharp
+     var blurred = bitmap.ApplyBlur(radius: 5, PixelProcessingMode.Parallel);
+     writeableBitmap.ApplyGaussianBlur(radius: 3);
+     writeableBitmap.ApplyBoxBlur(radius: 2);
+     ```
+
 
 
