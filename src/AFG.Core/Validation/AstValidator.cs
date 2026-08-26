@@ -41,6 +41,24 @@ public static partial class AstValidator
             errors.Add(new("AFG004", $"ViewModel 類別名稱 '{document.ViewModelClassName}' 不是合法的 C# 識別碼。"));
         }
 
+        // 驗證表單層級事件
+        foreach (var evt in document.Events)
+        {
+            if (string.IsNullOrWhiteSpace(evt.EventName))
+            {
+                errors.Add(new("AFG301", "表單事件名稱不得為空。"));
+            }
+
+            if (string.IsNullOrWhiteSpace(evt.CommandProperty))
+            {
+                errors.Add(new("AFG302", "表單映射的 Command 屬性名稱不得為空。"));
+            }
+            else if (!IsValidCSharpIdentifier(evt.CommandProperty))
+            {
+                errors.Add(new("AFG303", $"表單 Command 屬性名稱 '{evt.CommandProperty}' 不符合 C# 識別碼規範。"));
+            }
+        }
+
         // 驗證 AST 樹
         var nodeErrors = ValidateTree(document.RootNode);
         errors.AddRange(nodeErrors.Items);

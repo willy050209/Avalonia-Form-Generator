@@ -711,6 +711,98 @@ public sealed class CSharpMarkupViewGeneratorTests
     }
 
     [Fact]
+    public void Generate_WhenDocumentHasFormEvents_ShouldWireUpFormEventsInView()
+    {
+        // Arrange
+        var doc = new FormDocument
+        {
+            RootNamespace = "FormEventsApp.Views",
+            ViewClassName = "EventsFormView",
+            ViewModelClassName = "EventsFormViewModel",
+            Events = [
+                new EventMappingDefinition { EventName = "Loaded", CommandProperty = "FormLoadedCommand" },
+                new EventMappingDefinition { EventName = "PointerPressed", CommandProperty = "FormClickedCommand" },
+                new EventMappingDefinition { EventName = "SizeChanged", CommandProperty = "FormResizedCommand" }
+            ],
+            RootNode = new AstNode
+            {
+                Name = "RootCanvas",
+                Type = ControlType.Canvas
+            }
+        };
+
+        // Act
+        var result = _generator.Generate(doc);
+
+        // Assert
+        result.Content.Should().Contain("// 表單事件 (Form Events)");
+        result.Content.Should().Contain("Loaded += (sender, e) => (DataContext as EventsFormViewModel)?.FormLoadedCommand.Execute(e);");
+        result.Content.Should().Contain("PointerPressed += (sender, e) => (DataContext as EventsFormViewModel)?.FormClickedCommand.Execute(e);");
+        result.Content.Should().Contain("SizeChanged += (sender, e) => (DataContext as EventsFormViewModel)?.FormResizedCommand.Execute(e);");
+
+        var syntaxDiagnostics = RoslynCompilerService.CheckSyntaxDiagnostics(result.Content);
+        syntaxDiagnostics.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Generate_WithMediaPlayerControl_ShouldGenerateMediaPlayerFluentCode()
+    {
+        // Arrange
+        var doc = new FormDocument
+        {
+            RootNamespace = "MediaApp.Views",
+            ViewClassName = "VideoPlayerView",
+            ViewModelClassName = "VideoPlayerViewModel",
+            RootNode = new AstNode
+            {
+                Name = "RootCanvas",
+                Type = ControlType.Canvas,
+                Children = [
+                    new AstNode
+                    {
+                        Name = "VideoPlayer",
+                        Type = ControlType.MediaPlayer,
+                        Width = 640,
+                        Height = 360,
+                        Source = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
+                        AutoPlay = true,
+                        IsLooping = true,
+                        Volume = 0.8,
+                        Stretch = Core.Enums.Stretch.UniformToFill,
+                        Bindings = [
+                            new BindingDefinition { TargetProperty = "Source", ViewModelProperty = "VideoSource" },
+                            new BindingDefinition { TargetProperty = "Position", ViewModelProperty = "PlaybackPosition", Mode = BindingMode.TwoWay }
+                        ],
+                        Events = [
+                            new EventMappingDefinition { EventName = "MediaOpened", CommandProperty = "OnMediaOpenedCommand" },
+                            new EventMappingDefinition { EventName = "FrameCaptured", CommandProperty = "OnSnapshotCommand" }
+                        ]
+                    }
+                ]
+            }
+        };
+
+        // Act
+        var result = _generator.Generate(doc);
+
+        // Assert
+        result.Content.Should().Contain("new MediaPlayerControl()");
+        result.Content.Should().Contain(".Width(640)");
+        result.Content.Should().Contain(".Height(360)");
+        result.Content.Should().Contain(".AutoPlay(true)");
+        result.Content.Should().Contain(".IsLooping(true)");
+        result.Content.Should().Contain(".Volume(0.8)");
+        result.Content.Should().Contain(".Stretch(Stretch.UniformToFill)");
+        result.Content.Should().Contain(".Source((VideoPlayerViewModel vm) => vm.VideoSource, BindingMode.Default)");
+        result.Content.Should().Contain(".Position((VideoPlayerViewModel vm) => vm.PlaybackPosition, BindingMode.TwoWay)");
+        result.Content.Should().Contain(".OnMediaOpened((VideoPlayerViewModel vm) => vm.MediaOpenedCommand)");
+        result.Content.Should().Contain(".OnFrameCaptured((VideoPlayerViewModel vm) => vm.SnapshotCommand)");
+
+        var syntaxDiagnostics = RoslynCompilerService.CheckSyntaxDiagnostics(result.Content);
+        syntaxDiagnostics.Should().BeEmpty();
+    }
+
+    [Fact]
     public void Generate_ShouldThrowArgumentNullException_WhenDocumentIsNull()
     {
         var act = () => _generator.Generate(null!);

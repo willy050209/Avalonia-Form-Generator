@@ -124,6 +124,11 @@ public sealed record FormDocument
     public ImmutableList<ServiceDependencyDefinition> InjectedServices { get; init; } = [];
 
     /// <summary>
+    /// 表單與視窗生命週期事件映射清單（例如 Loaded, Unloaded, PointerPressed, SizeChanged, KeyDown, KeyUp 等）。
+    /// </summary>
+    public ImmutableList<EventMappingDefinition> Events { get; init; } = [];
+
+    /// <summary>
     /// 根佈局節點（通常為 Grid 或 Canvas）。
     /// </summary>
     public AstNode RootNode { get; init; } = new()

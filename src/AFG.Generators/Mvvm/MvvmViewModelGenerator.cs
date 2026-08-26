@@ -42,30 +42,28 @@ public sealed class MvvmViewModelGenerator : ICodeGenerator
             }
         }
 
-        // 收集所有唯一的 Command 命令名稱、非同步標記與多參數配置清單 (統一標準化為 PascalCase + Command)
+        // 收集所有唯一的 Command 命令名稱、非同步標記與多參數配置清單 (包含控制項事件與表單層級事件)
         var commands = new Dictionary<string, CommandGenInfo>(StringComparer.Ordinal);
-        foreach (var node in allNodes)
+        var allEvents = allNodes.SelectMany(n => n.Events).Concat(document.Events);
+        foreach (var evt in allEvents)
         {
-            foreach (var evt in node.Events)
+            if (!string.IsNullOrWhiteSpace(evt.CommandProperty))
             {
-                if (!string.IsNullOrWhiteSpace(evt.CommandProperty))
-                {
-                    var cmdName = NormalizeCommandName(evt.CommandProperty);
-                    var effectiveParams = evt.GetEffectiveParameters()
-                        .DistinctBy(p => string.IsNullOrWhiteSpace(p.Name) ? "parameter" : ToCamelCase(p.Name))
-                        .Select(p => new CommandParameterInfo(
-                            Name: string.IsNullOrWhiteSpace(p.Name) ? "parameter" : ToCamelCase(p.Name),
-                            Type: string.IsNullOrWhiteSpace(p.Type) ? "object?" : p.Type.Trim()))
-                        .ToList();
+                var cmdName = NormalizeCommandName(evt.CommandProperty);
+                var effectiveParams = evt.GetEffectiveParameters()
+                    .DistinctBy(p => string.IsNullOrWhiteSpace(p.Name) ? "parameter" : ToCamelCase(p.Name))
+                    .Select(p => new CommandParameterInfo(
+                        Name: string.IsNullOrWhiteSpace(p.Name) ? "parameter" : ToCamelCase(p.Name),
+                        Type: string.IsNullOrWhiteSpace(p.Type) ? "object?" : p.Type.Trim()))
+                    .ToList();
 
-                    if (!commands.TryGetValue(cmdName, out var existing))
-                    {
-                        commands[cmdName] = new CommandGenInfo(cmdName, evt.IsAsync, effectiveParams);
-                    }
-                    else if (existing.Parameters.Count == 0 && effectiveParams.Count > 0)
-                    {
-                        commands[cmdName] = existing with { Parameters = effectiveParams };
-                    }
+                if (!commands.TryGetValue(cmdName, out var existing))
+                {
+                    commands[cmdName] = new CommandGenInfo(cmdName, evt.IsAsync, effectiveParams);
+                }
+                else if (existing.Parameters.Count == 0 && effectiveParams.Count > 0)
+                {
+                    commands[cmdName] = existing with { Parameters = effectiveParams };
                 }
             }
         }
@@ -344,12 +342,15 @@ public sealed class MvvmViewModelGenerator : ICodeGenerator
 
     private static string InferPropertyType(string targetProperty, ControlType controlType) => targetProperty switch
     {
-        "IsChecked" or "IsEnabled" or "IsVisible" or "CanSubmit" => "bool",
-        "Value" or "Minimum" or "Maximum" or "Progress" => "double",
+        "IsChecked" or "IsEnabled" or "IsVisible" or "CanSubmit" or "AutoPlay" or "IsLooping" => "bool",
+        "Value" or "Minimum" or "Maximum" or "Progress" or "Volume" or "SpeedRatio" => "double",
         "SelectedIndex" or "Count" => "int",
         "ItemsSource" => "ObservableCollection<string>",
         "SelectedItem" => "string?",
+        "Source" when controlType == ControlType.MediaPlayer => "string",
         "Source" => "Avalonia.Media.IImage?",
+        "CurrentFrame" or "Frame" or "CapturedFrame" => "Avalonia.Media.Imaging.Bitmap?",
+        "Position" or "Duration" => "TimeSpan",
         "Stretch" => "Avalonia.Media.Stretch",
         _ => "string"
     };
@@ -357,6 +358,7 @@ public sealed class MvvmViewModelGenerator : ICodeGenerator
     private static string GetDefaultValueExpression(string typeName)
     {
         if (typeName == "string") return " = string.Empty";
+        if (typeName == "TimeSpan") return " = TimeSpan.Zero";
         if (typeName.StartsWith("ObservableCollection", StringComparison.Ordinal) ||
             typeName.StartsWith("List<", StringComparison.Ordinal))
         {
@@ -371,9 +373,14 @@ public sealed class MvvmViewModelGenerator : ICodeGenerator
         {
             "Text" => !string.IsNullOrEmpty(node.Text) ? $"\"{Roslyn.CSharpSyntaxSanitizer.EscapeStringLiteral(node.Text)}\"" : null,
             "Content" => !string.IsNullOrEmpty(node.Content) ? $"\"{Roslyn.CSharpSyntaxSanitizer.EscapeStringLiteral(node.Content)}\"" : null,
+            "Source" when node.Type == ControlType.MediaPlayer && !string.IsNullOrEmpty(node.Source) => $"\"{Roslyn.CSharpSyntaxSanitizer.EscapeStringLiteral(node.Source)}\"",
             "Source" when node.InitBitmap => $"BitmapHelper.CreateInitializedBitmap({(node.Width ?? 200).ToString(System.Globalization.CultureInfo.InvariantCulture)}, {(node.Height ?? 150).ToString(System.Globalization.CultureInfo.InvariantCulture)}, Brush.Parse(\"{(string.IsNullOrWhiteSpace(node.BitmapBackgroundColor) ? "#F0F0F0" : node.BitmapBackgroundColor)}\"))",
             "Source" when !string.IsNullOrEmpty(node.Source) => ExtractSourceExpression(node, rootNamespace),
             "IsChecked" when node.IsChecked.HasValue => node.IsChecked.Value ? "true" : "false",
+            "AutoPlay" when node.AutoPlay.HasValue => node.AutoPlay.Value ? "true" : "false",
+            "IsLooping" when node.IsLooping.HasValue => node.IsLooping.Value ? "true" : "false",
+            "Volume" when node.Volume.HasValue => node.Volume.Value.ToString(System.Globalization.CultureInfo.InvariantCulture),
+            "Position" when node.Position.HasValue => $"TimeSpan.FromSeconds({node.Position.Value.ToString(System.Globalization.CultureInfo.InvariantCulture)})",
             "Value" when node.Value.HasValue => node.Value.Value.ToString(System.Globalization.CultureInfo.InvariantCulture),
             _ => null
         };

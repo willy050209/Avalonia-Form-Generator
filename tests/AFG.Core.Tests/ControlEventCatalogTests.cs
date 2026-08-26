@@ -258,4 +258,30 @@ public sealed class ControlEventCatalogTests
         var defaultEvt = ControlEventCatalog.GetDefaultEvent(ControlType.DebugConsole);
         defaultEvt.Should().Be("Cleared");
     }
+
+    [Fact]
+    public void GetSupportedFormEvents_ShouldContainLifecycleAndInteractionEvents()
+    {
+        // Act
+        var events = ControlEventCatalog.GetSupportedFormEvents();
+
+        // Assert
+        events.Should().Contain(["Loaded", "Unloaded", "Initialized", "PointerPressed", "PointerReleased", "Tapped", "DoubleTapped", "SizeChanged", "KeyDown", "KeyUp"]);
+        ControlEventCatalog.IsFormEventSupported("Loaded").Should().BeTrue();
+        ControlEventCatalog.IsFormEventSupported("SizeChanged").Should().BeTrue();
+        ControlEventCatalog.IsFormEventSupported("InvalidEvent").Should().BeFalse();
+    }
+
+    [Fact]
+    public void GetSupportedEvents_ForMediaPlayer_ShouldContainMediaEvents()
+    {
+        // Act
+        var events = ControlEventCatalog.GetSupportedEvents(ControlType.MediaPlayer);
+
+        // Assert
+        events.Should().Contain(["MediaOpened", "MediaEnded", "MediaFailed", "PositionChanged", "VolumeChanged", "StateChanged", "FrameCaptured"]);
+        ControlEventCatalog.GetDefaultEvent(ControlType.MediaPlayer).Should().Be("MediaOpened");
+        ControlEventCatalog.GetDefaultEventArgsType("PositionChanged").Should().Be("TimeSpan");
+        ControlEventCatalog.GetDefaultEventArgsType("FrameCaptured").Should().Be("Bitmap?");
+    }
 }

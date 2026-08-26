@@ -30,10 +30,12 @@ graph LR
 | 分類 | 支援項目 | 說明 |
 | :--- | :--- | :--- |
 | **基礎控制項** | `Button`, `TextBox`, `TextBlock`, `CheckBox`, `RadioButton`, `ComboBox`, `DatePicker`, `Slider`, `ProgressBar`, `PictureBox` | 支援完整幾何、外觀、雙向/單向資料綁定、影像來源 (Source/ImageLocation) 與縮放模式 (Stretch/SizeMode) 與命令事件轉換 |
+| **多媒體元件** | `MediaPlayer` (`MediaPlayerControl`) | 跨平台現代化多媒體播放元件，支援本地與雲端 URL 串流資源載入 (`Load`/`Source`)、播放 (`Play`)、暫停 (`Pause`)、停止 (`Stop`)、音量 (`Volume`)、位置搜尋 (`Position`)、循環 (`IsLooping`)、自動播放 (`AutoPlay`) 與**當前影格截圖轉點陣圖 (`CaptureFrame`/`CaptureFrameAsync` -> `Bitmap`)** |
 | **版面配置容器** | `Canvas`, `StackPanel`, `Grid`, `Border`, `DockPanel`, `WrapPanel`, `ScrollViewer` | 支援巢狀拖曳放入、自動流式排版、列/欄定義與視覺樹精準選取 |
 | **對話方塊元件** | `OpenFileDialog`, `SaveFileDialog`, `MessageBox` | 支援開檔、存檔與訊息對話方塊，在畫布上具備獨立徽章預覽卡片，支援回呼事件（`FileOk`, `Confirmed`）與跨平台 `IDialogService` 服務注入呼叫 |
 | **除錯與日誌工具** | `DebugConsole` | 內嵌 Debug/Log 主控台元件，支援 `Microsoft.Extensions.Logging` 攔截、繼承 `System.IO.TextWriter` 支援標準輸出 (`Console.Out`/`Console.Error`) 重定向、即時日誌流過濾與一鍵清除 |
 | **不可視 / 硬體元件** | `DispatcherTimer`, `BackgroundWorker`, `BluetoothClient`, `SerialPortService` | 支援設計畫布視覺卡片預覽（[Timer], [Worker], [BLE], [COM] 標籤），自動註冊為 DI 服務並提供專屬回呼事件（`Tick`, `DoWork`, `ProgressChanged`, `DataReceived` 等）自動掛載 |
+| **表單與視窗生命週期事件** | `Form Events` (`Loaded`, `Unloaded`, `Initialized`, `SizeChanged`, `PointerPressed`, `KeyDown` 等) | 支援表單與視窗層級全域生命週期與互動事件掛載，自動映射至 ViewModel `[RelayCommand]`，支援雙向非同步與強型別參數 |
 
 ---
 

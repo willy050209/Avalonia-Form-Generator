@@ -68,8 +68,10 @@ Content = new Canvas()
 | **清單項目來源** | - | `.ItemsSource(string path, BindingMode)` | `ItemsControl`, `ListBox`, `ComboBox` |
 | **選取項目** | - | `.SelectedItem(path)` / `.SelectedIndex(path)` | `SelectingItemsControl` |
 | **影像來源與縮放** | `.Source(IImage)` / `.Stretch(Stretch)` | `.Source(path, mode)` / `.Stretch(path, mode)` | `Image`, `PictureBox` |
+| **多媒體播放控制** | `.Source(string)`, `.AutoPlay(bool)`, `.IsLooping(bool)`, `.Volume(double)`, `.Position(TimeSpan)`, `.Stretch(Stretch)` | `.Source(...)`, `.Volume(...)`, `.Position(...)`, `.CurrentFrame(...)` | `MediaPlayerControl` (`MediaPlayer`) |
 | **事件命令綁定** | - | `.Command(string path)` / `.Command(Func<TVm, object?> expr)` | `Button`, `PictureBox`, `Image` |
-| **原生事件轉發** | `.OnClick(...)`, `.OnTextChanged(...)`, `.OnSelectionChanged(...)`, `.OnTapped(...)`, `.OnKeyDown(...)` | 支援無參數、單參數與 `(sender, e)` 雙參數自動轉發至 ViewModel 命令 | `Button`, `TextBox`, `ComboBox`, `Control` |
+| **原生事件轉發** | `.OnClick(...)`, `.OnTextChanged(...)`, `.OnSelectionChanged(...)`, `.OnTapped(...)`, `.OnKeyDown(...)`, `.OnMediaOpened(...)`, `.OnMediaEnded(...)`, `.OnFrameCaptured(...)` | 支援無參數、單參數與 `(sender, e)` 雙參數自動轉發至 ViewModel 命令 | `Button`, `TextBox`, `ComboBox`, `MediaPlayerControl`, `Control` |
+| **表單生命週期事件** | `Loaded`, `Unloaded`, `Initialized`, `SizeChanged`, `PointerPressed`, `KeyDown` 等 | 在 `InitializeComponent()` 內掛載委派並轉發至 ViewModel 關聯之 RelayCommand | `UserControl` (Form Document View) |
 | **容器座標** | `.CanvasLeft(double)` / `.CanvasTop(double)` | - | `Canvas` 子項目 |
 | **Grid 網格座標** | `.GridRow(int)` / `.GridColumn(int)` | - | `Grid` 子項目 |
 | **子項目集合** | `.Children(params Control[])` | - | `Panel` (Canvas, Grid, StackPanel 等) |

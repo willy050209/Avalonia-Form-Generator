@@ -1032,4 +1032,93 @@ public sealed class ProjectExportServiceTests
         var viewFile = files.First(f => f.FileName.EndsWith("PosMainView.cs", StringComparison.Ordinal));
         viewFile.Content.Should().Contain("Background = Brush.Parse(\"#1E293B\");");
     }
+
+    [Fact]
+    public async Task ExportToFolderAsync_WithMediaPlayerAndFormEvents_ShouldBuildSuccessfully()
+    {
+        // Arrange
+        var tempFolder = Path.Combine(Path.GetTempPath(), $"AFG_MediaPlayer_Test_{Guid.NewGuid():N}");
+        var doc = new FormDocument
+        {
+            ProjectName = "MediaPlayerApp",
+            RootNamespace = "MediaPlayerApp",
+            ViewClassName = "MediaPlayerView",
+            ViewModelClassName = "MediaPlayerViewModel",
+            Title = "多媒體播放器測試應用程式",
+            Events = [
+                new EventMappingDefinition { EventName = "Loaded", CommandProperty = "FormLoadedCommand", IsAsync = true },
+                new EventMappingDefinition { EventName = "PointerPressed", CommandProperty = "FormClickedCommand", IsAsync = false, ParameterType = "PointerPressedEventArgs" }
+            ],
+            RootNode = new AstNode
+            {
+                Id = "root",
+                Type = ControlType.Canvas,
+                Children = [
+                    new AstNode
+                    {
+                        Id = "player1",
+                        Type = ControlType.MediaPlayer,
+                        Name = "MainPlayer",
+                        Source = "https://example.com/video.mp4",
+                        AutoPlay = true,
+                        IsLooping = true,
+                        Volume = 0.85,
+                        Width = 640,
+                        Height = 360,
+                        Bindings = [
+                            new BindingDefinition { TargetProperty = "Source", ViewModelProperty = "VideoSource" },
+                            new BindingDefinition { TargetProperty = "Position", ViewModelProperty = "PlaybackPosition" },
+                            new BindingDefinition { TargetProperty = "Volume", ViewModelProperty = "VolumeLevel" },
+                            new BindingDefinition { TargetProperty = "CurrentFrame", ViewModelProperty = "CurrentSnapshot" }
+                        ],
+                        Events = [
+                            new EventMappingDefinition { EventName = "MediaOpened", CommandProperty = "OnMediaOpenedCommand", IsAsync = true },
+                            new EventMappingDefinition { EventName = "FrameCaptured", CommandProperty = "OnFrameCapturedCommand", ParameterType = "Bitmap" }
+                        ]
+                    },
+                    new AstNode
+                    {
+                        Id = "btnPlay",
+                        Type = ControlType.Button,
+                        Content = "播放",
+                        Events = [new EventMappingDefinition { EventName = "Click", CommandProperty = "PlayMediaCommand" }]
+                    }
+                ]
+            }
+        };
+
+        try
+        {
+            await _exportService.ExportToFolderAsync(doc, tempFolder, new ProjectExportOptions(IncludeMobileProject: false));
+            var desktopCsprojPath = Path.Combine(tempFolder, "src", "MediaPlayerApp.Desktop", "MediaPlayerApp.Desktop.csproj");
+
+            var psi = new ProcessStartInfo
+            {
+                FileName = "dotnet",
+                Arguments = $"build \"{desktopCsprojPath}\" -c Release",
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            };
+
+            using var process = Process.Start(psi);
+            var stdout = await process!.StandardOutput.ReadToEndAsync();
+            var stderr = await process.StandardError.ReadToEndAsync();
+            await process.WaitForExitAsync();
+
+            process.ExitCode.Should().Be(0, $"含 MediaPlayer 與表單事件之匯出專案應成功編譯。\n標準輸出:\n{stdout}\n錯誤輸出:\n{stderr}");
+        }
+        finally
+        {
+            if (Directory.Exists(tempFolder))
+            {
+                try
+                {
+                    Directory.Delete(tempFolder, recursive: true);
+                }
+                catch { }
+            }
+        }
+    }
 }

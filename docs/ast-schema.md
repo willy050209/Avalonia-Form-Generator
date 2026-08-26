@@ -69,6 +69,7 @@
 | `enableDependencyInjection` | `bool` | `true` | 是否在此表單啟用相依性注入架構配置 |
 | `useCompiledBindings` | `bool` | `true` | 是否生成強型別編譯綁定 (Compiled / Lambda Bindings) 語法（預設為 true） |
 | `injectedServices` | `Array<ServiceDependencyDefinition>` | `[]` | 注入至此 ViewModel 的自訂服務相依性清單 |
+| `events` | `Array<EventMappingDefinition>` | `[]` | 表單與視窗層級全域生命週期與互動事件掛載清單（例如 `Loaded`, `PointerPressed`, `SizeChanged`） |
 | `rootNode` | `AstNode` | *(Canvas 根節點)* | 頂層容器節點 |
 
 ---
@@ -147,6 +148,7 @@ public sealed record FormProjectDefinition
 ### 支援之控制項類型 (`ControlType`)
 
 - **基本控制項**：`Button`, `TextBox`, `TextBlock`, `CheckBox`, `RadioButton`, `ComboBox`, `ListBox`, `DatePicker`, `TimePicker`, `Slider`, `ProgressBar`, `DataGrid`, `Image`, `PictureBox`, `Border`。
+- **多媒體控制項**：`MediaPlayer`（支援本地與雲端 URL 串流資源、播放、暫停、停止、音量、進度與當前影格截圖 `CaptureFrame` 轉 `Bitmap`）。
 - **佈局容器**：`Canvas`, `Grid`, `StackPanel`, `DockPanel`, `WrapPanel`, `ScrollViewer`。
 - **除錯與日誌元件**：DebugConsole（內建深色主控台外觀、Clear 按鈕與日誌 ItemsSource 綁定）
 - **對話方塊元件**：`OpenFileDialog`, `SaveFileDialog`, `MessageBox`。

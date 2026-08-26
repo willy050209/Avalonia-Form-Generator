@@ -688,4 +688,100 @@ public sealed class MvvmViewModelGeneratorTests
         var diagnostics = RoslynCompilerService.CheckSyntaxDiagnostics(result.Content);
         diagnostics.Should().BeEmpty();
     }
+
+    [Fact]
+    public void Generate_WhenDocumentHasFormEvents_ShouldEmitCommandsInViewModel()
+    {
+        // Arrange
+        var doc = new FormDocument
+        {
+            RootNamespace = "FormEventsApp.ViewModels",
+            ViewClassName = "EventsFormView",
+            ViewModelClassName = "EventsFormViewModel",
+            Events = [
+                new EventMappingDefinition { EventName = "Loaded", CommandProperty = "FormLoadedCommand", IsAsync = true },
+                new EventMappingDefinition { EventName = "PointerPressed", CommandProperty = "FormClickedCommand", IsAsync = false, ParameterType = "PointerPressedEventArgs" },
+                new EventMappingDefinition { EventName = "SizeChanged", CommandProperty = "FormResizedCommand", IsAsync = true, ParameterType = "SizeChangedEventArgs" }
+            ],
+            RootNode = new AstNode
+            {
+                Name = "RootCanvas",
+                Type = ControlType.Canvas
+            }
+        };
+
+        // Act
+        var result = _generator.Generate(doc);
+
+        // Assert
+        result.Content.Should().Contain("[RelayCommand]");
+        result.Content.Should().Contain("private async Task FormLoadedAsync()");
+        result.Content.Should().Contain("[RelayCommand]");
+        result.Content.Should().Contain("private void FormClicked(PointerPressedEventArgs? e = default)");
+        result.Content.Should().Contain("[RelayCommand]");
+        result.Content.Should().Contain("private async Task FormResizedAsync(SizeChangedEventArgs? e = default)");
+
+        var diagnostics = RoslynCompilerService.CheckSyntaxDiagnostics(result.Content);
+        diagnostics.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Generate_WithMediaPlayerControl_ShouldEmitProperMvvmBindingsAndCommands()
+    {
+        // Arrange
+        var doc = new FormDocument
+        {
+            RootNamespace = "MediaApp.ViewModels",
+            ViewClassName = "VideoPlayerView",
+            ViewModelClassName = "VideoPlayerViewModel",
+            RootNode = new AstNode
+            {
+                Name = "RootCanvas",
+                Type = ControlType.Canvas,
+                Children = [
+                    new AstNode
+                    {
+                        Name = "VideoPlayer",
+                        Type = ControlType.MediaPlayer,
+                        Source = "https://example.com/video.mp4",
+                        Volume = 0.9,
+                        Position = 15.0,
+                        AutoPlay = true,
+                        IsLooping = false,
+                        Bindings = [
+                            new BindingDefinition { TargetProperty = "Source", ViewModelProperty = "VideoUrl" },
+                            new BindingDefinition { TargetProperty = "Position", ViewModelProperty = "CurrentPosition" },
+                            new BindingDefinition { TargetProperty = "Volume", ViewModelProperty = "AudioVolume" },
+                            new BindingDefinition { TargetProperty = "CurrentFrame", ViewModelProperty = "CapturedImage" }
+                        ],
+                        Events = [
+                            new EventMappingDefinition { EventName = "MediaOpened", CommandProperty = "PlayMediaCommand", IsAsync = true },
+                            new EventMappingDefinition { EventName = "FrameCaptured", CommandProperty = "CaptureSnapshotCommand", ParameterType = "Bitmap", IsAsync = true }
+                        ]
+                    }
+                ]
+            }
+        };
+
+        // Act
+        var result = _generator.Generate(doc);
+
+        // Assert
+        result.Content.Should().Contain("[ObservableProperty]");
+        result.Content.Should().Contain("private string _videoUrl = \"https://example.com/video.mp4\";");
+        result.Content.Should().Contain("[ObservableProperty]");
+        result.Content.Should().Contain("private TimeSpan _currentPosition = TimeSpan.FromSeconds(15);");
+        result.Content.Should().Contain("[ObservableProperty]");
+        result.Content.Should().Contain("private double _audioVolume = 0.9;");
+        result.Content.Should().Contain("[ObservableProperty]");
+        result.Content.Should().Contain("private Avalonia.Media.Imaging.Bitmap? _capturedImage;");
+
+        result.Content.Should().Contain("[RelayCommand]");
+        result.Content.Should().Contain("private async Task PlayMediaAsync()");
+        result.Content.Should().Contain("[RelayCommand]");
+        result.Content.Should().Contain("private async Task CaptureSnapshotAsync(Bitmap? parameter = default)");
+
+        var diagnostics = RoslynCompilerService.CheckSyntaxDiagnostics(result.Content);
+        diagnostics.Should().BeEmpty();
+    }
 }

@@ -29,6 +29,7 @@ public static class ControlEventCatalog
             [ControlType.Image] = ["Click", "DoubleClick", "Tapped", "DoubleTapped", "PointerPressed", "PointerReleased", "LoadCompleted"],
             [ControlType.PictureBox] = ["Click", "DoubleClick", "Tapped", "DoubleTapped", "PointerPressed", "PointerReleased", "LoadCompleted", "SizeModeChanged"],
             [ControlType.Border] = ["PointerPressed", "PointerReleased", "Tapped", "DoubleTapped"],
+            [ControlType.MediaPlayer] = ["MediaOpened", "MediaEnded", "MediaFailed", "PositionChanged", "VolumeChanged", "StateChanged", "FrameCaptured", "PointerPressed", "Tapped", "Click"],
 
             // 佈局容器
             [ControlType.Canvas] = ["PointerPressed", "PointerReleased", "Tapped"],
@@ -52,6 +53,22 @@ public static class ControlEventCatalog
         }.ToImmutableDictionary();
 
     private static readonly ImmutableList<string> FallbackEvents = ["Tapped", "PointerPressed"];
+    private static readonly ImmutableList<string> FormEvents =
+        ["Loaded", "Unloaded", "Initialized", "PointerPressed", "PointerReleased", "Tapped", "DoubleTapped", "SizeChanged", "KeyDown", "KeyUp"];
+
+    /// <summary>
+    /// 取得表單與視窗層級所支援的專屬生命週期與互動事件清單。
+    /// </summary>
+    public static IReadOnlyList<string> GetSupportedFormEvents() => FormEvents;
+
+    /// <summary>
+    /// 驗證表單層級是否支援特定事件名稱。
+    /// </summary>
+    public static bool IsFormEventSupported(string? eventName)
+    {
+        if (string.IsNullOrWhiteSpace(eventName)) return false;
+        return FormEvents.Contains(eventName.Trim());
+    }
 
     /// <summary>
     /// 取得特定控制項或元件所支援的專屬事件清單。
@@ -79,6 +96,7 @@ public static class ControlEventCatalog
         ControlType.DatePicker => "SelectedDateChanged",
         ControlType.TimePicker => "SelectedTimeChanged",
         ControlType.ScrollViewer => "ScrollChanged",
+        ControlType.MediaPlayer => "MediaOpened",
         ControlType.DispatcherTimer => "Tick",
         ControlType.BackgroundWorker => "DoWork",
         ControlType.BluetoothClient => "DataReceived",
@@ -110,6 +128,9 @@ public static class ControlEventCatalog
     public static string GetDefaultEventArgsType(string? eventName) => eventName switch
     {
         "Click" or "Checked" or "Unchecked" or "IsCheckedChanged" => "RoutedEventArgs",
+        "Loaded" or "Unloaded" => "RoutedEventArgs",
+        "Initialized" => "EventArgs",
+        "SizeChanged" => "SizeChangedEventArgs",
         "Tapped" or "DoubleTapped" => "TappedEventArgs",
         "PointerPressed" => "PointerPressedEventArgs",
         "PointerReleased" => "PointerReleasedEventArgs",
@@ -129,6 +150,11 @@ public static class ControlEventCatalog
         "FileOk" => "string?",
         "Confirmed" => "bool?",
         "Cleared" => "EventArgs",
+        "MediaOpened" or "MediaEnded" or "StateChanged" => "EventArgs",
+        "MediaFailed" => "string",
+        "PositionChanged" => "TimeSpan",
+        "VolumeChanged" => "double",
+        "FrameCaptured" => "Bitmap?",
         _ => "RoutedEventArgs"
     };
 
@@ -223,6 +249,9 @@ public static class ControlEventCatalog
         var specificArgs = eventName switch
         {
             "Click" or "Checked" or "Unchecked" or "IsCheckedChanged" => (IReadOnlyList<string>)["RoutedEventArgs"],
+            "Loaded" or "Unloaded" => (IReadOnlyList<string>)["RoutedEventArgs", "EventArgs"],
+            "Initialized" => ["EventArgs"],
+            "SizeChanged" => ["SizeChangedEventArgs", "EventArgs"],
             "Tapped" or "DoubleTapped" => ["TappedEventArgs", "RoutedEventArgs"],
             "PointerPressed" or "PointerReleased" or "PointerMoved" => ["PointerPressedEventArgs", "PointerReleasedEventArgs", "PointerEventArgs", "RoutedEventArgs"],
             "KeyDown" or "KeyUp" => ["KeyEventArgs", "RoutedEventArgs"],
@@ -239,6 +268,11 @@ public static class ControlEventCatalog
             "FileOk" => ["string?", "string", "CancelEventArgs", "EventArgs"],
             "Confirmed" => ["bool?", "bool", "string?", "EventArgs"],
             "DataReceived" => ["string", "byte[]", "EventArgs"],
+            "MediaOpened" or "MediaEnded" or "StateChanged" => ["EventArgs"],
+            "MediaFailed" => ["string", "EventArgs"],
+            "PositionChanged" => ["TimeSpan", "double", "EventArgs"],
+            "VolumeChanged" => ["double", "EventArgs"],
+            "FrameCaptured" => ["Bitmap?", "IImage?", "EventArgs"],
             _ => ["RoutedEventArgs", "EventArgs"]
         };
 

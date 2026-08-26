@@ -22,6 +22,7 @@ public enum ControlType
     Image,
     PictureBox,
     Border,
+    MediaPlayer,
 
     // 佈局容器
     Canvas,

@@ -40,6 +40,20 @@ public sealed class CSharpMarkupViewGenerator : ICodeGenerator
         var rootCode = GenerateNodeCode(document.RootNode, indentLevel: 2, document.ViewModelClassName, document.UseCompiledBindings, parentNode: null, isRoot: true, rootNamespace: document.RootNamespace);
         sb.AppendLine($"        Content = {rootCode};");
 
+        // 表單與視窗生命週期事件監聽綁定
+        if (document.Events.Count > 0)
+        {
+            sb.AppendLine();
+            sb.AppendLine("        // 表單事件 (Form Events)");
+            foreach (var evt in document.Events)
+            {
+                if (string.IsNullOrWhiteSpace(evt.CommandProperty)) continue;
+                var normalizedCmd = Mvvm.MvvmViewModelGenerator.NormalizeCommandName(evt.CommandProperty);
+                var safeCmd = CSharpSyntaxSanitizer.EscapeIdentifier(normalizedCmd);
+                sb.AppendLine($"        {evt.EventName} += (sender, e) => (DataContext as {document.ViewModelClassName})?.{safeCmd}.Execute(e);");
+            }
+        }
+
         sb.AppendLine("    }");
         sb.AppendLine("}");
 
@@ -71,7 +85,12 @@ public sealed class CSharpMarkupViewGenerator : ICodeGenerator
             sb.AppendLine($"{indent}// {nodeName}");
         }
 
-        var controlTypeName = node.Type == ControlType.PictureBox ? "Image" : node.Type.ToString();
+        var controlTypeName = node.Type switch
+        {
+            ControlType.PictureBox => "Image",
+            ControlType.MediaPlayer => "MediaPlayerControl",
+            _ => node.Type.ToString()
+        };
         if (isRoot)
         {
             sb.AppendLine($"new {controlTypeName}()");
@@ -266,7 +285,26 @@ public sealed class CSharpMarkupViewGenerator : ICodeGenerator
             sb.AppendLine($"{innerIndent}.Foreground(Brush.Parse(\"{CSharpSyntaxSanitizer.EscapeStringLiteral(node.Foreground)}\"))");
         }
 
-        if (!boundProps.Contains("Source"))
+        if (node.Type == ControlType.MediaPlayer)
+        {
+            if (!boundProps.Contains("Source") && !string.IsNullOrWhiteSpace(node.Source))
+            {
+                sb.AppendLine($"{innerIndent}.Source(\"{CSharpSyntaxSanitizer.EscapeStringLiteral(node.Source.Trim())}\")");
+            }
+            if (!boundProps.Contains("AutoPlay") && node.AutoPlay == true)
+            {
+                sb.AppendLine($"{innerIndent}.AutoPlay(true)");
+            }
+            if (!boundProps.Contains("IsLooping") && node.IsLooping == true)
+            {
+                sb.AppendLine($"{innerIndent}.IsLooping(true)");
+            }
+            if (!boundProps.Contains("Volume") && node.Volume.HasValue)
+            {
+                sb.AppendLine($"{innerIndent}.Volume({node.Volume.Value.ToString(CultureInfo.InvariantCulture)})");
+            }
+        }
+        else if (!boundProps.Contains("Source"))
         {
             if (node.InitBitmap)
             {
@@ -349,6 +387,9 @@ public sealed class CSharpMarkupViewGenerator : ICodeGenerator
                     "TextChanged" => "OnTextChanged",
                     "SelectionChanged" => "OnSelectionChanged",
                     "ValueChanged" => "OnValueChanged",
+                    "MediaOpened" => "OnMediaOpened",
+                    "MediaEnded" => "OnMediaEnded",
+                    "FrameCaptured" => "OnFrameCaptured",
                     _ => "Command"
                 };
 

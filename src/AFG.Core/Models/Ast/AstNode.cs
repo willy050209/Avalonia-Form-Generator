@@ -76,6 +76,11 @@ public sealed record AstNode
     public string? BitmapBackgroundColor { get; init; } = "#F0F0F0";
     public bool AutoSize { get; init; }
     public int? Interval { get; init; }
+    public bool? AutoPlay { get; init; }
+    public bool? IsLooping { get; init; }
+    public double? Volume { get; init; }
+    public double? Position { get; init; }
+    public double? SpeedRatio { get; init; }
 
     // --- 擴充自訂屬性 ---
     public ImmutableDictionary<string, string> CustomProperties { get; init; } = ImmutableDictionary<string, string>.Empty;

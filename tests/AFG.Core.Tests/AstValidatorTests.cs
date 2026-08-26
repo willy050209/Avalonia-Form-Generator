@@ -117,4 +117,27 @@ public sealed class AstValidatorTests
         result.Errors.Should().Contain(e => e.ErrorCode == "AFG104");
         result.Errors.Should().Contain(e => e.ErrorCode == "AFG105");
     }
+
+    [Fact]
+    public void ValidateDocument_WithFormEvents_ShouldValidateProperly()
+    {
+        // Arrange
+        var invalidDoc = new FormDocument
+        {
+            ViewClassName = "MainView",
+            ViewModelClassName = "MainViewModel",
+            Events = [
+                new EventMappingDefinition { EventName = "", CommandProperty = "LoadedCommand" },
+                new EventMappingDefinition { EventName = "Loaded", CommandProperty = "123InvalidCmd" }
+            ]
+        };
+
+        // Act
+        var result = AstValidator.ValidateDocument(invalidDoc);
+
+        // Assert
+        result.IsValid.Should().BeFalse();
+        result.Errors.Should().Contain(e => e.ErrorCode == "AFG301");
+        result.Errors.Should().Contain(e => e.ErrorCode == "AFG303");
+    }
 }

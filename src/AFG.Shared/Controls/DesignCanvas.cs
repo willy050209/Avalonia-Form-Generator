@@ -371,6 +371,43 @@ public sealed class DesignCanvas : Grid
 
                 control = picBorder;
                 break;
+            case ControlType.MediaPlayer:
+                var mediaBorder = new Border
+                {
+                    Background = new SolidColorBrush(Color.Parse("#09090B")),
+                    BorderBrush = new SolidColorBrush(Color.Parse("#27272A")),
+                    BorderThickness = new Thickness(1),
+                    CornerRadius = new CornerRadius(4)
+                };
+                var mediaPanel = new StackPanel
+                {
+                    VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center,
+                    HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center,
+                    Spacing = 4
+                };
+                mediaPanel.Children.Add(new TextBlock
+                {
+                    Text = "▶ Media Player",
+                    FontWeight = FontWeight.SemiBold,
+                    FontSize = 12,
+                    Foreground = new SolidColorBrush(Color.Parse("#A1A1AA")),
+                    HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center
+                });
+                if (!string.IsNullOrWhiteSpace(node.Source))
+                {
+                    mediaPanel.Children.Add(new TextBlock
+                    {
+                        Text = node.Source,
+                        FontSize = 10,
+                        Foreground = new SolidColorBrush(Color.Parse("#71717A")),
+                        HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center,
+                        MaxWidth = 180,
+                        TextWrapping = TextWrapping.Wrap
+                    });
+                }
+                mediaBorder.Child = mediaPanel;
+                control = mediaBorder;
+                break;
             case ControlType.Border:
                 var border = new Border
                 {

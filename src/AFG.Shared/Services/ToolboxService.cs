@@ -20,6 +20,7 @@ public static class ToolboxService
         new("ProgressBar", "常用控制項", ControlType.ProgressBar, "Prg", 180, 20),
         new("PictureBox", "常用控制項", ControlType.PictureBox, "Pic", 200, 150, "PictureBox"),
         new("Border", "常用控制項", ControlType.Border, "Brd", 200, 150),
+        new("MediaPlayer", "多媒體元件", ControlType.MediaPlayer, "Player", 320, 240, "MediaPlayer"),
 
         // 佈局容器
         new("Grid", "佈局容器", ControlType.Grid, "Grd", 400, 300),
