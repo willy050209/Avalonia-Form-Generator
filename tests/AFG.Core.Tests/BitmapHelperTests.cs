@@ -121,4 +121,78 @@ public class BitmapHelperTests
         // Assert
         converted.Should().BeSameAs(wb);
     }
+
+    [Fact]
+    public void LoadBitmap_WithNullOrWhitespace_ShouldReturnNull()
+    {
+        BitmapHelper.LoadBitmap(null).Should().BeNull();
+        BitmapHelper.LoadBitmap("   ").Should().BeNull();
+    }
+
+    [Fact]
+    public void LoadBitmap_WithValidLocalFilePath_ShouldLoadBitmap()
+    {
+        // Arrange: Create a minimal 1x1 png image
+        var tempFile = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "test_img_" + Guid.NewGuid().ToString("N") + ".png");
+        try
+        {
+#pragma warning disable CS0618
+            var wb = BitmapHelper.CreateInitializedBitmap(16, 16, Colors.Red);
+            wb.Save(tempFile);
+#pragma warning restore CS0618
+
+            // Act
+            var loaded = BitmapHelper.LoadBitmap(tempFile);
+
+            // Assert
+            loaded.Should().NotBeNull();
+            loaded!.PixelSize.Width.Should().Be(16);
+            loaded.PixelSize.Height.Should().Be(16);
+        }
+        finally
+        {
+            if (System.IO.File.Exists(tempFile))
+            {
+                try { System.IO.File.Delete(tempFile); } catch { }
+            }
+        }
+    }
+
+    [Fact]
+    public void LoadBitmap_WithDiskFallback_ShouldFindImageInBaseOrAssetsDirectory()
+    {
+        // Arrange
+        var assetsDir = System.IO.Path.Combine(AppContext.BaseDirectory, "Assets");
+        System.IO.Directory.CreateDirectory(assetsDir);
+        var testAssetFile = System.IO.Path.Combine(assetsDir, "fallback_test_logo.png");
+        try
+        {
+#pragma warning disable CS0618
+            var wb = BitmapHelper.CreateInitializedBitmap(32, 32, Colors.Blue);
+            wb.Save(testAssetFile);
+#pragma warning restore CS0618
+
+            // Act: load via relative string "fallback_test_logo.png" or "Assets/fallback_test_logo.png"
+            var loaded1 = BitmapHelper.LoadBitmap("fallback_test_logo.png");
+            var loaded2 = BitmapHelper.LoadBitmap("Assets/fallback_test_logo.png");
+            var loaded3 = BitmapHelper.LoadBitmap("avares://NonExistentApp.Shared/Assets/fallback_test_logo.png");
+
+            // Assert
+            loaded1.Should().NotBeNull();
+            loaded1!.PixelSize.Width.Should().Be(32);
+
+            loaded2.Should().NotBeNull();
+            loaded2!.PixelSize.Width.Should().Be(32);
+
+            loaded3.Should().NotBeNull();
+            loaded3!.PixelSize.Width.Should().Be(32);
+        }
+        finally
+        {
+            if (System.IO.File.Exists(testAssetFile))
+            {
+                try { System.IO.File.Delete(testAssetFile); } catch { }
+            }
+        }
+    }
 }

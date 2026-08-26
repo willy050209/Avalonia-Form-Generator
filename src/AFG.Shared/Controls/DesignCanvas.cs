@@ -6,6 +6,7 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Layout;
 using Avalonia.Media;
+using Avalonia.Media.Imaging;
 using Avalonia.VisualTree;
 using AFG.Core.Enums;
 using AFG.Core.Models.Ast;
@@ -269,13 +270,14 @@ public sealed class DesignCanvas : Grid
                     ClipToBounds = true
                 };
 
-                // 若有實體圖片且存在本機檔案系統，嘗試直接載入 Bitmap 預覽
+                // 若有實體圖片、相對路徑或 avares 資源，嘗試透過 BitmapHelper 載入 Bitmap 預覽
                 bool imageLoaded = false;
                 if (!string.IsNullOrWhiteSpace(node.Source))
                 {
                     try
                     {
-                        if (System.IO.File.Exists(node.Source))
+                        var bitmap = BitmapHelper.LoadBitmap(node.Source);
+                        if (bitmap != null)
                         {
                             var avaloniaStretch = node.Stretch switch
                             {
@@ -284,7 +286,6 @@ public sealed class DesignCanvas : Grid
                                 Core.Enums.Stretch.UniformToFill => Avalonia.Media.Stretch.UniformToFill,
                                 _ => Avalonia.Media.Stretch.Uniform
                             };
-                            var bitmap = new Avalonia.Media.Imaging.Bitmap(node.Source);
                             var imgControl = new Image
                             {
                                 Source = bitmap,

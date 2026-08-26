@@ -215,6 +215,22 @@ AvaloniaFormGenerator/
     - 更新 `README.md`、`docs/architecture.md`、`docs/ast-schema.md`、`docs/csharp-markup-spec.md`、`docs/user-guide.md` 與 `plan.md`。
     - 執行全專案 100% 測試驗證並完成各階段 Git Commit。
 
+### 🔹 階段 13：修復相對路徑 (Assets 資源) 圖片載入路徑與動態組件解析機制 (Fix Relative Assets Image Loading & Dynamic Assembly Resolution)
+- [x] **階段狀態：已完成**
+- **目標**：修復用相對路徑（複製到 Assets 的資源）時圖片載入路徑出錯導致生成的專案無法正常加載圖片的問題。
+- **任務清單**：
+  - [x] 13.1 **Phase 1: BitmapHelper 與 AvaloniaMarkupExtensionsSource 健全化 (Robust BitmapHelper & Dynamic Assembly Fallback)**
+    - 在 `BitmapHelper.LoadBitmap` 實作多層次解析：支援直接 `avares://`、組件名稱不匹配自動校正（typeof Assembly, EntryAssembly, AppDomain 組件掃描）、純相對路徑（`Assets/`）、磁碟輸出目錄後備（`AppContext.BaseDirectory`）。
+    - 同步更新 `AvaloniaMarkupExtensionsSource.cs` 確保匯出專案之 `BitmapHelper` 具備相同健全機制。
+    - 在 `DesignCanvas.cs` 使用 `BitmapHelper.LoadBitmap` 統一畫布圖片載入。
+  - [x] 13.2 **Phase 2: View / ViewModel 代碼生成與專案匯出 csproj 配置修正 (CodeGen & Project Export Fixes)**
+    - 在 `CSharpMarkupViewGenerator` 與 `MvvmViewModelGenerator` 修正 `avares://` URI 生成，確保組件名稱正確指向 `{rootNamespace}.Shared`。
+    - 在 `ProjectExportService` 為 `.Shared.csproj` 增加 `<None Update="Assets\**" CopyToOutputDirectory="PreserveNewest" />` 確保實體與嵌入資源雙重保證，並加強匯出時本機檔案路徑搜尋與複製。
+  - [x] 13.3 **Phase 3: 單元測試、整合測試與技術文件更新 (Testing & Documentation)**
+    - 撰寫 `BitmapHelper` 各種路徑情境（組件名稱差異容錯、相對字串、實體檔案）單元測試。
+    - 執行包含 `dotnet build` 的全專案測試並確認 0 Error, 0 Warning。
+    - 更新 `docs/csharp-markup-spec.md`、`docs/user-guide.md` 與 `plan.md`，並完成 Git Commit。
+
 ---
 
 ## 4. 驗證標準與品質指標

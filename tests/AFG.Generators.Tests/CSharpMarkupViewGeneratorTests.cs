@@ -277,7 +277,7 @@ public sealed class CSharpMarkupViewGeneratorTests
         result.Content.Should().Contain("new Image()");
         result.Content.Should().Contain(".Width(200)");
         result.Content.Should().Contain(".Height(150)");
-        result.Content.Should().Contain(".Source(BitmapHelper.LoadBitmap(\"avares://MyApp.Views/Assets/avatar.png\"))");
+        result.Content.Should().Contain(".Source(BitmapHelper.LoadBitmap(\"avares://MyApp.Views.Shared/Assets/avatar.png\"))");
         result.Content.Should().Contain(".Stretch(Stretch.Uniform)");
         result.Content.Should().Contain(".OnClick((PhotoViewModel vm) => vm.SelectPhotoCommand)");
 

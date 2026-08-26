@@ -290,9 +290,12 @@ public sealed class CSharpMarkupViewGenerator : ICodeGenerator
                 if (node.UseRelativePath)
                 {
                     var fileName = System.IO.Path.GetFileName(sourcePath);
+                    var sharedAsmName = rootNamespace.EndsWith(".Shared", StringComparison.OrdinalIgnoreCase)
+                        ? rootNamespace
+                        : $"{rootNamespace}.Shared";
                     var assetUri = sourcePath.StartsWith("avares://", StringComparison.OrdinalIgnoreCase) || sourcePath.StartsWith("http", StringComparison.OrdinalIgnoreCase)
                         ? sourcePath
-                        : $"avares://{rootNamespace}/Assets/{fileName}";
+                        : $"avares://{sharedAsmName}/Assets/{fileName}";
                     sb.AppendLine($"{innerIndent}.Source(BitmapHelper.LoadBitmap(\"{CSharpSyntaxSanitizer.EscapeStringLiteral(assetUri)}\"))");
                 }
                 else

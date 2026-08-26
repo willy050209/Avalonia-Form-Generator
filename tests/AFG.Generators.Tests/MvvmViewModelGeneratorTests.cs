@@ -460,6 +460,44 @@ public sealed class MvvmViewModelGeneratorTests
     }
 
     [Fact]
+    public void Generate_ForPictureBoxWithRelativeSource_ShouldGenerateRelativeImageUriInViewModel()
+    {
+        // Arrange
+        var doc = new FormDocument
+        {
+            RootNamespace = "MyApp.ViewModels",
+            ViewModelClassName = "ProfileViewModel",
+            RootNode = new AstNode
+            {
+                Id = "root",
+                Type = ControlType.Canvas,
+                Children = [
+                    new AstNode
+                    {
+                        Id = "pic",
+                        Name = "AvatarBox",
+                        Type = ControlType.PictureBox,
+                        Source = "C:\\Users\\photos\\avatar.png",
+                        UseRelativePath = true,
+                        Bindings = [
+                            new BindingDefinition { TargetProperty = "Source", ViewModelProperty = "AvatarImage" }
+                        ]
+                    }
+                ]
+            }
+        };
+
+        // Act
+        var result = _generator.Generate(doc);
+
+        // Assert
+        result.Content.Should().Contain("private Avalonia.Media.IImage? _avatarImage = BitmapHelper.LoadBitmap(\"avares://MyApp.ViewModels.Shared/Assets/avatar.png\");");
+
+        var diagnostics = RoslynCompilerService.CheckSyntaxDiagnostics(result.Content);
+        diagnostics.Should().BeEmpty();
+    }
+
+    [Fact]
     public void Generate_ForDispatcherTimer_ShouldIncludeConfiguredInterval()
     {
         // Arrange

@@ -1031,30 +1031,176 @@ public static class AvaloniaMarkupExtensionsSource
             }
         }
 
+        /// <summary>
+        /// 載入本機檔案路徑或 avares:// 資源路徑之 Bitmap（具備動態組件修正、相對路徑尋訪與磁碟目錄後備容錯機制）。
+        /// </summary>
         public static Bitmap? LoadBitmap(string? pathOrUri)
         {
             if (string.IsNullOrWhiteSpace(pathOrUri)) return null;
 
+            var trimmed = pathOrUri.Trim();
+
+            // 1. 若為本機實體檔案路徑且檔案存在，直接自檔案載入
             try
             {
-                if (pathOrUri.StartsWith("avares://", StringComparison.OrdinalIgnoreCase))
+                if (System.IO.File.Exists(trimmed))
                 {
-                    var uri = new Uri(pathOrUri);
+                    return new Bitmap(trimmed);
+                }
+            }
+            catch
+            {
+                // 忽略直接讀檔錯誤，進入後續資源/相對路徑解析
+            }
+
+            // 2. 解析 avares:// 或相對 Assets 資源路徑
+            try
+            {
+                if (trimmed.StartsWith("avares://", StringComparison.OrdinalIgnoreCase))
+                {
+                    var uri = new Uri(trimmed);
                     if (Avalonia.Platform.AssetLoader.Exists(uri))
                     {
                         using var stream = Avalonia.Platform.AssetLoader.Open(uri);
                         return new Bitmap(stream);
                     }
+
+                    // 若指定的 Assembly 在 URI 中不匹配 (例如 URI 為 avares://MainFormApp/Assets/logo.png 但實際組件名為 MainFormApp.Shared)
+                    // 提取相對資源路徑 (例如 "Assets/logo.png")
+                    var resourceRelativePath = uri.AbsolutePath.TrimStart('/');
+
+                    // 嘗試透過目前組件 (typeof(BitmapHelper).Assembly) 重新建構 avares:// URI
+                    var currentAsmName = typeof(BitmapHelper).Assembly.GetName().Name;
+                    if (!string.IsNullOrEmpty(currentAsmName))
+                    {
+                        var candidateUri = new Uri($"avares://{currentAsmName}/{resourceRelativePath}");
+                        if (Avalonia.Platform.AssetLoader.Exists(candidateUri))
+                        {
+                            using var stream = Avalonia.Platform.AssetLoader.Open(candidateUri);
+                            return new Bitmap(stream);
+                        }
+                    }
+
+                    // 嘗試透過 EntryAssembly 或 EntryAssembly.Shared 重新建構
+                    var entryAsm = System.Reflection.Assembly.GetEntryAssembly();
+                    if (entryAsm != null)
+                    {
+                        var entryName = entryAsm.GetName().Name;
+                        if (!string.IsNullOrEmpty(entryName))
+                        {
+                            var candidateUri1 = new Uri($"avares://{entryName}/{resourceRelativePath}");
+                            if (Avalonia.Platform.AssetLoader.Exists(candidateUri1))
+                            {
+                                using var stream = Avalonia.Platform.AssetLoader.Open(candidateUri1);
+                                return new Bitmap(stream);
+                            }
+
+                            var candidateUri2 = new Uri($"avares://{entryName}.Shared/{resourceRelativePath}");
+                            if (Avalonia.Platform.AssetLoader.Exists(candidateUri2))
+                            {
+                                using var stream = Avalonia.Platform.AssetLoader.Open(candidateUri2);
+                                return new Bitmap(stream);
+                            }
+                        }
+                    }
+
+                    // 嘗試掃描所有目前已載入的應用程式組件
+                    foreach (var asm in AppDomain.CurrentDomain.GetAssemblies())
+                    {
+                        if (asm.IsDynamic) continue;
+                        var asmName = asm.GetName().Name;
+                        if (string.IsNullOrEmpty(asmName) || asmName.StartsWith("System.", StringComparison.OrdinalIgnoreCase) || asmName.StartsWith("Microsoft.", StringComparison.OrdinalIgnoreCase)) continue;
+
+                        var candidateUri = new Uri($"avares://{asmName}/{resourceRelativePath}");
+                        if (Avalonia.Platform.AssetLoader.Exists(candidateUri))
+                        {
+                            using var stream = Avalonia.Platform.AssetLoader.Open(candidateUri);
+                            return new Bitmap(stream);
+                        }
+                    }
                 }
-                else if (System.IO.File.Exists(pathOrUri))
+                else
                 {
-                    return new Bitmap(pathOrUri);
+                    // 非 avares:// 開頭之相對路徑字串 (例如 "Assets/logo.png", "logo.png", "assets/images/pic.png")
+                    var cleanRelative = trimmed.TrimStart('/', '\\').Replace('\\', '/');
+                    var fileName = System.IO.Path.GetFileName(cleanRelative);
+                    var possiblePaths = new[]
+                    {
+                        cleanRelative,
+                        $"Assets/{cleanRelative}",
+                        $"Assets/{fileName}"
+                    };
+
+                    var targetAsmNames = new System.Collections.Generic.List<string>();
+                    var currentAsmName = typeof(BitmapHelper).Assembly.GetName().Name;
+                    if (!string.IsNullOrEmpty(currentAsmName)) targetAsmNames.Add(currentAsmName);
+
+                    var entryName = System.Reflection.Assembly.GetEntryAssembly()?.GetName().Name;
+                    if (!string.IsNullOrEmpty(entryName))
+                    {
+                        targetAsmNames.Add(entryName);
+                        targetAsmNames.Add($"{entryName}.Shared");
+                    }
+
+                    foreach (var asm in AppDomain.CurrentDomain.GetAssemblies())
+                    {
+                        if (asm.IsDynamic) continue;
+                        var name = asm.GetName().Name;
+                        if (!string.IsNullOrEmpty(name) && !name.StartsWith("System.", StringComparison.OrdinalIgnoreCase) && !name.StartsWith("Microsoft.", StringComparison.OrdinalIgnoreCase) && !targetAsmNames.Contains(name))
+                        {
+                            targetAsmNames.Add(name);
+                        }
+                    }
+
+                    foreach (var asmName in targetAsmNames)
+                    {
+                        foreach (var resPath in possiblePaths)
+                        {
+                            var candidateUri = new Uri($"avares://{asmName}/{resPath}");
+                            if (Avalonia.Platform.AssetLoader.Exists(candidateUri))
+                            {
+                                using var stream = Avalonia.Platform.AssetLoader.Open(candidateUri);
+                                return new Bitmap(stream);
+                            }
+                        }
+                    }
                 }
             }
             catch
             {
-                // 防禦性忽略載入異常
+                // 忽略資源解析異常，進入磁碟後備搜尋
             }
+
+            // 3. 後備機制：在應用程式目錄、執行目錄與 Assets 子目錄搜尋實體檔案
+            try
+            {
+                var rawFileName = System.IO.Path.GetFileName(trimmed.Replace('/', System.IO.Path.DirectorySeparatorChar).Replace('\\', System.IO.Path.DirectorySeparatorChar));
+                var baseDir = AppContext.BaseDirectory;
+                var currentDir = System.IO.Directory.GetCurrentDirectory();
+
+                var diskCandidates = new[]
+                {
+                    System.IO.Path.Combine(baseDir, trimmed),
+                    System.IO.Path.Combine(baseDir, "Assets", rawFileName),
+                    System.IO.Path.Combine(baseDir, rawFileName),
+                    System.IO.Path.Combine(currentDir, trimmed),
+                    System.IO.Path.Combine(currentDir, "Assets", rawFileName),
+                    System.IO.Path.Combine(currentDir, rawFileName)
+                };
+
+                foreach (var diskPath in diskCandidates)
+                {
+                    if (System.IO.File.Exists(diskPath))
+                    {
+                        return new Bitmap(diskPath);
+                    }
+                }
+            }
+            catch
+            {
+                // 防禦性忽略磁碟讀取例外
+            }
+
             return null;
         }
     }

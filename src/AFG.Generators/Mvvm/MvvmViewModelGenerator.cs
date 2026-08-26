@@ -36,7 +36,7 @@ public sealed class MvvmViewModelGenerator : ICodeGenerator
                         ? binding.CustomDataType.Trim()
                         : InferPropertyType(binding.TargetProperty, node.Type);
 
-                    var initialVal = ExtractInitialValue(node, binding.TargetProperty, propType);
+                    var initialVal = ExtractInitialValue(node, binding.TargetProperty, propType, document.RootNamespace);
                     properties[propName] = (propType, initialVal);
                 }
             }
@@ -389,18 +389,35 @@ public sealed class MvvmViewModelGenerator : ICodeGenerator
         return string.Empty;
     }
 
-    private static string? ExtractInitialValue(AstNode node, string targetProperty, string propType)
+    private static string? ExtractInitialValue(AstNode node, string targetProperty, string propType, string rootNamespace = "MainFormApp")
     {
         return targetProperty switch
         {
             "Text" => !string.IsNullOrEmpty(node.Text) ? $"\"{Roslyn.CSharpSyntaxSanitizer.EscapeStringLiteral(node.Text)}\"" : null,
             "Content" => !string.IsNullOrEmpty(node.Content) ? $"\"{Roslyn.CSharpSyntaxSanitizer.EscapeStringLiteral(node.Content)}\"" : null,
             "Source" when node.InitBitmap => $"BitmapHelper.CreateInitializedBitmap({(node.Width ?? 200).ToString(System.Globalization.CultureInfo.InvariantCulture)}, {(node.Height ?? 150).ToString(System.Globalization.CultureInfo.InvariantCulture)}, Brush.Parse(\"{(string.IsNullOrWhiteSpace(node.BitmapBackgroundColor) ? "#F0F0F0" : node.BitmapBackgroundColor)}\"))",
-            "Source" when !string.IsNullOrEmpty(node.Source) => $"BitmapHelper.LoadBitmap(\"{Roslyn.CSharpSyntaxSanitizer.EscapeStringLiteral(node.Source)}\")",
+            "Source" when !string.IsNullOrEmpty(node.Source) => ExtractSourceExpression(node, rootNamespace),
             "IsChecked" when node.IsChecked.HasValue => node.IsChecked.Value ? "true" : "false",
             "Value" when node.Value.HasValue => node.Value.Value.ToString(System.Globalization.CultureInfo.InvariantCulture),
             _ => null
         };
+    }
+
+    private static string ExtractSourceExpression(AstNode node, string rootNamespace)
+    {
+        var sourcePath = node.Source!.Trim();
+        if (node.UseRelativePath)
+        {
+            var fileName = System.IO.Path.GetFileName(sourcePath);
+            var sharedAsmName = rootNamespace.EndsWith(".Shared", StringComparison.OrdinalIgnoreCase)
+                ? rootNamespace
+                : $"{rootNamespace}.Shared";
+            var assetUri = sourcePath.StartsWith("avares://", StringComparison.OrdinalIgnoreCase) || sourcePath.StartsWith("http", StringComparison.OrdinalIgnoreCase)
+                ? sourcePath
+                : $"avares://{sharedAsmName}/Assets/{fileName}";
+            return $"BitmapHelper.LoadBitmap(\"{Roslyn.CSharpSyntaxSanitizer.EscapeStringLiteral(assetUri)}\")";
+        }
+        return $"BitmapHelper.LoadBitmap(\"{Roslyn.CSharpSyntaxSanitizer.EscapeStringLiteral(sourcePath)}\")";
     }
 
     public static string NormalizePropertyName(string name)

@@ -159,6 +159,7 @@ public sealed class ProjectExportService(FormCodeGenerator? codeGenerator = null
 
           <ItemGroup>
             <AvaloniaResource Include="Assets\**" />
+            <None Update="Assets\**" CopyToOutputDirectory="PreserveNewest" />
           </ItemGroup>
         </Project>
         """;
@@ -1284,14 +1285,22 @@ public sealed class ProjectExportService(FormCodeGenerator? codeGenerator = null
             if (picNode.UseRelativePath && !string.IsNullOrWhiteSpace(picNode.Source))
             {
                 var sourcePath = picNode.Source.Trim();
-                if (File.Exists(sourcePath))
+                var resolvedSourcePath = File.Exists(sourcePath)
+                    ? sourcePath
+                    : (File.Exists(Path.Combine(Directory.GetCurrentDirectory(), sourcePath))
+                        ? Path.Combine(Directory.GetCurrentDirectory(), sourcePath)
+                        : (File.Exists(Path.Combine(AppContext.BaseDirectory, sourcePath))
+                            ? Path.Combine(AppContext.BaseDirectory, sourcePath)
+                            : null));
+
+                if (resolvedSourcePath != null)
                 {
                     if (!Directory.Exists(sharedAssetsDir))
                     {
                         Directory.CreateDirectory(sharedAssetsDir);
                     }
-                    var targetAssetFile = Path.Combine(sharedAssetsDir, Path.GetFileName(sourcePath));
-                    File.Copy(sourcePath, targetAssetFile, overwrite: true);
+                    var targetAssetFile = Path.Combine(sharedAssetsDir, Path.GetFileName(resolvedSourcePath));
+                    File.Copy(resolvedSourcePath, targetAssetFile, overwrite: true);
                 }
             }
         }

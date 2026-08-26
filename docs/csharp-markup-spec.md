@@ -232,7 +232,16 @@ var renderTarget = bitmap.ConvertToRenderTargetBitmap();
 wb.SetPixel(10, 20, Colors.Red);
 Color pixel = wb.GetPixel(10, 20);
 
-// 4. 動態載入點陣圖 (支援本機路徑與 avares:// 資源路徑)
+// 4. 動態載入點陣圖 (支援本機路徑、avares:// 資源路徑與多層次容錯解析)
 var loadedBitmap = BitmapHelper.LoadBitmap("avares://MyApp.Shared/Assets/logo.png");
 ```
+
+### 4.3 `BitmapHelper.LoadBitmap` 多層次動態容錯解析機制
+為了確保在跨平台多專案（`.Desktop`, `.Shared`, `.Browser`, `.Android`, `.iOS`）環境下資源載入的 100% 可靠性，`LoadBitmap` 實作了強韌的多層次解析策略：
+1. **本機實體檔案直讀**：若傳入為實體檔案路徑且檔案存在（如設計階段的暫存檔），直接使用 `new Bitmap(path)`。
+2. **Avalonia Resource 規範解析 (`avares://`)**：
+   - 優先以傳入之 URI 呼叫 `AssetLoader.Exists(uri)`。
+   - 若組件名稱不匹配（例如 URI 為 `avares://MyApp/Assets/logo.png`，但實際執行組件為 `MyApp.Shared`），自動提取相對路徑並依序嘗試 `typeof(BitmapHelper).Assembly`、`Assembly.GetEntryAssembly()` 與目前 AppDomain 所有已載入組件進行重定向載入。
+3. **純相對路徑字串支援**：傳入 `"Assets/logo.png"` 或 `"logo.png"` 時，自動組合為 `avares://{AssemblyName}/Assets/{fileName}` 進行資源載入。
+4. **輸出目錄磁碟後備 (Disk Fallback)**：當嵌入式資源在極端情況下未載入時，在 `AppContext.BaseDirectory` 與執行目錄的 `Assets/` 資料夾中搜尋同名實體檔案作為後備方案。
 
