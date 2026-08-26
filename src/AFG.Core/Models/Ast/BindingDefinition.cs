@@ -93,4 +93,43 @@ public sealed record EventMappingDefinition(
 
         return [];
     }
+
+    public bool Equals(EventMappingDefinition? other)
+    {
+        if (other is null) return false;
+        if (ReferenceEquals(this, other)) return true;
+
+        if (EventName != other.EventName ||
+            CommandProperty != other.CommandProperty ||
+            CommandParameterProperty != other.CommandParameterProperty ||
+            IsAsync != other.IsAsync ||
+            ParameterType != other.ParameterType ||
+            IsConstantParameter != other.IsConstantParameter)
+        {
+            return false;
+        }
+
+        var p1 = Parameters ?? [];
+        var p2 = other.Parameters ?? [];
+        return p1.SequenceEqual(p2);
+    }
+
+    public override int GetHashCode()
+    {
+        var hash = new HashCode();
+        hash.Add(EventName);
+        hash.Add(CommandProperty);
+        hash.Add(CommandParameterProperty);
+        hash.Add(IsAsync);
+        hash.Add(ParameterType);
+        hash.Add(IsConstantParameter);
+        if (Parameters is not null)
+        {
+            foreach (var p in Parameters)
+            {
+                hash.Add(p);
+            }
+        }
+        return hash.ToHashCode();
+    }
 }

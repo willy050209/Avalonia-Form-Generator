@@ -175,4 +175,68 @@ public sealed class MainViewModelTests
         vm.Inspector.CanvasLeft.Should().Be(80);
         vm.Inspector.CanvasTop.Should().Be(120);
     }
+
+    [Fact]
+    public void ModifyingBindingInInspector_ShouldSynchronouslyUpdateGeneratedPreviewCode()
+    {
+        // Arrange
+        var vm = new MainViewModel();
+        var tbItem = new ToolboxItem("文字方塊", "常用", ControlType.TextBox, "txt", 150, 30, "");
+        vm.Canvas.AddControlFromToolbox(tbItem, 50, 50);
+
+        // Select the newly added TextBox
+        var selected = vm.Canvas.SelectedNode;
+        selected.Should().NotBeNull();
+        vm.Inspector.HasSelectedNode.Should().BeTrue();
+
+        // Act: Add and modify a binding via Inspector
+        vm.Inspector.AddBindingCommand.Execute(null);
+        vm.Inspector.Bindings.Should().HaveCount(1);
+        vm.Inspector.Bindings[0].ViewModelProperty = "UserEmailAddress";
+
+        // Assert: Code preview must immediately reflect the new binding
+        vm.GeneratedViewCode.Should().Contain(".Text((MainFormViewModel vm) => vm.UserEmailAddress, BindingMode.TwoWay)");
+        vm.GeneratedVmCode.Should().Contain("private string _userEmailAddress = string.Empty;");
+    }
+
+    [Fact]
+    public void ModifyingEventInInspector_ShouldSynchronouslyUpdateGeneratedPreviewCode()
+    {
+        // Arrange
+        var vm = new MainViewModel();
+        var btnItem = new ToolboxItem("按鈕", "常用", ControlType.Button, "btn", 120, 35, "Submit");
+        vm.Canvas.AddControlFromToolbox(btnItem, 50, 50);
+
+        var selected = vm.Canvas.SelectedNode;
+        selected.Should().NotBeNull();
+        vm.Inspector.HasSelectedNode.Should().BeTrue();
+
+        // Act: Add and modify an event via Inspector
+        vm.Inspector.AddEventCommand.Execute(null);
+        vm.Inspector.Events.Should().HaveCount(1);
+        vm.Inspector.Events[0].CommandProperty = "PerformSubmitCommand";
+
+        // Assert: Code preview must immediately reflect the new event command
+        vm.GeneratedViewCode.Should().Contain(".OnClick((MainFormViewModel vm) => vm.PerformSubmitCommand)");
+        vm.GeneratedVmCode.Should().Contain("private async Task PerformSubmitAsync(");
+    }
+
+    [Fact]
+    public void ModifyingFormEventInInspector_ShouldSynchronouslyUpdateGeneratedPreviewCode()
+    {
+        // Arrange
+        var vm = new MainViewModel();
+        vm.Inspector.SelectFormCommand.Execute(null);
+        vm.Inspector.IsFormSelected.Should().BeTrue();
+
+        // Act: Add and modify a form event via Inspector
+        vm.Inspector.AddFormEventCommand.Execute(null);
+        vm.Inspector.FormEvents.Should().HaveCount(1);
+        vm.Inspector.FormEvents[0].EventName = "Loaded";
+        vm.Inspector.FormEvents[0].CommandProperty = "InitializeWindowCommand";
+
+        // Assert: Code preview must immediately reflect the form event in View and ViewModel
+        vm.GeneratedViewCode.Should().Contain("Loaded += (sender, e) => (DataContext as MainFormViewModel)?.InitializeWindowCommand.Execute(e);");
+        vm.GeneratedVmCode.Should().Contain("private async Task InitializeWindowAsync(");
+    }
 }

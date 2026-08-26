@@ -311,4 +311,79 @@ public sealed class InspectorViewModelTests
         updatedDoc.Should().NotBeNull();
         updatedDoc!.Events.Should().BeEmpty();
     }
+
+    [Fact]
+    public void ModifyingBindingItemProperty_ShouldSynchronouslyTriggerNodeUpdated()
+    {
+        // Arrange
+        var vm = new InspectorViewModel();
+        var node = new AstNode
+        {
+            Id = "txt1",
+            Name = "UsernameInput",
+            Type = ControlType.TextBox,
+            Bindings = [new BindingDefinition { TargetProperty = "Text", ViewModelProperty = "OldName", Mode = BindingMode.TwoWay }]
+        };
+        AstNode? updatedNode = null;
+        vm.NodeUpdated += n => updatedNode = n;
+        vm.LoadNode(node);
+
+        // Act: Modify the ViewModelProperty of the binding in the Inspector
+        vm.Bindings[0].ViewModelProperty = "NewAccountName";
+
+        // Assert
+        updatedNode.Should().NotBeNull();
+        updatedNode!.Bindings.Should().HaveCount(1);
+        updatedNode.Bindings[0].ViewModelProperty.Should().Be("NewAccountName");
+        updatedNode.Bindings[0].TargetProperty.Should().Be("Text");
+    }
+
+    [Fact]
+    public void ModifyingEventItemProperty_ShouldSynchronouslyTriggerNodeUpdated()
+    {
+        // Arrange
+        var vm = new InspectorViewModel();
+        var node = new AstNode
+        {
+            Id = "btn1",
+            Name = "SubmitButton",
+            Type = ControlType.Button,
+            Events = [new EventMappingDefinition { EventName = "Click", CommandProperty = "OldCommand" }]
+        };
+        AstNode? updatedNode = null;
+        vm.NodeUpdated += n => updatedNode = n;
+        vm.LoadNode(node);
+
+        // Act: Modify the CommandProperty of the event in the Inspector
+        vm.Events[0].CommandProperty = "SaveDataCommand";
+
+        // Assert
+        updatedNode.Should().NotBeNull();
+        updatedNode!.Events.Should().HaveCount(1);
+        updatedNode.Events[0].CommandProperty.Should().Be("SaveDataCommand");
+        updatedNode.Events[0].EventName.Should().Be("Click");
+    }
+
+    [Fact]
+    public void ModifyingFormEventItemProperty_ShouldSynchronouslyTriggerFormUpdated()
+    {
+        // Arrange
+        var vm = new InspectorViewModel();
+        var doc = new FormDocument
+        {
+            Title = "MainForm",
+            Events = [new EventMappingDefinition { EventName = "Loaded", CommandProperty = "InitFormCommand" }]
+        };
+        FormDocument? updatedDoc = null;
+        vm.FormUpdated += d => updatedDoc = d;
+        vm.LoadDocument(doc);
+
+        // Act: Modify the CommandProperty of the form event in the Inspector
+        vm.FormEvents[0].CommandProperty = "RefreshOnLoadCommand";
+
+        // Assert
+        updatedDoc.Should().NotBeNull();
+        updatedDoc!.Events.Should().HaveCount(1);
+        updatedDoc.Events[0].CommandProperty.Should().Be("RefreshOnLoadCommand");
+    }
 }

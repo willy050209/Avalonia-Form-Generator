@@ -31,11 +31,6 @@ public sealed partial class InspectorViewModel : ObservableObject
     public event Action<AstNode>? NodeUpdated;
     public event Action<FormDocument>? FormUpdated;
 
-    public InspectorViewModel(Services.IFileDialogService? fileDialogService = null)
-    {
-        _fileDialogService = fileDialogService;
-    }
-
     [ObservableProperty]
     private bool _isFormSelected = true;
 
@@ -292,42 +287,121 @@ public sealed partial class InspectorViewModel : ObservableObject
         Core.Enums.Stretch.UniformToFill
     ];
 
-    public InspectorViewModel()
+    public InspectorViewModel() : this(null) { }
+
+    public InspectorViewModel(Services.IFileDialogService? fileDialogService = null)
     {
+        _fileDialogService = fileDialogService;
+
         Bindings.CollectionChanged += (s, e) =>
         {
+            if (e.OldItems is not null)
+            {
+                foreach (BindingItemViewModel item in e.OldItems)
+                {
+                    item.PropertyChanged -= OnBindingItemPropertyChanged;
+                }
+            }
             if (e.NewItems is not null)
             {
                 foreach (BindingItemViewModel item in e.NewItems)
                 {
-                    item.PropertyChanged += (_, _) => ApplyChanges();
+                    item.PropertyChanged += OnBindingItemPropertyChanged;
                 }
+            }
+            if (!_isUpdating)
+            {
+                ApplyChanges();
             }
         };
 
         Events.CollectionChanged += (s, e) =>
         {
+            if (e.OldItems is not null)
+            {
+                foreach (EventItemViewModel item in e.OldItems)
+                {
+                    item.PropertyChanged -= OnEventItemPropertyChanged;
+                    item.ParameterChanged -= OnEventItemParameterChanged;
+                }
+            }
             if (e.NewItems is not null)
             {
                 foreach (EventItemViewModel item in e.NewItems)
                 {
-                    item.PropertyChanged += (_, _) => ApplyChanges();
-                    item.ParameterChanged += ApplyChanges;
+                    item.PropertyChanged += OnEventItemPropertyChanged;
+                    item.ParameterChanged += OnEventItemParameterChanged;
                 }
+            }
+            if (!_isUpdating)
+            {
+                ApplyChanges();
             }
         };
 
         FormEvents.CollectionChanged += (s, e) =>
         {
+            if (e.OldItems is not null)
+            {
+                foreach (EventItemViewModel item in e.OldItems)
+                {
+                    item.PropertyChanged -= OnFormEventItemPropertyChanged;
+                    item.ParameterChanged -= OnFormEventItemParameterChanged;
+                }
+            }
             if (e.NewItems is not null)
             {
                 foreach (EventItemViewModel item in e.NewItems)
                 {
-                    item.PropertyChanged += (_, _) => ApplyFormChanges();
-                    item.ParameterChanged += ApplyFormChanges;
+                    item.PropertyChanged += OnFormEventItemPropertyChanged;
+                    item.ParameterChanged += OnFormEventItemParameterChanged;
                 }
             }
+            if (!_isUpdating)
+            {
+                ApplyFormChanges();
+            }
         };
+    }
+
+    private void OnBindingItemPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        if (!_isUpdating)
+        {
+            ApplyChanges();
+        }
+    }
+
+    private void OnEventItemPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        if (!_isUpdating)
+        {
+            ApplyChanges();
+        }
+    }
+
+    private void OnEventItemParameterChanged()
+    {
+        if (!_isUpdating)
+        {
+            ApplyChanges();
+        }
+    }
+
+    private void OnFormEventItemPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        if (!_isUpdating)
+        {
+            ApplyFormChanges();
+        }
+    }
+
+    private void OnFormEventItemParameterChanged()
+    {
+        if (!_isUpdating)
+        {
+            ApplyFormChanges();
+        }
     }
 
     public void LoadNode(AstNode? node, AstNode? parentNode = null)
@@ -430,18 +504,23 @@ public sealed partial class InspectorViewModel : ObservableObject
         IsGridCellSupported = parentNode?.Type == CoreControlType.Grid;
         IsDockSupported = parentNode?.Type == CoreControlType.DockPanel;
 
-        if (!isSameNode)
+        var targetBindings = node.Bindings ?? [];
+        var currentBindings = Bindings.Select(b => b.ToDefinition()).ToImmutableList();
+        if (!targetBindings.SequenceEqual(currentBindings))
         {
-            // 載入資料綁定
             Bindings.Clear();
-            foreach (var b in node.Bindings)
+            foreach (var b in targetBindings)
             {
                 Bindings.Add(BindingItemViewModel.FromDefinition(b));
             }
+        }
 
-            // 載入事件
+        var targetEvents = node.Events ?? [];
+        var currentEvents = Events.Select(e => e.ToDefinition()).ToImmutableList();
+        if (!targetEvents.SequenceEqual(currentEvents))
+        {
             Events.Clear();
-            foreach (var e in node.Events)
+            foreach (var e in targetEvents)
             {
                 Events.Add(EventItemViewModel.FromDefinition(e, node.Type));
             }
@@ -485,10 +564,12 @@ public sealed partial class InspectorViewModel : ObservableObject
         FormViewModelClassName = doc.ViewModelClassName;
         FormRootNamespace = doc.RootNamespace;
 
-        FormEvents.Clear();
-        if (doc.Events != null)
+        var docEvents = doc.Events ?? [];
+        var currentFormEvents = FormEvents.Select(e => e.ToDefinition()).ToImmutableList();
+        if (!docEvents.SequenceEqual(currentFormEvents))
         {
-            foreach (var e in doc.Events)
+            FormEvents.Clear();
+            foreach (var e in docEvents)
             {
                 FormEvents.Add(EventItemViewModel.FromFormEventDefinition(e));
             }

@@ -342,6 +342,11 @@ public sealed class CSharpMarkupViewGenerator : ICodeGenerator
         // 5. MVVM 綁定配置 (一律傳遞明確的 BindingMode 列舉參數，並進行關鍵字逃逸)
         foreach (var binding in node.Bindings)
         {
+            if (string.IsNullOrWhiteSpace(binding.TargetProperty) || string.IsNullOrWhiteSpace(binding.ViewModelProperty))
+            {
+                continue;
+            }
+
             var normalizedProp = Mvvm.MvvmViewModelGenerator.NormalizePropertyName(binding.ViewModelProperty);
             var safeProp = CSharpSyntaxSanitizer.EscapeIdentifier(normalizedProp);
             var modeName = binding.Mode switch
@@ -356,8 +361,8 @@ public sealed class CSharpMarkupViewGenerator : ICodeGenerator
             };
 
             var bindingCall = useCompiledBindings
-                ? $".{binding.TargetProperty}(({viewModelClassName} vm) => vm.{safeProp}, {modeName})"
-                : $".{binding.TargetProperty}(nameof({viewModelClassName}.{safeProp}), {modeName})";
+                ? $".{binding.TargetProperty.Trim()}(({viewModelClassName} vm) => vm.{safeProp}, {modeName})"
+                : $".{binding.TargetProperty.Trim()}(nameof({viewModelClassName}.{safeProp}), {modeName})";
 
             sb.AppendLine($"{innerIndent}{bindingCall}");
         }
@@ -365,6 +370,11 @@ public sealed class CSharpMarkupViewGenerator : ICodeGenerator
         // 6. 事件映射至命令 (標準化 Command 名稱並進行關鍵字逃逸，支援 CommandParameter 傳遞)
         foreach (var evt in node.Events)
         {
+            if (string.IsNullOrWhiteSpace(evt.EventName) || string.IsNullOrWhiteSpace(evt.CommandProperty))
+            {
+                continue;
+            }
+
             var normalizedCmd = Mvvm.MvvmViewModelGenerator.NormalizeCommandName(evt.CommandProperty);
             var safeCmd = CSharpSyntaxSanitizer.EscapeIdentifier(normalizedCmd);
             var effectiveParams = evt.GetEffectiveParameters();
@@ -374,7 +384,7 @@ public sealed class CSharpMarkupViewGenerator : ICodeGenerator
 
             if (paramWithBinding is null)
             {
-                var eventMethod = evt.EventName switch
+                var eventMethod = evt.EventName.Trim() switch
                 {
                     "Click" => "OnClick",
                     "Tapped" => "OnTapped",
