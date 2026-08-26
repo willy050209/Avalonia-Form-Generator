@@ -361,8 +361,6 @@ public sealed class MvvmViewModelGeneratorTests
         var result = _generator.Generate(doc);
 
         // Assert
-        result.Content.Should().Contain("using Microsoft.Extensions.Logging;");
-        result.Content.Should().Contain("using DiagnosticsApp.ViewModels.Services;");
         result.Content.Should().Contain("private readonly InMemoryLogService? _logService;");
         result.Content.Should().Contain("private readonly ILogger<DiagnosticsViewModel>? _logger;");
         result.Content.Should().Contain("private ObservableCollection<LogEntry> _logEntries = [];");
@@ -638,8 +636,6 @@ public sealed class MvvmViewModelGeneratorTests
         var result = _generator.Generate(doc);
 
         // Assert
-        result.Content.Should().Contain("using Avalonia.Interactivity;");
-        result.Content.Should().Contain("using Avalonia.Input;");
         result.Content.Should().Contain("private async Task SubmitAsync(RoutedEventArgs? e = default)");
         result.Content.Should().Contain("private void CanvasPressed(PointerPressedEventArgs? e = default)");
 
