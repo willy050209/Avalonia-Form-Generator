@@ -16,8 +16,20 @@
   "viewClassName": "UserFormView",
   "viewModelClassName": "UserFormViewModel",
   "title": "使用者表單",
+  "backgroundColor": "#FFFFFF",
   "canvasWidth": 390.0,
   "canvasHeight": 844.0,
+  "minWidth": 320.0,
+  "minHeight": 480.0,
+  "maxWidth": null,
+  "maxHeight": null,
+  "windowStartupLocation": "CenterScreen",
+  "windowState": "Normal",
+  "canResize": true,
+  "topmost": false,
+  "showInTaskbar": true,
+  "icon": "Assets/app_icon.ico",
+  "systemDecorations": "Full",
   "enableDependencyInjection": true,
   "useCompiledBindings": false,
   "injectedServices": [
@@ -40,8 +52,20 @@
 | `viewClassName` | `string` | `"MainFormView"` | 生成的 View 類別名稱 |
 | `viewModelClassName` | `string` | `"MainFormViewModel"` | 生成的 ViewModel 類別名稱 |
 | `title` | `string` | `"Avalonia Form"` | 視窗/表單標題 |
+| `backgroundColor` | `string?` | `null` | 表單與視窗背景色彩代碼（例如 `#FFFFFF`, `#1E1E2E`） |
 | `canvasWidth` | `double` | `800.0` | 設計畫布寬度 (px) |
 | `canvasHeight` | `double` | `600.0` | 設計畫布高度 (px) |
+| `minWidth` | `double?` | `null` | 視窗最小寬度限制 (px) |
+| `minHeight` | `double?` | `null` | 視窗最小高度限制 (px) |
+| `maxWidth` | `double?` | `null` | 視窗最大寬度限制 (px) |
+| `maxHeight` | `double?` | `null` | 視窗最大高度限制 (px) |
+| `windowStartupLocation` | `WindowStartupLocation` | `CenterScreen` | 視窗啟動定位位置 (`CenterScreen`, `CenterOwner`, `Manual`) |
+| `windowState` | `WindowState` | `Normal` | 視窗初始顯示狀態 (`Normal`, `Maximized`, `Minimized`, `FullScreen`) |
+| `canResize` | `bool` | `true` | 是否允許使用者拉伸縮放視窗大小 |
+| `topmost` | `bool` | `false` | 是否視窗永遠置頂 |
+| `showInTaskbar` | `bool` | `true` | 是否在作業系統工作列中顯示圖示與標籤 |
+| `icon` | `string?` | `null` | 視窗圖示路徑（支援本機檔案或 Assets 相對資源） |
+| `systemDecorations` | `SystemDecorations` | `Full` | 系統標題列與邊框裝飾樣式 (`Full`, `None`, `BorderOnly`) |
 | `enableDependencyInjection` | `bool` | `true` | 是否在此表單啟用相依性注入架構配置 |
 | `useCompiledBindings` | `bool` | `true` | 是否生成強型別編譯綁定 (Compiled / Lambda Bindings) 語法（預設為 true） |
 | `injectedServices` | `Array<ServiceDependencyDefinition>` | `[]` | 注入至此 ViewModel 的自訂服務相依性清單 |

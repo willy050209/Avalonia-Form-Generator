@@ -249,7 +249,7 @@ AvaloniaFormGenerator/
     - 在 `CSharpMarkupViewGenerator` 產出 View (`UserControl`) 背景色、尺寸等屬性。
     - 在 `ProjectExportService` 為 `App.cs` / `MainWindow` 與 `Config.cs` 生成完整的視窗屬性設定（Title, Width, Height, Min/Max, Background, WindowStartupLocation, WindowState, CanResize, Topmost, ShowInTaskbar, Icon 等）。
     - 撰寫生成器與專案匯出實體編譯測試（執行 `dotnet build` 驗證 0 錯誤通過）。
-  - [ ] 14.4 **Phase 4: 全套技術文件更新與最終全專案驗證 (Documentation & Final Verification)**
+  - [x] 14.4 **Phase 4: 全套技術文件更新與最終全專案驗證 (Documentation & Final Verification)**
     - 更新 `README.md`、`docs/architecture.md`、`docs/ast-schema.md`、`docs/csharp-markup-spec.md`、`docs/user-guide.md` 與 `plan.md`。
     - 執行全專案 100% 測試驗證（0 Error, 0 Warning）並完成各階段 Git Commit。
 

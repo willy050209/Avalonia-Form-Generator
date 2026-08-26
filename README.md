@@ -68,6 +68,7 @@ graph LR
 
 2. **屬性與事件檢查器 (`Property & Event Inspector`)**
    - **外觀與幾何屬性配置**：Text, Content, Watermark, Width/Height, Margins, Alignments, Opacity, IsEnabled 等。
+   - **表單與視窗控制屬性系統**：支援表單與控制項模式雙向切換；提供視窗外觀（Title, BackgroundColor, Icon, View/ViewModel 名稱）、尺寸邊界（Canvas 寬高、快捷解析度、MinWidth/MinHeight/MaxWidth/MaxHeight）與行為控制（WindowStartupLocation, WindowState, CanResize, Topmost, ShowInTaskbar, SystemDecorations）之專屬配置面板與色碼即時選色器。
    - **MVVM 視覺化綁定建構器 (`Binding Builder`)**：支援屬性雙向綁定 (TwoWay)、單向綁定 (OneWay) 與模式切換。
    - **多參數事件轉命令 (`Event-to-Command Mapping`)**：自動將 Click / SelectionChanged / Tick 等事件映射為 RelayCommand，支援事件專屬 EventArgs 型別過濾與多參數配置，並預設傳遞 `(sender, e)`。
    - **ValueTuple 安全性防護**：產生的命令參數宣告為可為空型別 (`(sender, e)? args = null`)，確保 CommunityToolkit.Mvvm 的 `CanExecute(null)` 正確判定，絕不引發按鈕禁用或閃退。
@@ -78,13 +79,11 @@ graph LR
    - **純 C# Markup 宣告式 UI 與物件名稱註解**：無 AXAML 依賴，採用 Fluent Method Chaining 鏈式調用，並在 View 中每個物件的建構子上方自動加入該物件名稱註解（例如 `// LoginButton`、`// MainCanvas`），提升程式碼可讀性。
    - **跨平台對話方塊服務 (`IDialogService` & `MessageBoxWindow`)**：匯出專案內建開檔、存檔與訊息對話方塊支援，整合 Avalonia 原生 `StorageProvider` 與現代化對話視窗。
    - **原生事件轉發擴充**：提供 `OnClick`、`OnTextChanged`、`OnSelectionChanged` 等擴充方法，由 View 端原生事件直接激勵 ViewModel 命令。
-   - **可配置視窗尺寸**：依設計器與解析度規格生成標準視窗尺寸 (`Width` / `Height`)，預設不強制全螢幕。
+   - **可配置視窗尺寸與啟動狀態**：依設計器與解析度規格生成標準視窗尺寸 (`Width` / `Height` / `Min` / `Max`)、`Background`、`WindowStartupLocation`、`WindowState`、`CanResize`、`Topmost` 與 `ShowInTaskbar`。
    - **Roslyn 格式化與記憶體編譯診斷**：使用 Roslyn 語法樹標準化縮排，並在記憶體中編譯檢查，即時提供語法警告。
-   - **全面整合 `Microsoft.Extensions.DependencyInjection` 與 `Microsoft.Extensions.Logging`**：在 `App.cs` 配置 `ServiceCollection` / `ServiceProvider`，自動註冊 Services、ViewModels、Views 與 Logging 體系，支援 ViewModel 建構子相依性注入與 `ILogger<T>` 注入。
-   - **開箱即用內嵌 Debug Console 與 TextWriter 重定向**：內建 `InMemoryLogService`、`InMemoryLoggerProvider` 與繼承自 `System.IO.TextWriter` 的 `ConsoleRedirectWriter`，無縫攔截 `ILogger` 與 `Console.Out` / `Console.Error`，提供一鍵清除與即時日誌流檢視。
 
 4. **專案檔保存與載入 (`.afg.json`)**
-   - 完整支援將設計中介語意樹序列化為 JSON 檔，方便團隊協同與二次編輯。
+   - 完整支援將設計中介語意樹（包含視窗控制屬性與畫布狀態）序列化為 JSON 檔，方便團隊協同與二次編輯。
 
 ---
 
@@ -96,26 +95,7 @@ graph LR
 AvaloniaFormGenerator/
 ├── src/
 │   ├── AFG.Core/                         # [核心層] UI AST 中介模型、不可變結構、純函數樹操作、驗證與 JSON 序列化
-│   │   ├── Enums/                        # 控制項類型、佈局模式、綁定模式等列舉
-│   │   ├── Models/Ast/                   # AstNode, FormDocument, BindingDefinition, EventMapping, ControlEventCatalog
-│   │   ├── Models/Common/                # ThicknessModel, CornerRadiusModel, GridLengthModel
-│   │   ├── Serialization/                # AfgSerializer (.afg.json 專案檔讀寫)
-│   │  ### 2. 執行單元測試 (Run Tests)
-```bash
-dotnet test
-```
-> 目前包含 **182 / 182** 項單元與整合編譯測試，100% 全數通過，0 警告，0 錯誤。
-
-### 3. 啟動桌面設計器 (Run App)
-```bash
-dotnet run --project src/AFG.Desktop/AFG.Desktop.csproj
-```�，100% 全數通過，0 警告，0 錯誤。�專案分層結構)** 與 **SRP 單一職責原則**：
-
-```text
-AvaloniaFormGenerator/
-├── src/
-│   ├── AFG.Core/                         # [核心層] UI AST 中介模型、不可變結構、純函數樹操作、驗證與 JSON 序列化
-│   │   ├── Enums/                        # 控制項類型、佈局模式、綁定模式等列舉
+│   │   ├── Enums/                        # 控制項類型、佈局模式、綁定模式、視窗屬性等列舉
 │   │   ├── Models/Ast/                   # AstNode, FormDocument, BindingDefinition, EventMapping, ControlEventCatalog
 │   │   ├── Models/Common/                # ThicknessModel, CornerRadiusModel, GridLengthModel
 │   │   ├── Serialization/                # AfgSerializer (.afg.json 專案檔讀寫)
@@ -142,8 +122,8 @@ AvaloniaFormGenerator/
 │       └── Program.cs                    # 應用程式進入點 (ClassicDesktopStyleApplicationLifetime)
 │
 ├── tests/
-│   ├── AFG.Core.Tests/                   # AST 增刪改查、循環防護、驗證器、序列化、吸附與檢查器測試 (116 項測試)
-│   └── AFG.Generators.Tests/             # C# Markup 轉譯、ViewModel 生成、Roslyn 格式化、DI 驗證與整包專案建置測試 (51 項測試)
+│   ├── AFG.Core.Tests/                   # AST 增刪改查、循環防護、驗證器、序列化、吸附、檢查器與 Bitmap 測試 (139 項測試)
+│   └── AFG.Generators.Tests/             # C# Markup 轉譯、ViewModel 生成、Roslyn 格式化、DI 驗證與整包專案建置測試 (63 項測試)
 │
 ├── docs/                                 # 詳細技術規格與使用者手冊
 └── plan.md                               # 專案執行計劃書 (Phased Milestones)
@@ -166,7 +146,7 @@ dotnet build
 ```bash
 dotnet test
 ```
-> 目前包含 **182 / 182** 項單元與整合編譯測試，100% 全數通過，0 警告，0 錯誤。
+> 目前包含 **202 / 202** 項單元與整合編譯測試，100% 全數通過，0 警告，0 錯誤。
 
 ### 3. 啟動桌面設計器 (Run App)
 ```bash
@@ -359,7 +339,7 @@ public partial class App : Application
 
 本專案透過 GitHub Actions 提供完整的 CI/CD 跨平台建置與發布自動化流程：
 
-- **嚴格驗證機制**：僅在 `Windows`、`Linux`、`macOS` 全平台單元與整合測試（177 項測試，涵蓋實體 dotnet build）全數成功通過後，方可進入發布流程。
+- **嚴格驗證機制**：僅在 `Windows`、`Linux`、`macOS` 全平台單元與整合測試（202 項測試，涵蓋實體 dotnet build）全數成功通過後，方可進入發布流程。
 - **主流 4 大架構二進位檔案釋出**：
   | 平台 (OS) | 架構 (RID) | 發布產物 (Asset) | 說明 |
   | :--- | :--- | :--- | :--- |

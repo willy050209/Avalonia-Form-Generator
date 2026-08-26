@@ -245,3 +245,122 @@ var loadedBitmap = BitmapHelper.LoadBitmap("avares://MyApp.Shared/Assets/logo.pn
 3. **純相對路徑字串支援**：傳入 `"Assets/logo.png"` 或 `"logo.png"` 時，自動組合為 `avares://{AssemblyName}/Assets/{fileName}` 進行資源載入。
 4. **輸出目錄磁碟後備 (Disk Fallback)**：當嵌入式資源在極端情況下未載入時，在 `AppContext.BaseDirectory` 與執行目錄的 `Assets/` 資料夾中搜尋同名實體檔案作為後備方案。
 
+---
+
+## 5. 表單與視窗控制屬性系統 (Form & Window Control Properties)
+
+### 5.1 View (UserControl) 根背景與尺寸初始化
+在生成的 View (`UserControl`) 中，若有自訂 `BackgroundColor`，將在 `InitializeComponent` 內自動套用筆刷：
+```csharp
+public partial class MainFormView : UserControl
+{
+    public MainFormView()
+    {
+        InitializeComponent();
+    }
+
+    private void InitializeComponent()
+    {
+        Background = Brush.Parse("#1E293B");
+
+        // RootCanvas
+        Content = new Canvas()
+            .Children( ... );
+    }
+}
+```
+
+### 5.2 應用程式主視窗 (App.cs & MainWindow) 視窗屬性配置
+在專案匯出服務中，`App.cs` 與 `Config.cs` 將依據 `FormDocument` 所設定的視窗參數自動生成完整的視窗初始化程式碼：
+```csharp
+// App.cs 桌面端啟動視窗配置
+s_mainWindow = new Window
+{
+    Title = Config.AppTitle,
+    Width = Config.DefaultWindowWidth,
+    Height = Config.DefaultWindowHeight,
+    MinWidth = 800,
+    MinHeight = 600,
+    MaxWidth = 1920,
+    MaxHeight = 1080,
+    Background = Brush.Parse("#1E293B"),
+    WindowStartupLocation = WindowStartupLocation.CenterScreen,
+    WindowState = WindowState.Normal,
+    CanResize = Config.CanResize,
+    Topmost = Config.Topmost,
+    ShowInTaskbar = Config.ShowInTaskbar,
+    SystemDecorations = SystemDecorations.Full,
+    Icon = new WindowIcon(BitmapHelper.LoadBitmap("Assets/app_icon.ico")!),
+    Content = initialView
+};
+```
+
+### 5.3 Config.cs 全域組態常數
+```csharp
+public static class Config
+{
+    public const string AppTitle = "POS 終端收銀系統";
+    public const string Version = "1.0.0";
+    public const double DefaultWindowWidth = 1280;
+    public const double DefaultWindowHeight = 800;
+    public const bool CanResize = false;
+    public const bool Topmost = true;
+    public const bool ShowInTaskbar = true;
+    public const bool IsMobileSupported = false;
+}
+```
+
+---
+
+## 6. 全域命名空間管理 (Global Usings & Clean Architecture)
+
+為了確保生成的程式碼簡潔無冗餘，AFG 在專案匯出時於每個子專案根目錄產出 `GlobalUsings.cs`，統一管理共用命名空間與類型別名，各別實體類別（如 `App.cs`、`Config.cs`、服務層及對話方塊等）皆無需重複宣告 `using`：
+
+```csharp
+// GlobalUsings.cs (Shared 核心專案)
+global using System;
+global using System.Collections.Generic;
+global using System.Collections.ObjectModel;
+global using System.ComponentModel;
+global using System.Diagnostics;
+global using System.Globalization;
+global using System.IO;
+global using System.Linq;
+global using System.Linq.Expressions;
+global using System.Reflection;
+global using System.Runtime.InteropServices;
+global using System.Text;
+global using System.Threading;
+global using System.Threading.Tasks;
+global using System.Windows.Input;
+global using Avalonia;
+global using Avalonia.Animation;
+global using Avalonia.Controls;
+global using Avalonia.Controls.ApplicationLifetimes;
+global using Avalonia.Controls.Primitives;
+global using Avalonia.Controls.Shapes;
+global using Avalonia.Data;
+global using Avalonia.Input;
+global using Avalonia.Interactivity;
+global using Avalonia.Layout;
+global using Avalonia.Media;
+global using Avalonia.Media.Imaging;
+global using Avalonia.Platform;
+global using Avalonia.Platform.Storage;
+global using Avalonia.Styling;
+global using Avalonia.Themes.Fluent;
+global using Avalonia.Threading;
+global using CommunityToolkit.Mvvm.ComponentModel;
+global using CommunityToolkit.Mvvm.Input;
+global using Microsoft.Extensions.DependencyInjection;
+global using Microsoft.Extensions.Logging;
+global using {RootNamespace};
+global using {RootNamespace}.Services;
+global using OpenFileDialog = {RootNamespace}.Services.OpenFileDialog;
+global using SaveFileDialog = {RootNamespace}.Services.SaveFileDialog;
+global using MessageBox = {RootNamespace}.Services.MessageBox;
+global using LogEntry = {RootNamespace}.Services.LogEntry;
+global using InMemoryLogService = {RootNamespace}.Services.InMemoryLogService;
+```
+
+

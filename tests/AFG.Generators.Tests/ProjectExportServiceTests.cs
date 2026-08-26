@@ -92,16 +92,20 @@ public sealed class ProjectExportServiceTests
 
         // 3. OrderFormApp.Desktop 專案檔案
         var desktopProj = Path.Combine("src", "OrderFormApp.Desktop", "OrderFormApp.Desktop.csproj");
+        var desktopGlobalUsings = Path.Combine("src", "OrderFormApp.Desktop", "GlobalUsings.cs");
         var desktopProg = Path.Combine("src", "OrderFormApp.Desktop", "Program.cs");
         files.Should().Contain(f => f.FileName == desktopProj);
+        files.Should().Contain(f => f.FileName == desktopGlobalUsings);
         files.Should().Contain(f => f.FileName == desktopProg);
 
         // 4. OrderFormApp.Android 專案檔案
         var androidProj = Path.Combine("src", "OrderFormApp.Android", "OrderFormApp.Android.csproj");
+        var androidGlobalUsings = Path.Combine("src", "OrderFormApp.Android", "GlobalUsings.cs");
         var mainActivity = Path.Combine("src", "OrderFormApp.Android", "MainActivity.cs");
         var splashActivity = Path.Combine("src", "OrderFormApp.Android", "SplashActivity.cs");
         var manifest = Path.Combine("src", "OrderFormApp.Android", "AndroidManifest.xml");
         files.Should().Contain(f => f.FileName == androidProj);
+        files.Should().Contain(f => f.FileName == androidGlobalUsings);
         files.Should().Contain(f => f.FileName == mainActivity);
         files.Should().Contain(f => f.FileName == splashActivity);
         files.Should().Contain(f => f.FileName == manifest);
@@ -203,8 +207,10 @@ public sealed class ProjectExportServiceTests
             File.Exists(Path.Combine(tempFolder, "src", "MainFormApp.Shared", "Views", "MainFormView.cs")).Should().BeTrue();
             File.Exists(Path.Combine(tempFolder, "src", "MainFormApp.Shared", "ViewModels", "MainFormViewModel.cs")).Should().BeTrue();
             File.Exists(Path.Combine(tempFolder, "src", "MainFormApp.Desktop", "MainFormApp.Desktop.csproj")).Should().BeTrue();
+            File.Exists(Path.Combine(tempFolder, "src", "MainFormApp.Desktop", "GlobalUsings.cs")).Should().BeTrue();
             File.Exists(Path.Combine(tempFolder, "src", "MainFormApp.Desktop", "Program.cs")).Should().BeTrue();
             File.Exists(Path.Combine(tempFolder, "src", "MainFormApp.Android", "MainFormApp.Android.csproj")).Should().BeTrue();
+            File.Exists(Path.Combine(tempFolder, "src", "MainFormApp.Android", "GlobalUsings.cs")).Should().BeTrue();
         }
         finally
         {
@@ -1002,7 +1008,7 @@ public sealed class ProjectExportServiceTests
         var files = _exportService.GenerateFullProject(doc, new ProjectExportOptions(IncludeMobileProject: false));
 
         // Assert
-        var appFile = files.First(f => f.FileName.EndsWith("App.cs"));
+        var appFile = files.First(f => f.FileName.EndsWith("App.cs", StringComparison.Ordinal));
         appFile.Content.Should().Contain("MinWidth = 800");
         appFile.Content.Should().Contain("MinHeight = 600");
         appFile.Content.Should().Contain("MaxWidth = 1920");
@@ -1015,7 +1021,7 @@ public sealed class ProjectExportServiceTests
         appFile.Content.Should().Contain("ShowInTaskbar = Config.ShowInTaskbar");
         appFile.Content.Should().Contain("SystemDecorations = SystemDecorations.Full");
 
-        var configFile = files.First(f => f.FileName.EndsWith("Config.cs"));
+        var configFile = files.First(f => f.FileName.EndsWith("Config.cs", StringComparison.Ordinal));
         configFile.Content.Should().Contain("public const string AppTitle = \"POS 終端收銀系統\";");
         configFile.Content.Should().Contain("public const double DefaultWindowWidth = 1280;");
         configFile.Content.Should().Contain("public const double DefaultWindowHeight = 800;");
@@ -1023,7 +1029,7 @@ public sealed class ProjectExportServiceTests
         configFile.Content.Should().Contain("public const bool Topmost = true;");
         configFile.Content.Should().Contain("public const bool ShowInTaskbar = true;");
 
-        var viewFile = files.First(f => f.FileName.EndsWith("PosMainView.cs"));
+        var viewFile = files.First(f => f.FileName.EndsWith("PosMainView.cs", StringComparison.Ordinal));
         viewFile.Content.Should().Contain("Background = Brush.Parse(\"#1E293B\");");
     }
 }

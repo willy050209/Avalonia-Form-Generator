@@ -108,7 +108,25 @@
 - **專案檔儲存/開啟**：點選「儲存」輸出 `.afg.json`（保留自訂專案名稱與完整畫布狀態）；若載入損毀檔案，系統會顯示行數與欄位的詳細診斷提示。
 - **一鍵匯出跨平台專案**：點選「檔案 > 匯出完整跨平台專案...」或按 `Ctrl+Shift+E`，系統自動產出包含自訂專案名稱的 `.slnx` 方案、`.Shared` 核心（含 `INavigationService` 導航與動態 DI 容器）、`.Desktop` 與可選的 `.Android` 宿主專案！
 
-### 2.7 跨平台二進位版本發布 (v1.0.0 Release Matrix)
+### 2.8 表單與視窗控制屬性系統 (Form & Window Control Properties)
+- **進入表單屬性模式**：點擊畫布空白處、選取樹狀圖根節點或在控制項屬性頂部點擊「表單屬性」按鈕，屬性檢查器將自動切換為「表單與視窗屬性 (Form)」面板。
+- **「外觀」分頁**：
+  - **視窗標題 (Title)**：設定應用程式視窗標題列文字。
+  - **表單背景顏色 (BackgroundColor)**：提供自訂 `#RRGGBB` 色碼輸入與色票即時預覽，並附帶常用快捷色票按鈕（純白、淺灰、米色、深灰、夜黑、暗藍），點選後畫布背景即時同步渲染。
+  - **視窗圖示 (Icon)**：點選「瀏覽...」按鈕可視覺化選取視窗圖示檔案（`.ico` / `.png`），專案匯出時自動複製至 `.Shared/Assets/`。
+  - **專案與類別架構**：設定 View 類別名稱、ViewModel 類別名稱與命名空間 (RootNamespace)。
+- **「尺寸」分頁**：
+  - **預設畫布寬高**：設定表單預設尺寸 (CanvasWidth / CanvasHeight)。
+  - **快速切換解析度**：提供 800x600, 1024x768, 1280x720, 1920x1080 快捷切換按鈕。
+  - **尺寸約束極限**：自由設定 MinWidth、MinHeight、MaxWidth 與 MaxHeight 視窗拉伸約束。
+- **「行為」分頁**：
+  - **視窗啟動位置 (WindowStartupLocation)**：下拉選取 `CenterScreen`（螢幕置中）、`CenterOwner` 或 `Manual`。
+  - **初始視窗狀態 (WindowState)**：下拉選取 `Normal`（一般視窗）、`Maximized`（最大化）、`Minimized`（最小化）或 `FullScreen`（全螢幕）。
+  - **系統邊框裝飾 (SystemDecorations)**：下拉選取 `Full`、`None`（無邊框視窗）或 `BorderOnly`。
+  - **視窗行為開關**：設定「允許調整大小 (CanResize)」、「視窗永遠置頂 (Topmost)」與「在工作列顯示 (ShowInTaskbar)」。
+- **即時連動與復原支援**：所有表單屬性變更皆會即時反映至畫布與底部 View / MainWindow 程式碼預覽，並自動推入 `Ctrl+Z` 歷史復原堆疊。
+
+### 2.9 跨平台二進位版本發布 (v1.0.0 Release Matrix)
 - **主流 4 大架構發布產物**：
   - `AFG-win-x64.zip` (Windows 64 位元)
   - `AFG-linux-x64.tar.gz` (Linux x64)
