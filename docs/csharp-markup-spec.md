@@ -391,10 +391,10 @@ else if (SimdHardware.HasVector128) { /* SSE2 / ARM Neon 16-byte batch */ }
 
 ### 7.3 像素遍歷擴充方法 (`ProcessPixels`)
 
-#### 1. 泛型硬體 SIMD 向量運算 (`VectorTransform`)
-直接透過 `System.Numerics.Vector<byte>` 暫存器進行批次運算，由 JIT 自動依 CPU 硬體架構對齊向量寬度（128-bit / 256-bit）：
+#### 1. 泛型硬體 SIMD 向量暫存器運算 (`VectorTransform` / `ProcessPixelsSimdHardware`)
+直接以非託管指標讀寫 `*(Vector<byte>*)(row + x)` 暫存器進行批次運算，由 JIT 自動依 CPU 硬體指令集對齊暫存器寬度（AVX2 32B / SSE2 16B / ARM NEON 16B）：
 ```csharp
-// 向量反相變換 (Invert Channels via SIMD)
+// 1. 向量反相變換 (Invert Channels via SIMD)
 var all255 = new Vector<byte>(255);
 writeableBitmap.ProcessPixels(
     vectorTransform: vec => all255 - vec,
@@ -403,9 +403,27 @@ writeableBitmap.ProcessPixels(
         b = (byte)(255 - b); g = (byte)(255 - g); r = (byte)(255 - r); a = (byte)(255 - a);
     },
     mode: PixelProcessingMode.ParallelVectorized);
+
+// 2. 便捷硬體 SIMD 呼叫
+writeableBitmap.ProcessPixelsSimdHardware(vec => vec + new Vector<byte>(10));
 ```
 
-#### 2. 連續記憶體區塊向量批次處理 (`VectorPixelProcessor`)
+#### 2. 直接記憶體指標向量處理 (`VectorPointerProcessor`)
+直接傳遞底層非託管記憶體指標 `(byte* vectorPtr, int byteCount)`，達到零 GC 與無物件封裝開銷之極限效能：
+```csharp
+unsafe
+{
+    writeableBitmap.ProcessPixels(
+        pointerProcessor: (byte* ptr, int count) =>
+        {
+            var vec = *(Vector<byte>*)ptr;
+            *(Vector<byte>*)ptr = vec ^ new Vector<byte>(0xFF);
+        },
+        mode: PixelProcessingMode.ParallelVectorized);
+}
+```
+
+#### 3. 連續記憶體區塊向量批次處理 (`VectorPixelProcessor`)
 自動透過 `SimdHardware.PreferredVectorByteCount` 偵測最佳步長（64B / 32B / 16B），傳遞 `Span<byte>` 進行極速區塊讀寫：
 ```csharp
 writeableBitmap.ProcessPixels(
@@ -417,7 +435,7 @@ writeableBitmap.ProcessPixels(
     mode: PixelProcessingMode.ParallelVectorized);
 ```
 
-#### 3. 純像素與帶座標直接記憶體回呼 (`PixelProcessor` / `PixelLocationProcessor`)
+#### 4. 純像素與帶座標直接記憶體回呼 (`PixelProcessor` / `PixelLocationProcessor`)
 自動依硬體向量寬度展開迴圈（Unrolled Loops）：
 ```csharp
 // 1. 顏色色板變換 (Invert RGB)
@@ -437,26 +455,32 @@ writeableBitmap.ProcessPixels((int x, int y, ref byte b, ref byte g, ref byte r,
 ```
 
 ### 7.4 常用影像處理函數 (Image Processing Filters)
-1. **灰階化 (`ToGrayscale` / `ApplyGrayscale`)**：
+1. **顏色反相 (`ApplyInvert`)**：
+   - 直接採用硬體 SIMD 指令 `*(Vector<byte>*)(row + x) = mask - vec` 批次平行反相：
+     ```csharp
+     writeableBitmap.ApplyInvert(PixelProcessingMode.ParallelVectorized);
+     ```
+2. **灰階化 (`ToGrayscale` / `ApplyGrayscale`)**：
    - 採用 ITU-R BT.601 亮度加權演算法：`Gray = (299*R + 587*G + 114*B + 500) / 1000`。
-   - 原地修改與新實例建立雙重 API，支援 `ParallelVectorized` SIMD 批次運算：
+   - 原地修改與新實例建立雙重 API，內部直接以 `Vector128<byte>` / `Vector256<byte>` SIMD 向量指令批次運算：
      ```csharp
      var grayBmp = bitmap.ToGrayscale(PixelProcessingMode.ParallelVectorized);
      writeableBitmap.ApplyGrayscale(PixelProcessingMode.ParallelVectorized);
      ```
-2. **邊緣偵測 (`DetectEdges` / `ApplySobel`)**：
+3. **邊緣偵測 (`DetectEdges` / `ApplySobel`)**：
    - 採用 3x3 Sobel 梯度卷積核 ($Gx$, $Gy$)，計算梯度幅值 $\sqrt{Gx^2 + Gy^2}$，支援設定過濾門檻值 (`threshold`)。
      ```csharp
      var edgeBmp = bitmap.DetectEdges(threshold: 30.0, PixelProcessingMode.Parallel);
      writeableBitmap.ApplySobel(threshold: 50.0);
      ```
-3. **模糊處理 (`ApplyBlur` / `ApplyGaussianBlur` / `ApplyBoxBlur`)**：
+4. **模糊處理 (`ApplyBlur` / `ApplyGaussianBlur` / `ApplyBoxBlur`)**：
    - 採用 2-Pass 1D 可分離卷積（Separable Convolution）結合 `NativeMemory` 零 GC 中間緩衝區，將時間複雜度降至 $O(r \cdot W \cdot H)$：
      ```csharp
      var blurred = bitmap.ApplyBlur(radius: 5, PixelProcessingMode.Parallel);
      writeableBitmap.ApplyGaussianBlur(radius: 3);
      writeableBitmap.ApplyBoxBlur(radius: 2);
      ```
+
 
 
 

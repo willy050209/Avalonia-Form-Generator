@@ -451,4 +451,83 @@ public class BitmapHelperTests
         pLast.B.Should().Be(200);
         pLast.A.Should().Be(200);
     }
+
+    [Theory]
+    [InlineData(PixelProcessingMode.Sequential)]
+    [InlineData(PixelProcessingMode.SequentialVectorized)]
+    [InlineData(PixelProcessingMode.Parallel)]
+    [InlineData(PixelProcessingMode.ParallelVectorized)]
+    public void ProcessPixels_WithVectorPointerProcessor_ShouldProcessUnmanagedPointers(PixelProcessingMode mode)
+    {
+        // Arrange
+        var wb = BitmapHelper.CreateInitializedBitmap(25, 14, Color.FromArgb(255, 30, 60, 90));
+
+        // Act
+        unsafe
+        {
+            wb.ProcessPixels(
+                pointerProcessor: (byte* ptr, int byteCount) =>
+                {
+                    for (int i = 0; i < byteCount; i++)
+                    {
+                        ptr[i] = 180;
+                    }
+                },
+                remainderProcessor: (ref byte b, ref byte g, ref byte r, ref byte a) =>
+                {
+                    b = 180;
+                    g = 180;
+                    r = 180;
+                    a = 180;
+                },
+                mode: mode);
+        }
+
+        // Assert
+        var p0 = wb.GetPixel(0, 0);
+        p0.R.Should().Be(180);
+        p0.G.Should().Be(180);
+        p0.B.Should().Be(180);
+        p0.A.Should().Be(180);
+
+        var pEnd = wb.GetPixel(24, 13);
+        pEnd.R.Should().Be(180);
+        pEnd.G.Should().Be(180);
+        pEnd.B.Should().Be(180);
+        pEnd.A.Should().Be(180);
+    }
+
+    [Fact]
+    public void ApplyInvert_ShouldInvertColorsUsingHardwareSimd()
+    {
+        // Arrange
+        var wb = BitmapHelper.CreateInitializedBitmap(19, 13, Color.FromArgb(255, 10, 20, 30));
+
+        // Act
+        BitmapHelper.ApplyInvert(wb);
+
+        // Assert
+        var p = wb.GetPixel(5, 5);
+        p.R.Should().Be(245); // 255 - 10
+        p.G.Should().Be(235); // 255 - 20
+        p.B.Should().Be(225); // 255 - 30
+        p.A.Should().Be(0);   // 255 - 255
+    }
+
+    [Fact]
+    public void ProcessPixelsSimdHardware_ShouldExecuteHardwareParallel()
+    {
+        // Arrange
+        var wb = BitmapHelper.CreateInitializedBitmap(16, 16, Color.FromArgb(255, 100, 100, 100));
+
+        // Act
+        var mask = new System.Numerics.Vector<byte>(50);
+        BitmapHelper.ProcessPixelsSimdHardware(wb, vec => vec + mask);
+
+        // Assert
+        var p = wb.GetPixel(3, 3);
+        p.R.Should().Be(150);
+        p.G.Should().Be(150);
+        p.B.Should().Be(150);
+    }
 }

@@ -1446,6 +1446,11 @@ public static class AvaloniaMarkupExtensionsSource
     public delegate Vector<byte> VectorTransform(Vector<byte> vector);
 
     /// <summary>
+    /// 直接對硬體 SIMD 向量暫存器非託管記憶體指標進行操作之委派。
+    /// </summary>
+    public unsafe delegate void VectorPointerProcessor(byte* vectorPtr, int byteCount);
+
+    /// <summary>
     /// 提供底層 SIMD 硬體加速能力偵測與向量輔助工具。
     /// </summary>
     public static class SimdHardware
@@ -1593,8 +1598,8 @@ public static class AvaloniaMarkupExtensionsSource
             int height = fb.Size.Height;
             int rowBytes = fb.RowBytes;
             int vectorByteSize = global::System.Numerics.Vector<byte>.Count;
-            int rowDataBytes = width * 4;
-            int vectorLimit = rowDataBytes - (rowDataBytes % vectorByteSize);
+            int totalBytes = width * 4;
+            int vectorLimit = totalBytes - (totalBytes % vectorByteSize);
 
             unsafe
             {
@@ -1603,20 +1608,78 @@ public static class AvaloniaMarkupExtensionsSource
                 void ProcessRow(int y)
                 {
                     byte* row = scan0 + y * rowBytes;
-                    int offset = 0;
+                    int x = 0;
 
-                    for (; offset < vectorLimit; offset += vectorByteSize)
+                    if (SimdHardware.IsHardwareAccelerated)
                     {
-                        var inVec = new global::System.Numerics.Vector<byte>(new ReadOnlySpan<byte>(row + offset, vectorByteSize));
-                        var outVec = vectorTransform(inVec);
-                        outVec.CopyTo(new Span<byte>(row + offset, vectorByteSize));
+                        for (; x < vectorLimit; x += vectorByteSize)
+                        {
+                            var inVec = *(global::System.Numerics.Vector<byte>*)(row + x);
+                            var outVec = vectorTransform(inVec);
+                            *(global::System.Numerics.Vector<byte>*)(row + x) = outVec;
+                        }
                     }
 
                     if (remainderProcessor != null)
                     {
-                        for (int x = offset / 4; x < width; x++)
+                        for (int px = x / 4; px < width; px++)
                         {
-                            byte* p = row + x * 4;
+                            byte* p = row + px * 4;
+                            remainderProcessor(ref p[0], ref p[1], ref p[2], ref p[3]);
+                        }
+                    }
+                }
+
+                if (mode is PixelProcessingMode.Parallel or PixelProcessingMode.ParallelVectorized)
+                {
+                    Parallel.For(0, height, ProcessRow);
+                }
+                else
+                {
+                    for (int y = 0; y < height; y++)
+                    {
+                        ProcessRow(y);
+                    }
+                }
+            }
+        }
+
+        public static void ProcessPixels(
+            this WriteableBitmap bitmap,
+            VectorPointerProcessor pointerProcessor,
+            PixelProcessor? remainderProcessor = null,
+            PixelProcessingMode mode = PixelProcessingMode.ParallelVectorized)
+        {
+            ArgumentNullException.ThrowIfNull(bitmap);
+            ArgumentNullException.ThrowIfNull(pointerProcessor);
+
+            using var fb = bitmap.Lock();
+            int width = fb.Size.Width;
+            int height = fb.Size.Height;
+            int rowBytes = fb.RowBytes;
+            int vectorByteSize = SimdHardware.PreferredVectorByteCount;
+            int totalBytes = width * 4;
+            int vectorLimit = totalBytes - (totalBytes % vectorByteSize);
+
+            unsafe
+            {
+                byte* scan0 = (byte*)fb.Address;
+
+                void ProcessRow(int y)
+                {
+                    byte* row = scan0 + y * rowBytes;
+                    int x = 0;
+
+                    for (; x < vectorLimit; x += vectorByteSize)
+                    {
+                        pointerProcessor(row + x, vectorByteSize);
+                    }
+
+                    if (remainderProcessor != null)
+                    {
+                        for (int px = x / 4; px < width; px++)
+                        {
+                            byte* p = row + px * 4;
                             remainderProcessor(ref p[0], ref p[1], ref p[2], ref p[3]);
                         }
                     }
@@ -1650,8 +1713,8 @@ public static class AvaloniaMarkupExtensionsSource
             int height = fb.Size.Height;
             int rowBytes = fb.RowBytes;
             int vectorByteSize = SimdHardware.PreferredVectorByteCount;
-            int rowDataBytes = width * 4;
-            int vectorLimit = rowDataBytes - (rowDataBytes % vectorByteSize);
+            int totalBytes = width * 4;
+            int vectorLimit = totalBytes - (totalBytes % vectorByteSize);
 
             unsafe
             {
@@ -1660,18 +1723,18 @@ public static class AvaloniaMarkupExtensionsSource
                 void ProcessRow(int y)
                 {
                     byte* row = scan0 + y * rowBytes;
-                    int offset = 0;
+                    int x = 0;
 
-                    for (; offset < vectorLimit; offset += vectorByteSize)
+                    for (; x < vectorLimit; x += vectorByteSize)
                     {
-                        vectorProcessor(new Span<byte>(row + offset, vectorByteSize));
+                        vectorProcessor(new Span<byte>(row + x, vectorByteSize));
                     }
 
                     if (remainderProcessor != null)
                     {
-                        for (int x = offset / 4; x < width; x++)
+                        for (int px = x / 4; px < width; px++)
                         {
-                            byte* p = row + x * 4;
+                            byte* p = row + px * 4;
                             remainderProcessor(ref p[0], ref p[1], ref p[2], ref p[3]);
                         }
                     }
@@ -1690,6 +1753,12 @@ public static class AvaloniaMarkupExtensionsSource
                 }
             }
         }
+
+        public static void ProcessPixelsSimdHardware(
+            this WriteableBitmap bitmap,
+            VectorTransform vectorTransform,
+            PixelProcessor? remainderProcessor = null) =>
+            bitmap.ProcessPixels(vectorTransform, remainderProcessor, PixelProcessingMode.ParallelVectorized);
 
         public static void ProcessPixels(
             this WriteableBitmap bitmap,
@@ -1891,43 +1960,25 @@ public static class AvaloniaMarkupExtensionsSource
         {
             int x = 0;
 
-            if (SimdHardware.HasVector512 && width >= 16)
-            {
-                int unrollLimit = width - (width % 16);
-                for (; x < unrollLimit; x += 16)
-                {
-                    for (int i = 0; i < 16; i++)
-                    {
-                        byte* p = row + (x + i) * 4;
-                        byte gray = (byte)((299 * p[2] + 587 * p[1] + 114 * p[0] + 500) / 1000);
-                        p[0] = gray; p[1] = gray; p[2] = gray;
-                    }
-                }
-            }
-            else if (SimdHardware.HasVector256 && width >= 8)
-            {
-                int unrollLimit = width - (width % 8);
-                for (; x < unrollLimit; x += 8)
-                {
-                    for (int i = 0; i < 8; i++)
-                    {
-                        byte* p = row + (x + i) * 4;
-                        byte gray = (byte)((299 * p[2] + 587 * p[1] + 114 * p[0] + 500) / 1000);
-                        p[0] = gray; p[1] = gray; p[2] = gray;
-                    }
-                }
-            }
-            else if (SimdHardware.HasVector128 && width >= 4)
+            if (SimdHardware.HasVector128 && width >= 4)
             {
                 int unrollLimit = width - (width % 4);
                 for (; x < unrollLimit; x += 4)
                 {
-                    for (int i = 0; i < 4; i++)
-                    {
-                        byte* p = row + (x + i) * 4;
-                        byte gray = (byte)((299 * p[2] + 587 * p[1] + 114 * p[0] + 500) / 1000);
-                        p[0] = gray; p[1] = gray; p[2] = gray;
-                    }
+                    var v = *(Vector128<byte>*)(row + x * 4);
+                    var low = Vector128.WidenLower(v);
+                    var high = Vector128.WidenUpper(v);
+
+                    byte g0 = (byte)((299 * low[2] + 587 * low[1] + 114 * low[0] + 500) / 1000);
+                    byte g1 = (byte)((299 * low[6] + 587 * low[5] + 114 * low[4] + 500) / 1000);
+                    byte g2 = (byte)((299 * high[2] + 587 * high[1] + 114 * high[0] + 500) / 1000);
+                    byte g3 = (byte)((299 * high[6] + 587 * high[5] + 114 * high[4] + 500) / 1000);
+
+                    *(Vector128<byte>*)(row + x * 4) = Vector128.Create(
+                        g0, g0, g0, (byte)low[3],
+                        g1, g1, g1, (byte)low[7],
+                        g2, g2, g2, (byte)high[3],
+                        g3, g3, g3, (byte)high[7]);
                 }
             }
 
@@ -1938,6 +1989,59 @@ public static class AvaloniaMarkupExtensionsSource
                 p[0] = gray;
                 p[1] = gray;
                 p[2] = gray;
+            }
+        }
+
+        public static void ApplyInvert(this WriteableBitmap bitmap, PixelProcessingMode mode = PixelProcessingMode.ParallelVectorized)
+        {
+            ArgumentNullException.ThrowIfNull(bitmap);
+
+            using var fb = bitmap.Lock();
+            int width = fb.Size.Width;
+            int height = fb.Size.Height;
+            int rowBytes = fb.RowBytes;
+            int vectorSize = global::System.Numerics.Vector<byte>.Count;
+            int totalBytes = width * 4;
+            int vectorLimit = totalBytes - (totalBytes % vectorSize);
+
+            unsafe
+            {
+                byte* scan0 = (byte*)fb.Address;
+                var mask = new global::System.Numerics.Vector<byte>(255);
+
+                void ProcessRow(int y)
+                {
+                    byte* row = scan0 + y * rowBytes;
+                    int x = 0;
+
+                    if (SimdHardware.IsHardwareAccelerated)
+                    {
+                        for (; x < vectorLimit; x += vectorSize)
+                        {
+                            var vec = *(global::System.Numerics.Vector<byte>*)(row + x);
+                            *(global::System.Numerics.Vector<byte>*)(row + x) = mask - vec;
+                        }
+                    }
+
+                    for (; x < totalBytes; x += 4)
+                    {
+                        row[x + 0] = (byte)(255 - row[x + 0]);
+                        row[x + 1] = (byte)(255 - row[x + 1]);
+                        row[x + 2] = (byte)(255 - row[x + 2]);
+                    }
+                }
+
+                if (mode is PixelProcessingMode.Parallel or PixelProcessingMode.ParallelVectorized)
+                {
+                    Parallel.For(0, height, ProcessRow);
+                }
+                else
+                {
+                    for (int y = 0; y < height; y++)
+                    {
+                        ProcessRow(y);
+                    }
+                }
             }
         }
 
@@ -2431,10 +2535,28 @@ public static class AvaloniaMarkupExtensionsSource
 
         public static void ProcessPixels(
             WriteableBitmap bitmap,
+            VectorPointerProcessor pointerProcessor,
+            PixelProcessor? remainderProcessor = null,
+            PixelProcessingMode mode = PixelProcessingMode.ParallelVectorized) =>
+            bitmap.ProcessPixels(pointerProcessor, remainderProcessor, mode);
+
+        public static void ProcessPixels(
+            WriteableBitmap bitmap,
             VectorPixelProcessor vectorProcessor,
             PixelProcessor? remainderProcessor = null,
             PixelProcessingMode mode = PixelProcessingMode.ParallelVectorized) =>
             bitmap.ProcessPixels(vectorProcessor, remainderProcessor, mode);
+
+        public static void ProcessPixelsSimdHardware(
+            WriteableBitmap bitmap,
+            VectorTransform vectorTransform,
+            PixelProcessor? remainderProcessor = null) =>
+            bitmap.ProcessPixelsSimdHardware(vectorTransform, remainderProcessor);
+
+        public static void ApplyInvert(
+            WriteableBitmap bitmap,
+            PixelProcessingMode mode = PixelProcessingMode.ParallelVectorized) =>
+            bitmap.ApplyInvert(mode);
 
         public static void ProcessPixels(
             WriteableBitmap bitmap,
