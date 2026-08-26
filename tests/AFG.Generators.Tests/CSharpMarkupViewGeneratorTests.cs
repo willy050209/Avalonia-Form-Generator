@@ -702,9 +702,10 @@ public sealed class CSharpMarkupViewGeneratorTests
         var result = _generator.Generate(doc);
 
         // Assert
-        result.Content.Should().Contain("        // RootCanvas\r\n        Content = new Canvas()");
-        result.Content.Should().Contain("            .Children(\r\n                // SubmitBtn\r\n                new Button()\r\n                    .Width(100)\r\n                    .Height(30),");
-        result.Content.Should().Contain("                // InputBox\r\n                new TextBox()\r\n                    .Width(200)\r\n            );");
+        var normalized = result.Content.Replace("\r\n", "\n");
+        normalized.Should().Contain("        // RootCanvas\n        Content = new Canvas()");
+        normalized.Should().Contain("            .Children(\n                // SubmitBtn\n                new Button()\n                    .Width(100)\n                    .Height(30),");
+        normalized.Should().Contain("                // InputBox\n                new TextBox()\n                    .Width(200)\n            );");
 
         var syntaxDiagnostics = RoslynCompilerService.CheckSyntaxDiagnostics(result.Content);
         syntaxDiagnostics.Should().BeEmpty();

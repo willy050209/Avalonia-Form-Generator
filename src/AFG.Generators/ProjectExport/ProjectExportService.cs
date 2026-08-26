@@ -1293,7 +1293,7 @@ public sealed class ProjectExportService(FormCodeGenerator? codeGenerator = null
                     {
                         Directory.CreateDirectory(sharedAssetsDir);
                     }
-                    var targetAssetFile = Path.Combine(sharedAssetsDir, Path.GetFileName(resolvedSourcePath));
+                    var targetAssetFile = Path.Combine(sharedAssetsDir, Path.GetFileName(resolvedSourcePath.Replace('\\', '/')));
                     File.Copy(resolvedSourcePath, targetAssetFile, overwrite: true);
                 }
             }
@@ -1319,7 +1319,7 @@ public sealed class ProjectExportService(FormCodeGenerator? codeGenerator = null
                     {
                         Directory.CreateDirectory(sharedAssetsDir);
                     }
-                    var targetAssetFile = Path.Combine(sharedAssetsDir, Path.GetFileName(resolvedIconPath));
+                    var targetAssetFile = Path.Combine(sharedAssetsDir, Path.GetFileName(resolvedIconPath.Replace('\\', '/')));
                     File.Copy(resolvedIconPath, targetAssetFile, overwrite: true);
                 }
             }

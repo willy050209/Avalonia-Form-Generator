@@ -391,7 +391,7 @@ public sealed class MvvmViewModelGenerator : ICodeGenerator
         var sourcePath = node.Source!.Trim();
         if (node.UseRelativePath)
         {
-            var fileName = System.IO.Path.GetFileName(sourcePath);
+            var fileName = System.IO.Path.GetFileName(sourcePath.Replace('\\', '/'));
             var sharedAsmName = rootNamespace.EndsWith(".Shared", StringComparison.OrdinalIgnoreCase)
                 ? rootNamespace
                 : $"{rootNamespace}.Shared";
