@@ -244,6 +244,23 @@ public sealed partial class CanvasViewModel : ObservableObject
         SelectionChanged?.Invoke(null);
     }
 
+    /// <summary>
+    /// 更新表單與視窗層級之控制屬性，並推入歷史復原堆疊。
+    /// </summary>
+    public void UpdateFormProperties(FormDocument updatedDoc)
+    {
+        ArgumentNullException.ThrowIfNull(updatedDoc);
+        if (Document != updatedDoc)
+        {
+            PushHistory();
+            Document = updatedDoc;
+            CanvasWidth = updatedDoc.CanvasWidth;
+            CanvasHeight = updatedDoc.CanvasHeight;
+            MatchOrSetCustomPreset();
+            DocumentChanged?.Invoke(Document);
+        }
+    }
+
     public void SelectNode(string? nodeId, bool isToggle = false)
     {
         if (string.IsNullOrEmpty(nodeId))

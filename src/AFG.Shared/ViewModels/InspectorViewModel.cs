@@ -1,4 +1,3 @@
-// filepath: src/AFG.Shared/ViewModels/InspectorViewModel.cs
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -6,30 +5,103 @@ using System.Collections.Immutable;
 using System.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using AFG.Core.Enums;
 using AFG.Core.Models.Ast;
 using AFG.Core.Validation;
 using CoreBindingMode = AFG.Core.Enums.BindingMode;
 using CoreHorizontalAlignment = AFG.Core.Enums.HorizontalAlignment;
 using CoreVerticalAlignment = AFG.Core.Enums.VerticalAlignment;
 using CoreControlType = AFG.Core.Enums.ControlType;
+using CoreWindowStartupLocation = AFG.Core.Enums.WindowStartupLocation;
+using CoreWindowState = AFG.Core.Enums.WindowState;
+using CoreSystemDecorations = AFG.Core.Enums.SystemDecorations;
 
 namespace AFG.Shared.ViewModels;
 
 /// <summary>
-/// 控制項屬性與事件檢查器 ViewModel，支援外觀、幾何佈局、MVVM 強型別資料綁定與事件轉命令配置。
+/// 控制項與表單屬性檢查器 ViewModel，支援表單/視窗外觀、幾何佈局、MVVM 強型別資料綁定與事件轉命令配置。
 /// </summary>
 public sealed partial class InspectorViewModel : ObservableObject
 {
     private readonly Services.IFileDialogService? _fileDialogService;
     private bool _isUpdating;
     private AstNode? _currentNode;
+    private FormDocument? _currentDocument;
 
     public event Action<AstNode>? NodeUpdated;
+    public event Action<FormDocument>? FormUpdated;
 
     public InspectorViewModel(Services.IFileDialogService? fileDialogService = null)
     {
         _fileDialogService = fileDialogService;
     }
+
+    [ObservableProperty]
+    private bool _isFormSelected = true;
+
+    // --- 表單與視窗控制屬性 (Form & Window Properties) ---
+    [ObservableProperty]
+    private string _formTitle = "Avalonia Form";
+
+    [ObservableProperty]
+    private string _formBackgroundColor = "#FFFFFF";
+
+    [ObservableProperty]
+    private double _formWidth = 800;
+
+    [ObservableProperty]
+    private double _formHeight = 600;
+
+    [ObservableProperty]
+    private double? _formMinWidth;
+
+    [ObservableProperty]
+    private double? _formMinHeight;
+
+    [ObservableProperty]
+    private double? _formMaxWidth;
+
+    [ObservableProperty]
+    private double? _formMaxHeight;
+
+    [ObservableProperty]
+    private CoreWindowStartupLocation _formWindowStartupLocation = CoreWindowStartupLocation.CenterScreen;
+
+    [ObservableProperty]
+    private CoreWindowState _formWindowState = CoreWindowState.Normal;
+
+    [ObservableProperty]
+    private bool _formCanResize = true;
+
+    [ObservableProperty]
+    private bool _formTopmost;
+
+    [ObservableProperty]
+    private bool _formShowInTaskbar = true;
+
+    [ObservableProperty]
+    private string _formIcon = string.Empty;
+
+    [ObservableProperty]
+    private CoreSystemDecorations _formSystemDecorations = CoreSystemDecorations.Full;
+
+    [ObservableProperty]
+    private string _formViewClassName = "MainFormView";
+
+    [ObservableProperty]
+    private string _formViewModelClassName = "MainFormViewModel";
+
+    [ObservableProperty]
+    private string _formRootNamespace = "GeneratedApp.Views";
+
+    public IReadOnlyList<CoreWindowStartupLocation> WindowStartupLocationOptions { get; } =
+        Enum.GetValues<CoreWindowStartupLocation>();
+
+    public IReadOnlyList<CoreWindowState> WindowStateOptions { get; } =
+        Enum.GetValues<CoreWindowState>();
+
+    public IReadOnlyList<CoreSystemDecorations> SystemDecorationsOptions { get; } =
+        Enum.GetValues<CoreSystemDecorations>();
 
     [ObservableProperty]
     private bool _hasSelectedNode;
@@ -260,6 +332,7 @@ public sealed partial class InspectorViewModel : ObservableObject
         if (node is null)
         {
             HasSelectedNode = false;
+            IsFormSelected = true;
             NodeId = string.Empty;
             ControlType = string.Empty;
             NodeName = string.Empty;
@@ -278,6 +351,7 @@ public sealed partial class InspectorViewModel : ObservableObject
         }
 
         HasSelectedNode = true;
+        IsFormSelected = false;
         NodeId = node.Id;
         ControlType = node.Type.ToString();
         NodeName = node.Name;
@@ -313,30 +387,32 @@ public sealed partial class InspectorViewModel : ObservableObject
         Stretch = node.Stretch;
         UseRelativePath = node.UseRelativePath;
         InitBitmap = node.InitBitmap;
-        BitmapBackgroundColor = string.IsNullOrWhiteSpace(node.BitmapBackgroundColor) ? "#F0F0F0" : node.BitmapBackgroundColor;
+        BitmapBackgroundColor = node.BitmapBackgroundColor ?? "#F0F0F0";
         UpdateImagePreviewInfo();
 
-        // 計算控制項支援之特定屬性
-        var type = node.Type;
-        var isNonVisual = Generators.CSharpMarkup.CSharpMarkupViewGenerator.IsNonVisualComponent(type);
+        var isNonVisual = node.Type is CoreControlType.DispatcherTimer
+                                    or CoreControlType.BackgroundWorker
+                                    or CoreControlType.BluetoothClient
+                                    or CoreControlType.SerialPortService
+                                    or CoreControlType.OpenFileDialog
+                                    or CoreControlType.SaveFileDialog
+                                    or CoreControlType.MessageBox;
+
         IsVisualControl = !isNonVisual;
-        IsGeometrySupported = !isNonVisual;
-        IsTimerSupported = type == CoreControlType.DispatcherTimer;
-        IsImageSupported = type == CoreControlType.PictureBox;
-        IsTextSupported = type is CoreControlType.TextBlock or CoreControlType.TextBox or CoreControlType.Button or CoreControlType.CheckBox or CoreControlType.RadioButton or CoreControlType.ComboBox or CoreControlType.DatePicker;
-        IsContentSupported = type is CoreControlType.Button or CoreControlType.CheckBox or CoreControlType.RadioButton or CoreControlType.Border;
+        IsTextSupported = !isNonVisual && node.Type is not CoreControlType.PictureBox;
+        IsContentSupported = node.Type is CoreControlType.Button or CoreControlType.CheckBox or CoreControlType.RadioButton or CoreControlType.Border;
         IsHeaderSupported = false;
-        IsWatermarkSupported = type is CoreControlType.TextBox or CoreControlType.ComboBox;
-        IsCheckableSupported = type is CoreControlType.CheckBox or CoreControlType.RadioButton;
-        IsValueSupported = type is CoreControlType.Slider or CoreControlType.ProgressBar;
-        IsAutoSizeSupported = !node.IsContainer && !isNonVisual;
+        IsWatermarkSupported = node.Type is CoreControlType.TextBox;
+        IsImageSupported = node.Type is CoreControlType.PictureBox;
+        IsTimerSupported = node.Type is CoreControlType.DispatcherTimer;
+        IsCheckableSupported = node.Type is CoreControlType.CheckBox or CoreControlType.RadioButton;
+        IsValueSupported = node.Type is CoreControlType.Slider or CoreControlType.ProgressBar;
+        IsAutoSizeSupported = !isNonVisual && node.Type is not CoreControlType.Canvas;
 
-        // 判定是否受非 Canvas 容器管理
-        var isManagedByParent = parentNode is not null &&
-            parentNode.Type is CoreControlType.StackPanel or CoreControlType.DockPanel or CoreControlType.WrapPanel or CoreControlType.Grid;
-
+        var isManagedByParent = parentNode is not null && parentNode.Type != CoreControlType.Canvas;
         IsPositionManagedByParent = isManagedByParent;
-        ParentContainerType = isManagedByParent ? parentNode!.Type.ToString() : string.Empty;
+        ParentContainerType = parentNode?.Type.ToString() ?? string.Empty;
+
         IsCanvasPositionSupported = !isNonVisual && !isManagedByParent;
         IsGridCellSupported = parentNode?.Type == CoreControlType.Grid;
         IsDockSupported = parentNode?.Type == CoreControlType.DockPanel;
@@ -360,6 +436,126 @@ public sealed partial class InspectorViewModel : ObservableObject
 
         ValidateCurrentNode();
         _isUpdating = false;
+    }
+
+    /// <summary>
+    /// 載入整份表單與視窗之控制屬性。
+    /// </summary>
+    public void LoadDocument(FormDocument? doc)
+    {
+        if (_isUpdating) return;
+        _isUpdating = true;
+        _currentDocument = doc;
+
+        if (doc is null)
+        {
+            _isUpdating = false;
+            return;
+        }
+
+        FormTitle = doc.Title;
+        FormBackgroundColor = doc.BackgroundColor ?? "#FFFFFF";
+        FormWidth = doc.CanvasWidth;
+        FormHeight = doc.CanvasHeight;
+        FormMinWidth = doc.MinWidth;
+        FormMinHeight = doc.MinHeight;
+        FormMaxWidth = doc.MaxWidth;
+        FormMaxHeight = doc.MaxHeight;
+        FormWindowStartupLocation = doc.WindowStartupLocation;
+        FormWindowState = doc.WindowState;
+        FormCanResize = doc.CanResize;
+        FormTopmost = doc.Topmost;
+        FormShowInTaskbar = doc.ShowInTaskbar;
+        FormIcon = doc.Icon ?? string.Empty;
+        FormSystemDecorations = doc.SystemDecorations;
+        FormViewClassName = doc.ViewClassName;
+        FormViewModelClassName = doc.ViewModelClassName;
+        FormRootNamespace = doc.RootNamespace;
+
+        if (_currentNode is null)
+        {
+            IsFormSelected = true;
+            HasSelectedNode = false;
+        }
+
+        _isUpdating = false;
+    }
+
+    [RelayCommand]
+    public void SelectForm()
+    {
+        _currentNode = null;
+        HasSelectedNode = false;
+        IsFormSelected = true;
+    }
+
+    [RelayCommand]
+    public async Task BrowseFormIconAsync()
+    {
+        if (_fileDialogService is null) return;
+        var selectedFile = await _fileDialogService.OpenImageFileDialogAsync("選擇視窗圖示檔案");
+        if (!string.IsNullOrWhiteSpace(selectedFile))
+        {
+            FormIcon = selectedFile;
+        }
+    }
+
+    [RelayCommand]
+    public void SetFormBackgroundColor(string? hexColor)
+    {
+        if (!string.IsNullOrWhiteSpace(hexColor))
+        {
+            FormBackgroundColor = hexColor;
+        }
+    }
+
+    [RelayCommand]
+    public void ApplyFormPreset(string? sizeStr)
+    {
+        if (string.IsNullOrWhiteSpace(sizeStr)) return;
+        var parts = sizeStr.Split('x', 'X');
+        if (parts.Length == 2 && double.TryParse(parts[0], System.Globalization.CultureInfo.InvariantCulture, out var w) && double.TryParse(parts[1], System.Globalization.CultureInfo.InvariantCulture, out var h))
+        {
+            FormWidth = w;
+            FormHeight = h;
+        }
+    }
+
+    private void ApplyFormChanges()
+    {
+        if (_isUpdating || _currentDocument is null) return;
+
+        try
+        {
+            var updatedDoc = _currentDocument with
+            {
+                Title = FormTitle?.Trim() ?? "Avalonia Form",
+                BackgroundColor = string.IsNullOrWhiteSpace(FormBackgroundColor) ? null : FormBackgroundColor.Trim(),
+                CanvasWidth = Math.Max(100, FormWidth),
+                CanvasHeight = Math.Max(100, FormHeight),
+                MinWidth = FormMinWidth.HasValue ? Math.Max(0, FormMinWidth.Value) : null,
+                MinHeight = FormMinHeight.HasValue ? Math.Max(0, FormMinHeight.Value) : null,
+                MaxWidth = FormMaxWidth.HasValue ? Math.Max(0, FormMaxWidth.Value) : null,
+                MaxHeight = FormMaxHeight.HasValue ? Math.Max(0, FormMaxHeight.Value) : null,
+                WindowStartupLocation = FormWindowStartupLocation,
+                WindowState = FormWindowState,
+                CanResize = FormCanResize,
+                Topmost = FormTopmost,
+                ShowInTaskbar = FormShowInTaskbar,
+                Icon = string.IsNullOrWhiteSpace(FormIcon) ? null : FormIcon.Trim(),
+                SystemDecorations = FormSystemDecorations,
+                ViewClassName = string.IsNullOrWhiteSpace(FormViewClassName) ? "MainFormView" : FormViewClassName.Trim(),
+                ViewModelClassName = string.IsNullOrWhiteSpace(FormViewModelClassName) ? "MainFormViewModel" : FormViewModelClassName.Trim(),
+                RootNamespace = string.IsNullOrWhiteSpace(FormRootNamespace) ? "GeneratedApp.Views" : FormRootNamespace.Trim()
+            };
+
+            _currentDocument = updatedDoc;
+            FormUpdated?.Invoke(updatedDoc);
+        }
+        catch
+        {
+            // 防護任何異常
+        }
     }
 
     [RelayCommand]
@@ -554,6 +750,25 @@ public sealed partial class InspectorViewModel : ObservableObject
             ValidationErrors.Add(err);
         }
     }
+
+    partial void OnFormTitleChanged(string value) => ApplyFormChanges();
+    partial void OnFormBackgroundColorChanged(string value) => ApplyFormChanges();
+    partial void OnFormWidthChanged(double value) => ApplyFormChanges();
+    partial void OnFormHeightChanged(double value) => ApplyFormChanges();
+    partial void OnFormMinWidthChanged(double? value) => ApplyFormChanges();
+    partial void OnFormMinHeightChanged(double? value) => ApplyFormChanges();
+    partial void OnFormMaxWidthChanged(double? value) => ApplyFormChanges();
+    partial void OnFormMaxHeightChanged(double? value) => ApplyFormChanges();
+    partial void OnFormWindowStartupLocationChanged(CoreWindowStartupLocation value) => ApplyFormChanges();
+    partial void OnFormWindowStateChanged(CoreWindowState value) => ApplyFormChanges();
+    partial void OnFormCanResizeChanged(bool value) => ApplyFormChanges();
+    partial void OnFormTopmostChanged(bool value) => ApplyFormChanges();
+    partial void OnFormShowInTaskbarChanged(bool value) => ApplyFormChanges();
+    partial void OnFormIconChanged(string value) => ApplyFormChanges();
+    partial void OnFormSystemDecorationsChanged(CoreSystemDecorations value) => ApplyFormChanges();
+    partial void OnFormViewClassNameChanged(string value) => ApplyFormChanges();
+    partial void OnFormViewModelClassNameChanged(string value) => ApplyFormChanges();
+    partial void OnFormRootNamespaceChanged(string value) => ApplyFormChanges();
 
     partial void OnNodeNameChanged(string value) => ApplyChanges();
     partial void OnTextChanged(string value) => ApplyChanges();

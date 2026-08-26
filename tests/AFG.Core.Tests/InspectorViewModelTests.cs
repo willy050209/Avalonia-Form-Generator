@@ -170,4 +170,67 @@ public sealed class InspectorViewModelTests
         item.EventName.Should().Be("Cleared");
         item.AvailableEvents.Should().Contain("Cleared");
     }
+
+    [Fact]
+    public void LoadDocument_ShouldPopulateFormPropertiesAndTriggerFormUpdatedOnPropertyChange()
+    {
+        // Arrange
+        var vm = new InspectorViewModel();
+        var doc = new FormDocument
+        {
+            Title = "銷售管理系統",
+            BackgroundColor = "#1E293B",
+            CanvasWidth = 1024,
+            CanvasHeight = 768,
+            MinWidth = 800,
+            MinHeight = 600,
+            WindowStartupLocation = WindowStartupLocation.CenterScreen,
+            WindowState = WindowState.Maximized,
+            CanResize = false,
+            Topmost = true
+        };
+
+        FormDocument? updatedDoc = null;
+        vm.FormUpdated += d => updatedDoc = d;
+
+        // Act
+        vm.LoadDocument(doc);
+
+        // Assert
+        vm.IsFormSelected.Should().BeTrue();
+        vm.FormTitle.Should().Be("銷售管理系統");
+        vm.FormBackgroundColor.Should().Be("#1E293B");
+        vm.FormWidth.Should().Be(1024);
+        vm.FormHeight.Should().Be(768);
+        vm.FormMinWidth.Should().Be(800);
+        vm.FormMinHeight.Should().Be(600);
+        vm.FormWindowState.Should().Be(WindowState.Maximized);
+        vm.FormCanResize.Should().BeFalse();
+        vm.FormTopmost.Should().BeTrue();
+
+        // Mutate form property
+        vm.FormTitle = "銷售管理系統 v2";
+
+        updatedDoc.Should().NotBeNull();
+        updatedDoc!.Title.Should().Be("銷售管理系統 v2");
+        updatedDoc.BackgroundColor.Should().Be("#1E293B");
+    }
+
+    [Fact]
+    public void SelectForm_ShouldToggleIsFormSelected()
+    {
+        // Arrange
+        var vm = new InspectorViewModel();
+        var node = new AstNode { Id = "btn1", Name = "SubmitBtn", Type = ControlType.Button };
+        vm.LoadNode(node);
+        vm.IsFormSelected.Should().BeFalse();
+        vm.HasSelectedNode.Should().BeTrue();
+
+        // Act
+        vm.SelectFormCommand.Execute(null);
+
+        // Assert
+        vm.IsFormSelected.Should().BeTrue();
+        vm.HasSelectedNode.Should().BeFalse();
+    }
 }

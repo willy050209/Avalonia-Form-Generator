@@ -239,7 +239,7 @@ AvaloniaFormGenerator/
     - 在 `AFG.Core.Enums` 新增 `WindowStartupLocation` (`CenterScreen`, `CenterOwner`, `Manual`), `WindowState` (`Normal`, `Maximized`, `Minimized`, `FullScreen`), `SystemDecorations` (`Full`, `None`, `BorderOnly`)。
     - 在 `FormDocument` 擴充完整表單與視窗屬性（`BackgroundColor`、`MinWidth`、`MinHeight`、`MaxWidth`、`MaxHeight`、`WindowStartupLocation`、`WindowState`、`CanResize`、`Topmost`、`ShowInTaskbar`、`Icon`、`SystemDecorations` 等）。
     - 撰寫 `FormDocument` 序列化/反序列化與預設值單元測試。
-  - [ ] 14.2 **Phase 2: Inspector 表單屬性編輯面板、畫布即時渲染與歷史堆疊 (Inspector Form UI, Live Canvas Sync & Undo/Redo)**
+  - [x] 14.2 **Phase 2: Inspector 表單屬性編輯面板、畫布即時渲染與歷史堆疊 (Inspector Form UI, Live Canvas Sync & Undo/Redo)**
     - 在 `InspectorViewModel` 與 `InspectorView.axaml` 實作「表單/視窗屬性 (Form Properties)」編輯模式（未選取控制項或選取 RootCanvas/Form 時呈現）。
     - 提供標題、背景色快捷色票與色碼、寬高/Min/Max、起始位置、視窗狀態、CanResize、Topmost、ShowInTaskbar、圖示選取等分類視覺編輯器。
     - 在 `DesignCanvas.cs` 與 `MainView.axaml` 支援畫布背景色即時渲染、尺寸邊界與空白點選自動選取 Form 根節點。

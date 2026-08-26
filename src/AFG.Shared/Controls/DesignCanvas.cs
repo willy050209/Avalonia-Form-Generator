@@ -100,6 +100,7 @@ public sealed class DesignCanvas : Grid
 
     private void OnDocumentChanged(FormDocument doc)
     {
+        UpdateCanvasBackground(doc);
         if (!TryPatchElements(doc.RootNode))
         {
             RebuildElements();
@@ -120,6 +121,8 @@ public sealed class DesignCanvas : Grid
             return;
         }
 
+        UpdateCanvasBackground(ViewModel.Document);
+
         foreach (var node in ViewModel.Document.RootNode.Children)
         {
             var element = CreateControlFromNode(node);
@@ -127,6 +130,31 @@ public sealed class DesignCanvas : Grid
         }
 
         _overlay.InvalidateVisual();
+    }
+
+    private void UpdateCanvasBackground(FormDocument? doc)
+    {
+        if (doc is null)
+        {
+            Background = new SolidColorBrush(Color.FromRgb(24, 24, 27));
+            return;
+        }
+
+        if (!string.IsNullOrWhiteSpace(doc.BackgroundColor))
+        {
+            try
+            {
+                Background = Brush.Parse(doc.BackgroundColor);
+                return;
+            }
+            catch
+            {
+                // 防禦色彩解析異常
+            }
+        }
+
+        // 預設底板顏色
+        Background = new SolidColorBrush(Color.FromRgb(255, 255, 255));
     }
 
     /// <summary>

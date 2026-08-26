@@ -74,18 +74,22 @@ public sealed partial class MainViewModel : ObservableObject
         Canvas.SelectionChanged += OnCanvasSelectionChanged;
         VisualTree.SelectionChanged += OnVisualTreeSelectionChanged;
         Inspector.NodeUpdated += OnInspectorNodeUpdated;
+        Inspector.FormUpdated += OnInspectorFormUpdated;
         Toolbox.ItemDoubleClicked += item => Canvas.AddControlFromToolbox(item);
         Toolbox.ItemDragStarted += item => Canvas.ActiveDraggingItem = item;
         Toolbox.ItemDragEnded += () => Canvas.ActiveDraggingItem = null;
 
         // 初始化
         VisualTree.RebuildFromDocument(Canvas.Document);
+        Inspector.LoadDocument(Canvas.Document);
+        Inspector.LoadNode(null);
         GeneratePreviewCode();
     }
 
     private void OnDocumentChanged(FormDocument doc)
     {
         VisualTree.RebuildFromDocument(doc);
+        Inspector.LoadDocument(doc);
         GeneratePreviewCode();
         ValidateWholeDocument(doc);
     }
@@ -93,10 +97,18 @@ public sealed partial class MainViewModel : ObservableObject
     private void OnCanvasSelectionChanged(AstNode? node)
     {
         VisualTree.SyncSelection(node?.Id);
-        var parentNode = (node is not null && Canvas.Document is not null)
-            ? AstTreeOperations.FindParentNode(Canvas.Document.RootNode, node.Id)
-            : null;
-        Inspector.LoadNode(node, parentNode);
+        if (node is null || (Canvas.Document is not null && node.Id == Canvas.Document.RootNode.Id))
+        {
+            Inspector.LoadDocument(Canvas.Document);
+            Inspector.LoadNode(null);
+        }
+        else
+        {
+            var parentNode = Canvas.Document is not null
+                ? AstTreeOperations.FindParentNode(Canvas.Document.RootNode, node.Id)
+                : null;
+            Inspector.LoadNode(node, parentNode);
+        }
     }
 
     private void OnVisualTreeSelectionChanged(string? nodeId)
@@ -107,6 +119,11 @@ public sealed partial class MainViewModel : ObservableObject
     private void OnInspectorNodeUpdated(AstNode node)
     {
         Canvas.UpdateNodeProperties(node);
+    }
+
+    private void OnInspectorFormUpdated(FormDocument doc)
+    {
+        Canvas.UpdateFormProperties(doc);
     }
 
     private void ValidateWholeDocument(FormDocument doc)

@@ -10,33 +10,209 @@
              x:DataType="vm:InspectorViewModel">
 
     <Grid Background="#18181B">
-        <!-- 未選取節點之空狀態提示 -->
-        <Border IsVisible="{Binding !HasSelectedNode}"
-                HorizontalAlignment="Center"
-                VerticalAlignment="Center"
-                Padding="16">
-            <StackPanel Spacing="8" HorizontalAlignment="Center">
-                <TextBlock Text="未選取任何控制項"
-                           Foreground="#71717A"
-                           FontWeight="Medium"
-                           HorizontalAlignment="Center" />
-                <TextBlock Text="請在畫布或樹狀結構中選取控制項以編輯屬性"
-                           Foreground="#52525B"
-                           FontSize="11"
-                           TextWrapping="Wrap"
-                           TextAlignment="Center" />
-            </StackPanel>
-        </Border>
-
-        <!-- 已選取節點之屬性與事件編輯面板 -->
-        <Grid IsVisible="{Binding HasSelectedNode}" RowDefinitions="Auto, *">
-            <!-- 標頭：控制項類型與識別碼 -->
+        <!-- 1. 表單 / 視窗屬性編輯面板 (未選取子控制項或切換至表單時顯示) -->
+        <Grid IsVisible="{Binding IsFormSelected}" RowDefinitions="Auto, *">
+            <!-- 標頭：表單與視窗 -->
             <Border Grid.Row="0"
                     Background="#27272A"
                     Padding="10,8"
                     BorderBrush="#3F3F46"
                     BorderThickness="0,0,0,1">
                 <Grid ColumnDefinitions="*, Auto">
+                    <StackPanel Grid.Column="0" Spacing="2">
+                        <TextBlock Text="表單與視窗屬性 (Form)"
+                                   FontWeight="Bold"
+                                   FontSize="14"
+                                   Foreground="#38BDF8" />
+                        <TextBlock Text="配置主視窗標題、背景顏色與視窗行為"
+                                   FontSize="10"
+                                   Foreground="#71717A" />
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <!-- 表單屬性分頁 -->
+            <TabControl Grid.Row="1" Margin="4,0,4,4">
+                <!-- 分頁 1: 外觀與標題 -->
+                <TabItem Header="外觀">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                        <StackPanel Spacing="10" Margin="6">
+                            <!-- 視窗標題 (Title) -->
+                            <StackPanel Spacing="4">
+                                <TextBlock Text="視窗標題 (Title)" FontSize="11" Foreground="#A1A1AA" />
+                                <TextBox Text="{Binding FormTitle, Mode=TwoWay}" />
+                            </StackPanel>
+
+                            <!-- 表單背景顏色 (BackgroundColor) -->
+                            <StackPanel Spacing="4">
+                                <TextBlock Text="表單背景顏色 (BackgroundColor)" FontSize="11" Foreground="#A1A1AA" />
+                                <Grid ColumnDefinitions="*, Auto">
+                                    <TextBox Text="{Binding FormBackgroundColor, Mode=TwoWay}"
+                                             PlaceholderText="#FFFFFF 或 Transparent" />
+                                    <Border Grid.Column="1"
+                                            Width="28"
+                                            Height="28"
+                                            Margin="6,0,0,0"
+                                            CornerRadius="4"
+                                            BorderBrush="#52525B"
+                                            BorderThickness="1"
+                                            Background="{Binding FormBackgroundColor}" />
+                                </Grid>
+                                <!-- 快捷常用色票按鈕 -->
+                                <WrapPanel Margin="0,4,0,0">
+                                    <Button Content="純白" Command="{Binding SetFormBackgroundColorCommand}" CommandParameter="#FFFFFF" Padding="6,2" Margin="2" FontSize="10" />
+                                    <Button Content="淺灰" Command="{Binding SetFormBackgroundColorCommand}" CommandParameter="#F3F4F6" Padding="6,2" Margin="2" FontSize="10" />
+                                    <Button Content="米色" Command="{Binding SetFormBackgroundColorCommand}" CommandParameter="#FEF3C7" Padding="6,2" Margin="2" FontSize="10" />
+                                    <Button Content="深灰" Command="{Binding SetFormBackgroundColorCommand}" CommandParameter="#27272A" Padding="6,2" Margin="2" FontSize="10" />
+                                    <Button Content="夜黑" Command="{Binding SetFormBackgroundColorCommand}" CommandParameter="#18181B" Padding="6,2" Margin="2" FontSize="10" />
+                                    <Button Content="暗藍" Command="{Binding SetFormBackgroundColorCommand}" CommandParameter="#0F172A" Padding="6,2" Margin="2" FontSize="10" />
+                                </WrapPanel>
+                            </StackPanel>
+
+                            <!-- 視窗圖示 (Icon) -->
+                            <StackPanel Spacing="4">
+                                <TextBlock Text="視窗圖示 (Icon)" FontSize="11" Foreground="#A1A1AA" />
+                                <Grid ColumnDefinitions="*, Auto">
+                                    <TextBox Text="{Binding FormIcon, Mode=TwoWay}"
+                                             PlaceholderText="圖示路徑 (.ico / .png)" />
+                                    <Button Grid.Column="1"
+                                            Content="瀏覽..."
+                                            Command="{Binding BrowseFormIconCommand}"
+                                            Margin="4,0,0,0"
+                                            Padding="8,4"
+                                            FontSize="11" />
+                                </Grid>
+                            </StackPanel>
+
+                            <!-- 類別名稱與命名空間 -->
+                            <Border Background="#27272A" CornerRadius="4" Padding="8" Margin="0,6,0,0">
+                                <StackPanel Spacing="6">
+                                    <TextBlock Text="專案與類別架構" FontSize="11" FontWeight="Bold" Foreground="#94A3B8" />
+                                    <StackPanel Spacing="2">
+                                        <TextBlock Text="View 類別名稱" FontSize="10" Foreground="#71717A" />
+                                        <TextBox Text="{Binding FormViewClassName, Mode=TwoWay}" FontSize="11" />
+                                    </StackPanel>
+                                    <StackPanel Spacing="2">
+                                        <TextBlock Text="ViewModel 類別名稱" FontSize="10" Foreground="#71717A" />
+                                        <TextBox Text="{Binding FormViewModelClassName, Mode=TwoWay}" FontSize="11" />
+                                    </StackPanel>
+                                    <StackPanel Spacing="2">
+                                        <TextBlock Text="命名空間 (RootNamespace)" FontSize="10" Foreground="#71717A" />
+                                        <TextBox Text="{Binding FormRootNamespace, Mode=TwoWay}" FontSize="11" />
+                                    </StackPanel>
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+                    </ScrollViewer>
+                </TabItem>
+
+                <!-- 分頁 2: 尺寸與版面 -->
+                <TabItem Header="尺寸">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                        <StackPanel Spacing="10" Margin="6">
+                            <!-- 預設畫布寬高 -->
+                            <Grid ColumnDefinitions="*, *" RowDefinitions="Auto, Auto">
+                                <StackPanel Grid.Column="0" Spacing="4" Margin="0,0,4,0">
+                                    <TextBlock Text="寬度 (Width)" FontSize="11" Foreground="#A1A1AA" />
+                                    <NumericUpDown Value="{Binding FormWidth, Mode=TwoWay}" Minimum="100" Maximum="7680" Increment="10" />
+                                </StackPanel>
+                                <StackPanel Grid.Column="1" Spacing="4" Margin="4,0,0,0">
+                                    <TextBlock Text="高度 (Height)" FontSize="11" Foreground="#A1A1AA" />
+                                    <NumericUpDown Value="{Binding FormHeight, Mode=TwoWay}" Minimum="100" Maximum="4320" Increment="10" />
+                                </StackPanel>
+                            </Grid>
+
+                            <!-- 常用解析度快速設定 -->
+                            <StackPanel Spacing="4">
+                                <TextBlock Text="快速切換解析度" FontSize="11" Foreground="#A1A1AA" />
+                                <WrapPanel>
+                                    <Button Content="800x600" Command="{Binding ApplyFormPresetCommand}" CommandParameter="800x600" Padding="6,2" Margin="2" FontSize="10" />
+                                    <Button Content="1024x768" Command="{Binding ApplyFormPresetCommand}" CommandParameter="1024x768" Padding="6,2" Margin="2" FontSize="10" />
+                                    <Button Content="1280x720" Command="{Binding ApplyFormPresetCommand}" CommandParameter="1280x720" Padding="6,2" Margin="2" FontSize="10" />
+                                    <Button Content="1920x1080" Command="{Binding ApplyFormPresetCommand}" CommandParameter="1920x1080" Padding="6,2" Margin="2" FontSize="10" />
+                                </WrapPanel>
+                            </StackPanel>
+
+                            <!-- 最小與最大寬度高度限制 -->
+                            <Border Background="#27272A" CornerRadius="4" Padding="8" Margin="0,6,0,0">
+                                <StackPanel Spacing="6">
+                                    <TextBlock Text="視窗尺寸極限約束 (可選)" FontSize="11" FontWeight="Bold" Foreground="#94A3B8" />
+                                    <Grid ColumnDefinitions="*, *" RowDefinitions="Auto, Auto">
+                                        <StackPanel Grid.Row="0" Grid.Column="0" Spacing="2" Margin="0,0,4,4">
+                                            <TextBlock Text="最小寬度 (MinWidth)" FontSize="10" Foreground="#71717A" />
+                                            <NumericUpDown Value="{Binding FormMinWidth, Mode=TwoWay}" Minimum="0" Maximum="7680" />
+                                        </StackPanel>
+                                        <StackPanel Grid.Row="0" Grid.Column="1" Spacing="2" Margin="4,0,0,4">
+                                            <TextBlock Text="最小高度 (MinHeight)" FontSize="10" Foreground="#71717A" />
+                                            <NumericUpDown Value="{Binding FormMinHeight, Mode=TwoWay}" Minimum="0" Maximum="4320" />
+                                        </StackPanel>
+                                        <StackPanel Grid.Row="1" Grid.Column="0" Spacing="2" Margin="0,4,4,0">
+                                            <TextBlock Text="最大寬度 (MaxWidth)" FontSize="10" Foreground="#71717A" />
+                                            <NumericUpDown Value="{Binding FormMaxWidth, Mode=TwoWay}" Minimum="0" Maximum="7680" />
+                                        </StackPanel>
+                                        <StackPanel Grid.Row="1" Grid.Column="1" Spacing="2" Margin="4,4,0,0">
+                                            <TextBlock Text="最大高度 (MaxHeight)" FontSize="10" Foreground="#71717A" />
+                                            <NumericUpDown Value="{Binding FormMaxHeight, Mode=TwoWay}" Minimum="0" Maximum="4320" />
+                                        </StackPanel>
+                                    </Grid>
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+                    </ScrollViewer>
+                </TabItem>
+
+                <!-- 分頁 3: 視窗行為 -->
+                <TabItem Header="行為">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                        <StackPanel Spacing="10" Margin="6">
+                            <!-- 啟動位置 (WindowStartupLocation) -->
+                            <StackPanel Spacing="4">
+                                <TextBlock Text="視窗啟動位置 (WindowStartupLocation)" FontSize="11" Foreground="#A1A1AA" />
+                                <ComboBox ItemsSource="{Binding WindowStartupLocationOptions}"
+                                          SelectedItem="{Binding FormWindowStartupLocation, Mode=TwoWay}"
+                                          HorizontalAlignment="Stretch" />
+                            </StackPanel>
+
+                            <!-- 視窗狀態 (WindowState) -->
+                            <StackPanel Spacing="4">
+                                <TextBlock Text="初始視窗狀態 (WindowState)" FontSize="11" Foreground="#A1A1AA" />
+                                <ComboBox ItemsSource="{Binding WindowStateOptions}"
+                                          SelectedItem="{Binding FormWindowState, Mode=TwoWay}"
+                                          HorizontalAlignment="Stretch" />
+                            </StackPanel>
+
+                            <!-- 系統邊框裝飾 (SystemDecorations) -->
+                            <StackPanel Spacing="4">
+                                <TextBlock Text="系統裝飾樣式 (SystemDecorations)" FontSize="11" Foreground="#A1A1AA" />
+                                <ComboBox ItemsSource="{Binding SystemDecorationsOptions}"
+                                          SelectedItem="{Binding FormSystemDecorations, Mode=TwoWay}"
+                                          HorizontalAlignment="Stretch" />
+                            </StackPanel>
+
+                            <Border Height="1" Background="#3F3F46" Margin="0,4" />
+
+                            <!-- 開關選項 -->
+                            <CheckBox Content="允許調整大小 (CanResize)"
+                                      IsChecked="{Binding FormCanResize, Mode=TwoWay}" />
+                            <CheckBox Content="視窗永遠置頂 (Topmost)"
+                                      IsChecked="{Binding FormTopmost, Mode=TwoWay}" />
+                            <CheckBox Content="在工作列顯示 (ShowInTaskbar)"
+                                      IsChecked="{Binding FormShowInTaskbar, Mode=TwoWay}" />
+                        </StackPanel>
+                    </ScrollViewer>
+                </TabItem>
+            </TabControl>
+        </Grid>
+
+        <!-- 2. 已選取子節點之屬性與事件編輯面板 -->
+        <Grid IsVisible="{Binding !IsFormSelected}" RowDefinitions="Auto, *">
+            <!-- 標頭：控制項類型與識別碼 -->
+            <Border Grid.Row="0"
+                    Background="#27272A"
+                    Padding="10,8"
+                    BorderBrush="#3F3F46"
+                    BorderThickness="0,0,0,1">
+                <Grid ColumnDefinitions="*, Auto, Auto">
                     <StackPanel Grid.Column="0" Spacing="2">
                         <TextBlock Text="{Binding ControlType}"
                                    FontWeight="Bold"
@@ -47,8 +223,18 @@
                                    Foreground="#71717A" />
                     </StackPanel>
 
+                    <!-- 切換回表單屬性按鈕 -->
+                    <Button Grid.Column="1"
+                            Content="表單屬性"
+                            Command="{Binding SelectFormCommand}"
+                            Padding="6,3"
+                            FontSize="10"
+                            Margin="0,0,6,0"
+                            Background="#3F3F46"
+                            Foreground="#E4E4E7" />
+
                     <!-- 驗證警示徽章 -->
-                    <Border Grid.Column="1"
+                    <Border Grid.Column="2"
                             IsVisible="{Binding ValidationErrors.Count}"
                             Background="#DC2626"
                             CornerRadius="10"
