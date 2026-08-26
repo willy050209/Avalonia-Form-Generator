@@ -14,6 +14,18 @@ namespace AFG.Core.Tests;
 
 public sealed class MediaPlayerControlTests
 {
+    static MediaPlayerControlTests()
+    {
+        try
+        {
+            Avalonia.Skia.SkiaPlatform.Initialize();
+        }
+        catch
+        {
+            // Ignore if already initialized
+        }
+    }
+
     [Fact]
     public void MediaPlayerControl_DefaultProperties_ShouldMatchSpecification()
     {
