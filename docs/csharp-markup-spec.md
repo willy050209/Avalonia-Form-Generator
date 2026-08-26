@@ -481,6 +481,53 @@ writeableBitmap.ProcessPixels((int x, int y, ref byte b, ref byte g, ref byte r,
      writeableBitmap.ApplyBoxBlur(radius: 2);
      ```
 
+---
+
+## 8. MediaPlayerControl 多媒體播放器元件規範
+
+### 8.1 元件架構與核心特性
+`MediaPlayerControl` 為跨平台（桌面端、行動端與 Web）設計之現代化多媒體播放控制項，支援本地端媒體檔案、內嵌資源（`avares://`）與雲端串流網址（HTTP/HTTPS）之讀取、播放控制與當前影格截圖。
+
+- **命名空間**：`AFG.Shared.Controls.MediaPlayerControl`（共用核心專案與生成專案之 `Markup/AvaloniaMarkupExtensions.cs`）。
+- **狀態列舉 (`MediaState`)**：`Stopped`, `Playing`, `Paused`, `Buffering`, `Error`。
+
+### 8.2 屬性與方法 API
+| 屬性 / 方法 | 型別 / 簽章 | 說明 |
+| :--- | :--- | :--- |
+| `Source` | `string?` | 媒體來源（支援本地路徑、avares:// 與 http/https 雲端 URL） |
+| `AutoPlay` | `bool` | 是否在載入完成後自動播放（預設 false） |
+| `IsLooping` | `bool` | 是否循環播放（預設 false） |
+| `Volume` | `double` | 播放音量（0.0 ~ 1.0，預設 1.0） |
+| `Position` | `TimeSpan` | 當前播放進度時間戳 |
+| `Duration` | `TimeSpan` | 媒體總長度（預設 10 秒） |
+| `State` | `MediaState` | 當前播放狀態 |
+| `CurrentFrame` | `IImage?` | 當前播放影格影像 |
+| `Stretch` | `Stretch` | 畫面填滿拉伸模式（預設 Uniform） |
+| `SpeedRatio` | `double` | 播放速率倍數（預設 1.0） |
+| `Play()` | `void` | 開始/繼續播放 |
+| `Pause()` | `void` | 暫停播放 |
+| `Stop()` | `void` | 停止播放並重置進度為 0 |
+| `Seek(TimeSpan/double)` | `void` | 跳轉至指定時間戳或秒數 |
+| `LoadAsync(string?)` | `Task` | 非同步載入媒體資源 |
+| `CaptureFrame()` / `CaptureFrameAsync()` | `Bitmap?` / `Task<Bitmap?>` | 將當前影格轉為點陣圖並觸發 `FrameCaptured` 事件 |
+
+### 8.3 C# Declarative Markup Fluent 鏈式調用範例
+```csharp
+// 建立自訂多媒體播放器
+new MediaPlayerControl()
+    .Width(640)
+    .Height(360)
+    .Source("https://example.com/video.mp4")
+    .AutoPlay(true)
+    .IsLooping(true)
+    .Volume(0.8)
+    .Stretch(Stretch.Uniform)
+    .OnMediaOpened((MyViewModel vm) => vm.VideoOpenedCommand)
+    .OnMediaEnded((MyViewModel vm) => vm.VideoEndedCommand)
+    .OnFrameCaptured((MyViewModel vm) => vm.FrameCapturedCommand);
+```
+
+
 
 
 
