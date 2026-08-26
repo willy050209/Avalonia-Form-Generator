@@ -245,7 +245,7 @@ AvaloniaFormGenerator/
     - 在 `DesignCanvas.cs` 與 `MainView.axaml` 支援畫布背景色即時渲染、尺寸邊界與空白點選自動選取 Form 根節點。
     - 在 `CanvasViewModel` 與 `MainViewModel` 支援表單屬性 Undo/Redo 歷史堆疊與狀態列/預設解析度連動。
     - 撰寫 Inspector 與畫布表單屬性單元測試。
-  - [ ] 14.3 **Phase 3: C# Markup View 生成器與多專案匯出 MainWindow / Config 整合 (CodeGen & Project Export Integration)**
+  - [x] 14.3 **Phase 3: C# Markup View 生成器與多專案匯出 MainWindow / Config 整合 (CodeGen & Project Export Integration)**
     - 在 `CSharpMarkupViewGenerator` 產出 View (`UserControl`) 背景色、尺寸等屬性。
     - 在 `ProjectExportService` 為 `App.cs` / `MainWindow` 與 `Config.cs` 生成完整的視窗屬性設定（Title, Width, Height, Min/Max, Background, WindowStartupLocation, WindowState, CanResize, Topmost, ShowInTaskbar, Icon 等）。
     - 撰寫生成器與專案匯出實體編譯測試（執行 `dotnet build` 驗證 0 錯誤通過）。

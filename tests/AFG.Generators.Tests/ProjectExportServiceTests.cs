@@ -973,4 +973,57 @@ public sealed class ProjectExportServiceTests
             }
         }
     }
+
+    [Fact]
+    public void GenerateFullProject_ShouldGenerateWindowControlPropertiesInAppAndConfig()
+    {
+        // Arrange
+        var doc = new FormDocument
+        {
+            ViewClassName = "PosMainView",
+            ViewModelClassName = "PosMainViewModel",
+            Title = "POS 終端收銀系統",
+            BackgroundColor = "#1E293B",
+            CanvasWidth = 1280,
+            CanvasHeight = 800,
+            MinWidth = 800,
+            MinHeight = 600,
+            MaxWidth = 1920,
+            MaxHeight = 1080,
+            WindowStartupLocation = WindowStartupLocation.CenterScreen,
+            WindowState = WindowState.Normal,
+            CanResize = false,
+            Topmost = true,
+            ShowInTaskbar = true,
+            SystemDecorations = SystemDecorations.Full
+        };
+
+        // Act
+        var files = _exportService.GenerateFullProject(doc, new ProjectExportOptions(IncludeMobileProject: false));
+
+        // Assert
+        var appFile = files.First(f => f.FileName.EndsWith("App.cs"));
+        appFile.Content.Should().Contain("MinWidth = 800");
+        appFile.Content.Should().Contain("MinHeight = 600");
+        appFile.Content.Should().Contain("MaxWidth = 1920");
+        appFile.Content.Should().Contain("MaxHeight = 1080");
+        appFile.Content.Should().Contain("Background = Brush.Parse(\"#1E293B\")");
+        appFile.Content.Should().Contain("WindowStartupLocation = WindowStartupLocation.CenterScreen");
+        appFile.Content.Should().Contain("WindowState = WindowState.Normal");
+        appFile.Content.Should().Contain("CanResize = Config.CanResize");
+        appFile.Content.Should().Contain("Topmost = Config.Topmost");
+        appFile.Content.Should().Contain("ShowInTaskbar = Config.ShowInTaskbar");
+        appFile.Content.Should().Contain("SystemDecorations = SystemDecorations.Full");
+
+        var configFile = files.First(f => f.FileName.EndsWith("Config.cs"));
+        configFile.Content.Should().Contain("public const string AppTitle = \"POS 終端收銀系統\";");
+        configFile.Content.Should().Contain("public const double DefaultWindowWidth = 1280;");
+        configFile.Content.Should().Contain("public const double DefaultWindowHeight = 800;");
+        configFile.Content.Should().Contain("public const bool CanResize = false;");
+        configFile.Content.Should().Contain("public const bool Topmost = true;");
+        configFile.Content.Should().Contain("public const bool ShowInTaskbar = true;");
+
+        var viewFile = files.First(f => f.FileName.EndsWith("PosMainView.cs"));
+        viewFile.Content.Should().Contain("Background = Brush.Parse(\"#1E293B\");");
+    }
 }

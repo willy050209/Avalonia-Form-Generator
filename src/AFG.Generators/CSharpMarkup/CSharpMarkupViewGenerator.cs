@@ -42,6 +42,10 @@ public sealed class CSharpMarkupViewGenerator : ICodeGenerator
         sb.AppendLine();
         sb.AppendLine("    private void InitializeComponent()");
         sb.AppendLine("    {");
+        if (!string.IsNullOrWhiteSpace(document.BackgroundColor))
+        {
+            sb.AppendLine($"        Background = Brush.Parse(\"{document.BackgroundColor}\");");
+        }
 
         // 遞迴生成根節點
         var rootNodeName = !string.IsNullOrWhiteSpace(document.RootNode.Name) ? document.RootNode.Name.Trim() : document.RootNode.Type.ToString();
