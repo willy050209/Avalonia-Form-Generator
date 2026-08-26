@@ -233,4 +233,82 @@ public sealed class InspectorViewModelTests
         vm.IsFormSelected.Should().BeTrue();
         vm.HasSelectedNode.Should().BeFalse();
     }
+
+    [Fact]
+    public void AddFormEvent_WhenFormSelected_ShouldProvideFormEventsAndTriggerFormUpdated()
+    {
+        // Arrange
+        var vm = new InspectorViewModel();
+        var doc = new FormDocument { Title = "TestForm" };
+        FormDocument? updatedDoc = null;
+        vm.FormUpdated += d => updatedDoc = d;
+        vm.LoadDocument(doc);
+
+        // Act
+        vm.AddFormEventCommand.Execute(null);
+
+        // Assert
+        vm.FormEvents.Should().HaveCount(1);
+        var item = vm.FormEvents[0];
+        item.EventName.Should().Be("Loaded");
+        item.CommandProperty.Should().Be("Form_LoadedCommand");
+        item.AvailableEvents.Should().Contain("Loaded");
+        item.AvailableEvents.Should().Contain("PointerPressed");
+        item.AvailableEvents.Should().Contain("SizeChanged");
+        item.AvailableEvents.Should().Contain("KeyDown");
+
+        updatedDoc.Should().NotBeNull();
+        updatedDoc!.Events.Should().HaveCount(1);
+        updatedDoc.Events[0].EventName.Should().Be("Loaded");
+    }
+
+    [Fact]
+    public void LoadDocument_WithFormEvents_ShouldPopulateFormEventsCollection()
+    {
+        // Arrange
+        var vm = new InspectorViewModel();
+        var doc = new FormDocument
+        {
+            Title = "TestForm",
+            Events = [
+                new EventMappingDefinition { EventName = "Loaded", CommandProperty = "OnLoadedCommand" },
+                new EventMappingDefinition { EventName = "SizeChanged", CommandProperty = "OnSizeChangedCommand" }
+            ]
+        };
+
+        // Act
+        vm.LoadDocument(doc);
+
+        // Assert
+        vm.FormEvents.Should().HaveCount(2);
+        vm.FormEvents[0].EventName.Should().Be("Loaded");
+        vm.FormEvents[0].CommandProperty.Should().Be("OnLoadedCommand");
+        vm.FormEvents[1].EventName.Should().Be("SizeChanged");
+        vm.FormEvents[1].CommandProperty.Should().Be("OnSizeChangedCommand");
+    }
+
+    [Fact]
+    public void RemoveFormEvent_ShouldRemoveFromCollectionAndTriggerFormUpdated()
+    {
+        // Arrange
+        var vm = new InspectorViewModel();
+        var doc = new FormDocument
+        {
+            Title = "TestForm",
+            Events = [
+                new EventMappingDefinition { EventName = "Loaded", CommandProperty = "OnLoadedCommand" }
+            ]
+        };
+        FormDocument? updatedDoc = null;
+        vm.FormUpdated += d => updatedDoc = d;
+        vm.LoadDocument(doc);
+
+        // Act
+        vm.RemoveFormEventCommand.Execute(vm.FormEvents[0]);
+
+        // Assert
+        vm.FormEvents.Should().BeEmpty();
+        updatedDoc.Should().NotBeNull();
+        updatedDoc!.Events.Should().BeEmpty();
+    }
 }

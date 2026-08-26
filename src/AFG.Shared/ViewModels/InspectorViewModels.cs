@@ -240,4 +240,35 @@ public sealed partial class EventItemViewModel : ObservableObject
 
         return vm;
     }
+
+    public static EventItemViewModel FromFormEventDefinition(EventMappingDefinition def)
+    {
+        var vm = new EventItemViewModel
+        {
+            EventName = def.EventName,
+            CommandProperty = def.CommandProperty,
+            IsAsync = def.IsAsync,
+            AvailableEvents = ControlEventCatalog.GetSupportedFormEvents()
+        };
+
+        var effectiveParams = def.GetEffectiveParameters();
+        vm.Parameters.Clear();
+
+        if (effectiveParams.Count > 0)
+        {
+            foreach (var p in effectiveParams)
+            {
+                vm.Parameters.Add(EventParameterItemViewModel.FromDefinition(p, def.EventName));
+            }
+        }
+        else
+        {
+            foreach (var p in ControlEventCatalog.GetDefaultParameters(def.EventName))
+            {
+                vm.Parameters.Add(EventParameterItemViewModel.FromDefinition(p, def.EventName));
+            }
+        }
+
+        return vm;
+    }
 }

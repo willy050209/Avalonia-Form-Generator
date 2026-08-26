@@ -201,6 +201,115 @@
                         </StackPanel>
                     </ScrollViewer>
                 </TabItem>
+
+                <!-- 分頁 4: 表單事件 (Form Events) -->
+                <TabItem Header="事件">
+                    <Grid RowDefinitions="Auto, *">
+                        <Button Grid.Row="0"
+                                Command="{Binding AddFormEventCommand}"
+                                Margin="4,6,4,6"
+                                Content="新增表單事件命令"
+                                HorizontalAlignment="Stretch" />
+
+                        <ScrollViewer Grid.Row="1">
+                            <ItemsControl ItemsSource="{Binding FormEvents}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate x:DataType="vm:EventItemViewModel">
+                                        <Border Background="#27272A" CornerRadius="6" Padding="8" Margin="0,3">
+                                            <StackPanel Spacing="6">
+                                                <Grid ColumnDefinitions="*, Auto">
+                                                    <TextBlock Grid.Column="0" Text="表單事件命令映射" FontWeight="SemiBold" FontSize="12" Foreground="#F59E0B" />
+                                                    <Button Grid.Column="1"
+                                                            Content="刪除"
+                                                            Padding="6,2"
+                                                            FontSize="10"
+                                                            Command="{Binding $parent[views:InspectorView].((vm:InspectorViewModel)DataContext).RemoveFormEventCommand}"
+                                                            CommandParameter="{Binding}" />
+                                                </Grid>
+
+                                                <StackPanel Spacing="2">
+                                                    <TextBlock Text="事件名稱 (EventName)" FontSize="10" Foreground="#A1A1AA" />
+                                                    <ComboBox ItemsSource="{Binding AvailableEvents}"
+                                                              SelectedItem="{Binding EventName, Mode=TwoWay}"
+                                                              HorizontalAlignment="Stretch" />
+                                                </StackPanel>
+
+                                                <StackPanel Spacing="2">
+                                                    <TextBlock Text="ViewModel Command 名稱" FontSize="10" Foreground="#A1A1AA" />
+                                                    <TextBox Text="{Binding CommandProperty, Mode=TwoWay}" />
+                                                </StackPanel>
+
+                                                <!-- 多參數清單區塊 -->
+                                                <Border Background="#18181B" CornerRadius="4" Padding="6" Margin="0,2">
+                                                    <StackPanel Spacing="4">
+                                                        <Grid ColumnDefinitions="*, Auto">
+                                                            <TextBlock Grid.Column="0" Text="方法參數清單 (Parameters)" FontSize="10" FontWeight="SemiBold" Foreground="#38BDF8" VerticalAlignment="Center" />
+                                                            <Button Grid.Column="1"
+                                                                    Content="新增參數"
+                                                                    Padding="6,2"
+                                                                    FontSize="10"
+                                                                    Command="{Binding AddParameterCommand}" />
+                                                        </Grid>
+
+                                                        <ItemsControl ItemsSource="{Binding Parameters}">
+                                                            <ItemsControl.ItemTemplate>
+                                                                <DataTemplate x:DataType="vm:EventParameterItemViewModel">
+                                                                    <Border Background="#27272A" CornerRadius="4" Padding="6" Margin="0,2">
+                                                                        <StackPanel Spacing="4">
+                                                                            <Grid ColumnDefinitions="*, Auto">
+                                                                                <TextBlock Grid.Column="0" Text="{Binding Name}" FontSize="10" FontWeight="SemiBold" Foreground="#E4E4E7" VerticalAlignment="Center" />
+                                                                                <Button Grid.Column="1"
+                                                                                        Content="刪除"
+                                                                                        Padding="4,1"
+                                                                                        FontSize="9"
+                                                                                        Command="{Binding $parent[ItemsControl].((vm:EventItemViewModel)DataContext).RemoveParameterCommand}"
+                                                                                        CommandParameter="{Binding}" />
+                                                                            </Grid>
+
+                                                                            <Grid ColumnDefinitions="*, *">
+                                                                                <StackPanel Grid.Column="0" Spacing="2" Margin="0,0,2,0">
+                                                                                    <TextBlock Text="參數名稱" FontSize="9" Foreground="#A1A1AA" />
+                                                                                    <TextBox Text="{Binding Name, Mode=TwoWay}" FontSize="11" />
+                                                                                </StackPanel>
+                                                                                <StackPanel Grid.Column="1" Spacing="2" Margin="2,0,0,0">
+                                                                                    <TextBlock Text="型別 (Type)" FontSize="9" Foreground="#A1A1AA" />
+                                                                                    <ComboBox ItemsSource="{Binding AvailableParameterTypes}"
+                                                                                              SelectedItem="{Binding Type, Mode=TwoWay}"
+                                                                                              FontSize="11"
+                                                                                              HorizontalAlignment="Stretch" />
+                                                                                </StackPanel>
+                                                                            </Grid>
+
+                                                                            <StackPanel Spacing="2">
+                                                                                <TextBlock Text="綁定路徑/常數值 (選填)" FontSize="9" Foreground="#A1A1AA" />
+                                                                                <TextBox Text="{Binding ValueOrPath, Mode=TwoWay}"
+                                                                                         PlaceholderText="原生事件傳遞或指定屬性"
+                                                                                         FontSize="11" />
+                                                                            </StackPanel>
+
+                                                                            <CheckBox IsChecked="{Binding IsConstant, Mode=TwoWay}"
+                                                                                      Content="靜態常數值"
+                                                                                      FontSize="10" />
+                                                                        </StackPanel>
+                                                                    </Border>
+                                                                </DataTemplate>
+                              </ItemsControl.ItemTemplate>
+                                                        </ItemsControl>
+                                                    </StackPanel>
+                                                </Border>
+
+                                                <CheckBox IsChecked="{Binding IsAsync, Mode=TwoWay}"
+                                                          Content="非同步命令 (Async RelayCommand)"
+                                                          FontSize="11"
+                                                          Margin="0,2,0,0" />
+                                            </StackPanel>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </ScrollViewer>
+                    </Grid>
+                </TabItem>
             </TabControl>
         </Grid>
 

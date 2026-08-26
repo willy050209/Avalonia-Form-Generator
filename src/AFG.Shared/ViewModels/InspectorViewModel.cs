@@ -271,6 +271,7 @@ public sealed partial class InspectorViewModel : ObservableObject
 
     public ObservableCollection<BindingItemViewModel> Bindings { get; } = [];
     public ObservableCollection<EventItemViewModel> Events { get; } = [];
+    public ObservableCollection<EventItemViewModel> FormEvents { get; } = [];
     public ObservableCollection<ValidationError> ValidationErrors { get; } = [];
 
     public IReadOnlyList<CoreHorizontalAlignment> HorizontalAlignmentOptions { get; } =
@@ -312,6 +313,18 @@ public sealed partial class InspectorViewModel : ObservableObject
                 {
                     item.PropertyChanged += (_, _) => ApplyChanges();
                     item.ParameterChanged += ApplyChanges;
+                }
+            }
+        };
+
+        FormEvents.CollectionChanged += (s, e) =>
+        {
+            if (e.NewItems is not null)
+            {
+                foreach (EventItemViewModel item in e.NewItems)
+                {
+                    item.PropertyChanged += (_, _) => ApplyFormChanges();
+                    item.ParameterChanged += ApplyFormChanges;
                 }
             }
         };
@@ -472,6 +485,15 @@ public sealed partial class InspectorViewModel : ObservableObject
         FormViewModelClassName = doc.ViewModelClassName;
         FormRootNamespace = doc.RootNamespace;
 
+        FormEvents.Clear();
+        if (doc.Events != null)
+        {
+            foreach (var e in doc.Events)
+            {
+                FormEvents.Add(EventItemViewModel.FromFormEventDefinition(e));
+            }
+        }
+
         if (_currentNode is null)
         {
             IsFormSelected = true;
@@ -546,7 +568,8 @@ public sealed partial class InspectorViewModel : ObservableObject
                 SystemDecorations = FormSystemDecorations,
                 ViewClassName = string.IsNullOrWhiteSpace(FormViewClassName) ? "MainFormView" : FormViewClassName.Trim(),
                 ViewModelClassName = string.IsNullOrWhiteSpace(FormViewModelClassName) ? "MainFormViewModel" : FormViewModelClassName.Trim(),
-                RootNamespace = string.IsNullOrWhiteSpace(FormRootNamespace) ? "GeneratedApp.Views" : FormRootNamespace.Trim()
+                RootNamespace = string.IsNullOrWhiteSpace(FormRootNamespace) ? "GeneratedApp.Views" : FormRootNamespace.Trim(),
+                Events = FormEvents.Select(e => e.ToDefinition()).ToImmutableList()
             };
 
             _currentDocument = updatedDoc;
@@ -605,9 +628,51 @@ public sealed partial class InspectorViewModel : ObservableObject
     }
 
     [RelayCommand]
+    public void AddFormEvent()
+    {
+        var availableEvents = ControlEventCatalog.GetSupportedFormEvents();
+        var defaultEvent = availableEvents.Count > 0 ? availableEvents[0] : "Loaded";
+        var defaultCommand = $"Form_{defaultEvent}Command";
+
+        var eventVm = new EventItemViewModel
+        {
+            EventName = defaultEvent,
+            CommandProperty = defaultCommand,
+            AvailableEvents = availableEvents
+        };
+
+        if (eventVm.Parameters.Count == 0)
+        {
+            foreach (var p in ControlEventCatalog.GetDefaultParameters(defaultEvent))
+            {
+                eventVm.Parameters.Add(EventParameterItemViewModel.FromDefinition(p, defaultEvent));
+            }
+        }
+
+        FormEvents.Add(eventVm);
+        ApplyFormChanges();
+    }
+
+    [RelayCommand]
+    public void RemoveFormEvent(EventItemViewModel item)
+    {
+        if (FormEvents.Remove(item))
+        {
+            ApplyFormChanges();
+        }
+    }
+
+    [RelayCommand]
     public void AddEvent()
     {
-        if (_currentNode is null) return;
+        if (_currentNode is null)
+        {
+            if (IsFormSelected)
+            {
+                AddFormEvent();
+            }
+            return;
+        }
         var availableEvents = ControlEventCatalog.GetSupportedEvents(_currentNode.Type);
         var defaultEvent = ControlEventCatalog.GetDefaultEvent(_currentNode.Type) ?? (availableEvents.Count > 0 ? availableEvents[0] : "Click");
         var defaultCommand = $"{NodeName}_{defaultEvent}Command";
@@ -637,6 +702,10 @@ public sealed partial class InspectorViewModel : ObservableObject
         if (Events.Remove(item))
         {
             ApplyChanges();
+        }
+        else if (FormEvents.Remove(item))
+        {
+            ApplyFormChanges();
         }
     }
 
