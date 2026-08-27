@@ -198,6 +198,12 @@
                                       IsChecked="{Binding FormTopmost, Mode=TwoWay}" />
                             <CheckBox Content="在工作列顯示 (ShowInTaskbar)"
                                       IsChecked="{Binding FormShowInTaskbar, Mode=TwoWay}" />
+
+                            <CheckBox Content="生成 Code-Behind 強型別欄位與 NameScope 註冊"
+                                      IsChecked="{Binding FormGenerateCodeBehindFields, Mode=TwoWay}"
+                                      Margin="0,4,0,0"
+                                      FontWeight="SemiBold"
+                                      Foreground="#38BDF8" />
                         </StackPanel>
                     </ScrollViewer>
                 </TabItem>

@@ -552,6 +552,61 @@ AFG 在 AST 驗證器 (`AstValidator`) 與屬性檢查器 (`InspectorViewModel` 
 4. **時間型別約束**：`Position`, `Duration`, `SelectedTime` 僅相容 `TimeSpan` 與 `TimeSpan?`。
 5. **列舉狀態約束**：`State` 僅相容 `MediaState` 與 `string`。
 
+---
+
+## 10. Code-Behind 友好強型別欄位生成與 Avalonia NameScope 規範 (Code-Behind Friendly View)
+
+### 10.1 架構設計理念
+為了在純 C# Declarative Markup View 生成器中**兼顧 MVVM 與傳統 WinForms / WPF Code-Behind 開發者**，AFG 支援在產出的 `partial class View` 中自動生成強型別私有欄位，並透過 `.Name(...)` 將控制項註冊進 Avalonia `NameScope`。
+
+```csharp
+// 由 AFG 自動生成的 View (例如: MainView.cs)
+public partial class MainView : UserControl
+{
+    // 提供編譯期強型別欄位，方便 Code-Behind 使用者 (Code-Behind Friendly Fields)
+    private TextBox _txtUsername;
+    private Button _btnSubmit;
+
+    public MainView()
+    {
+        InitializeComponent();
+    }
+
+    private void InitializeComponent()
+    {
+        Content = new StackPanel()
+            .Children(
+                // 同步賦予 Name，註冊進 Avalonia NameScope
+                _txtUsername = new TextBox()
+                    .Name("txtUsername")
+                    .Width(240)
+                    .Text((MainViewModel vm) => vm.Username, BindingMode.TwoWay),
+
+                _btnSubmit = new Button()
+                    .Name("btnSubmit")
+                    .Text("送出")
+                    .OnClick((MainViewModel vm) => vm.SubmitCommand)
+            );
+    }
+}
+```
+
+### 10.2 命名過濾、清理與衝突保護 (Filtering & Conflict Resolution)
+1. **智能命名過濾**：
+   - 僅對具名或有互動之控制項生成欄位；
+   - 匿名/無自訂 ID 的純佈局容器（如無自訂名稱的 `Grid`, `StackPanel`, `Canvas`）與裝飾用 `TextBlock` 維持 Inline 宣告（即 `new Grid()...`），避免 View 類別充斥冗餘欄位。
+2. **命名清理**：
+   - 透過 `CSharpSyntaxSanitizer.SanitizeIdentifier` 清除非法識別碼字元，並轉為符合 C# 欄位慣例之 `_camelCase`。
+3. **命名衝突保護**：
+   - 若 AST 中存在多個相同名稱之節點，生成器會自動以 `node.Id` 作為後綴（如 `_txtUsername_b2c3`），並輸出防護提示註解：
+     ```csharp
+     // 提示: 控制項名稱 'txtUsername' 發生重複，已自動附加 ID 後綴 'b2c3' 以消除衝突保護編譯安全
+     private TextBox _txtUsername_b2c3;
+     ```
+4. **Pure MVVM 切換模式**：
+   - 當 `FormDocument.GenerateCodeBehindFields == false` 時，自動切換至純 MVVM 模式，產出無任何欄位宣告的精簡 View 類別。
+
+
 
 
 

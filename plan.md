@@ -247,23 +247,35 @@ AvaloniaFormGenerator/
 - **目標**：為所有控制項（特別是 `MediaPlayerControl`、對話方塊與通訊元件）建立嚴謹的屬性白名單目錄，屏蔽自身沒有的屬性並完整包含自身獨有屬性；實作強型別型態約束驗證器（如禁止 `IImage` / `CurrentFrame` 綁定 `bool`，禁止 `IsChecked` 綁定 `IImage` 等）；連動 Inspector 下拉選單與 ViewModel / View 程式碼生成引擎。
 - **任務清單**：
   - [x] 15.1 **Phase 1: 核心資料綁定目錄與型態約束系統 (`ControlBindingCatalog` in `AFG.Core`)**
-    - 建立 `ControlBindingCatalog` 靜態類別，為 24+ 種 `ControlType` 建立精確的資料綁定屬性白名單（包含 `MediaPlayerControl` 專屬之 `AutoPlay`, `IsLooping`, `Volume`, `Position`, `Duration`, `State`, `CurrentFrame`, `SpeedRatio` 等）。
-    - 定義每個屬性之預設型別與合法相容型別清單，提供 `IsTypeCompatible(string property, string typeName, ControlType controlType)` 判斷函式。
-    - 撰寫 `ControlBindingCatalogTests` 驗證各元件之屬性白名單與型別相容性/越界衝突。
   - [x] 15.2 **Phase 2: AST 防禦性驗證器與屬性屏蔽強化 (`AstValidator` Integration)**
-    - 在 `AstValidator.ValidateSingleNode` 中加入 `AFG204`（屬性非該控制項所支援）與 `AFG205`（資料綁定型別不相容）檢驗規則。
-    - 撰寫 `AstValidatorTests` 驗證非法屬性與型態衝突報錯。
   - [x] 15.3 **Phase 3: 屬性檢查器 UI 聯動與型別下拉限制 (`InspectorViewModel` & `BindingItemViewModel`)**
-    - 更新 `BindingItemViewModel`：提供動態 `AvailableProperties` 與依目標屬性動態限制的 `AllowedDataTypes`。
-    - 更新 `InspectorViewModel`：整合 `ControlBindingCatalog`，全面檢視並修正所有控制項的能力標記（`IsTextSupported`, `IsImageSupported`, `IsTimerSupported`, `IsContentSupported`, `IsCheckableSupported`, `IsValueSupported`, etc.），屏蔽不存在的面板並呈現專屬面板。
-    - 撰寫 `InspectorViewModelTests` 驗證各控制項的屬性白名單與型別連動。
   - [x] 15.4 **Phase 4: 程式碼生成引擎與 Fluent 擴充強化 (`MvvmViewModelGenerator` & `AvaloniaMarkupExtensionsSource`)**
-    - 在 `MvvmViewModelGenerator` 完整整合 `ControlBindingCatalog`，精準推斷 `MediaPlayerControl` 及各控制項之型別、預設值與初始值。
-    - 在 `AvaloniaMarkupExtensionsSource.cs` 補齊 `Duration`, `State`, `SpeedRatio` 等 Fluent 擴充方法。
-    - 撰寫生成器與 Roslyn 記憶體編譯單元測試。
   - [x] 15.5 **Phase 5: 全套單元測試驗證、技術文件更新與 Git Commit**
+
+---
+
+### 🔹 階段 16：Code-Behind 友好強型別欄位生成與 Avalonia NameScope 整合 (Code-Behind Partial Class Fields & NameScope Registration)
+- [x] **階段狀態：已完成 (Completed)**
+- **目標**：在 C# Markup View 生成器中加入 partial class 強型別私有欄位（如 `private Button _btnSubmit;`）與 `.Name(...)` NameScope 註冊機制，兼顧 MVVM 與 Code-Behind 開發者；具備智慧過濾、命名衝突保護與可選設定（預設開啟 Code-Behind Friendly 模式）。
+- **任務清單**：
+  - [x] 16.1 **Phase 1: AST 模型擴充與 FormDocument 設定 (AST Model Extension & FormDocument Config)**
+    - 在 `FormDocument.cs` 新增 `bool GenerateCodeBehindFields { get; init; } = true;`。
+    - 在 `InspectorViewModel.cs` 與 `InspectorView.axaml` 表單屬性面板提供開關連動。
+    - 撰寫 `FormDocument` 序列化/反序列化單元測試。
+  - [x] 16.2 **Phase 2: Fluent 擴充方法 `.Name(...)` 支援 (`AvaloniaMarkupExtensionsSource.cs`)**
+    - 在 `AvaloniaMarkupExtensionsSource.cs` 新增 `.Name(this StyledElement control, string name)` 擴充方法。
+    - 驗證 Roslyn 語法樹編譯無錯誤。
+  - [x] 16.3 **Phase 3: C# Markup View 生成器欄位分析、命名清理與衝突保護演算法 (`CSharpMarkupViewGenerator.cs`)**
+    - 實作智慧過濾機制：僅對具名或有互動之控制項生成欄位，自動過濾無自訂 ID 的純靜態佈局容器。
+    - 實作命名清理與衝突保護演算法：透過 `CSharpSyntaxSanitizer` 轉為 `_camelCase` 識別碼，偵測到重複名稱時自動加入 `node.Id` 為後綴並輸出提示註解。
+    - 在 `InitializeComponent()` 內以 `_fieldName = new ControlType().Name("elementName")` 賦值並註冊至 NameScope，同時保留完整的 MVVM `.Text()`, `.Bind()`, `.Command()`, `.OnClick()` 調用。
+    - 支援 `GenerateCodeBehindFields == false`（Pure MVVM 模式）時產出無欄位的乾淨 Inline View。
+    - 撰寫單元測試驗證欄位生成、NameScope 註冊、衝突保護與 Pure MVVM 切換。
+  - [x] 16.4 **Phase 4: 專案匯出與實體編譯驗證 (`ProjectExportServiceTests`)**
+    - 撰寫匯出專案包含 Code-Behind 欄位之整合測試，執行 `dotnet build` 驗證 0 錯誤 0 警告編譯通過。
+  - [x] 16.5 **Phase 5: 全套單元測試驗證、技術文件更新與 Git Commit**
     - 執行全專案自動化測試，確保 0 Error, 0 Warning 且 100% 通過。
-    - 更新技術文件 `docs/csharp-markup-spec.md`、`docs/ast-schema.md`、`docs/user-guide.md` 與 `plan.md`。
+    - 更新技術文件 `docs/csharp-markup-spec.md`、`docs/user-guide.md` 與 `plan.md`。
 
 ---
 

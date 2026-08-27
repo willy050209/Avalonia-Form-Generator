@@ -336,6 +336,24 @@ public sealed class AfgSerializerTests
     }
 
     [Fact]
+    public void Roundtrip_FormDocument_ShouldPreserveGenerateCodeBehindFields()
+    {
+        // Arrange
+        var doc = new FormDocument
+        {
+            Title = "CodeBehindTest",
+            GenerateCodeBehindFields = false
+        };
+
+        // Act
+        var json = AfgSerializer.SerializeDocument(doc);
+        var result = AfgSerializer.DeserializeDocument(json);
+
+        // Assert
+        result.GenerateCodeBehindFields.Should().BeFalse();
+    }
+
+    [Fact]
     public void DeserializeDocument_ShouldThrowArgumentNullException_WhenInputIsNull()
     {
         var act = () => AfgSerializer.DeserializeDocument(null!);

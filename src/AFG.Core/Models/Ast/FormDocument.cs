@@ -119,6 +119,11 @@ public sealed record FormDocument
     public bool UseCompiledBindings { get; init; } = true;
 
     /// <summary>
+    /// 是否在 View 生成 Code-Behind 強型別欄位與 NameScope 註冊（預設為 true，兼顧 MVVM 與 Code-Behind 開發者）。
+    /// </summary>
+    public bool GenerateCodeBehindFields { get; init; } = true;
+
+    /// <summary>
     /// 注入至此 ViewModel 的自訂服務相依性清單（為空時產出乾淨無參數 ViewModel）。
     /// </summary>
     public ImmutableList<ServiceDependencyDefinition> InjectedServices { get; init; } = [];

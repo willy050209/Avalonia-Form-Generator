@@ -89,6 +89,9 @@ public sealed partial class InspectorViewModel : ObservableObject
     [ObservableProperty]
     private string _formRootNamespace = "GeneratedApp.Views";
 
+    [ObservableProperty]
+    private bool _formGenerateCodeBehindFields = true;
+
     public IReadOnlyList<CoreWindowStartupLocation> WindowStartupLocationOptions { get; } =
         Enum.GetValues<CoreWindowStartupLocation>();
 
@@ -579,6 +582,7 @@ public sealed partial class InspectorViewModel : ObservableObject
         FormViewClassName = doc.ViewClassName;
         FormViewModelClassName = doc.ViewModelClassName;
         FormRootNamespace = doc.RootNamespace;
+        FormGenerateCodeBehindFields = doc.GenerateCodeBehindFields;
 
         var docEvents = doc.Events ?? [];
         var currentFormEvents = FormEvents.Select(e => e.ToDefinition()).ToImmutableList();
@@ -666,6 +670,7 @@ public sealed partial class InspectorViewModel : ObservableObject
                 ViewClassName = string.IsNullOrWhiteSpace(FormViewClassName) ? "MainFormView" : FormViewClassName.Trim(),
                 ViewModelClassName = string.IsNullOrWhiteSpace(FormViewModelClassName) ? "MainFormViewModel" : FormViewModelClassName.Trim(),
                 RootNamespace = string.IsNullOrWhiteSpace(FormRootNamespace) ? "GeneratedApp.Views" : FormRootNamespace.Trim(),
+                GenerateCodeBehindFields = FormGenerateCodeBehindFields,
                 Events = FormEvents.Select(e => e.ToDefinition()).ToImmutableList()
             };
 

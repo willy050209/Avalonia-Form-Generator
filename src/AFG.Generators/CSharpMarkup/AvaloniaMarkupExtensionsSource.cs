@@ -60,6 +60,9 @@ public static class AvaloniaMarkupExtensionsSource
             throw new ArgumentException("Expression must be a member access expression", nameof(expr));
         }
 
+        // 0. 物件名稱與 NameScope 註冊 (x:Name / Code-Behind Friendly)
+        public static T Name<T>(this T element, string name) where T : StyledElement { element.Name = name; return element; }
+
         // 1. 幾何尺寸與外觀數值與資料綁定
         public static T Width<T>(this T control, double value) where T : Control { control.Width = value; return control; }
         public static T Width<T>(this T control, string path, BindingMode mode = BindingMode.Default) where T : Control

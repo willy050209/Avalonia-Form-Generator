@@ -704,8 +704,8 @@ public sealed class CSharpMarkupViewGeneratorTests
         // Assert
         var normalized = result.Content.Replace("\r\n", "\n");
         normalized.Should().Contain("        // RootCanvas\n        Content = new Canvas()");
-        normalized.Should().Contain("            .Children(\n                // SubmitBtn\n                new Button()\n                    .Width(100)\n                    .Height(30),");
-        normalized.Should().Contain("                // InputBox\n                new TextBox()\n                    .Width(200)\n            );");
+        normalized.Should().Contain("            .Children(\n                // SubmitBtn\n                _submitBtn = new Button()\n                    .Name(\"submitBtn\")\n                    .Width(100)\n                    .Height(30),");
+        normalized.Should().Contain("                // InputBox\n                _inputBox = new TextBox()\n                    .Name(\"inputBox\")\n                    .Width(200)\n            );");
 
         var syntaxDiagnostics = RoslynCompilerService.CheckSyntaxDiagnostics(result.Content);
         syntaxDiagnostics.Should().BeEmpty();
@@ -808,5 +808,197 @@ public sealed class CSharpMarkupViewGeneratorTests
     {
         var act = () => _generator.Generate(null!);
         act.Should().Throw<ArgumentNullException>();
+    }
+
+    [Fact]
+    public void Generate_WithCodeBehindFriendlyMode_ShouldEmitTypedFields_AndNameScopeAssignments()
+    {
+        // Arrange
+        var doc = new FormDocument
+        {
+            RootNamespace = "TestApp.Views",
+            ViewClassName = "MainView",
+            ViewModelClassName = "MainViewModel",
+            GenerateCodeBehindFields = true,
+            RootNode = new AstNode
+            {
+                Name = "RootCanvas",
+                Type = ControlType.Canvas,
+                Children = [
+                    new AstNode
+                    {
+                        Id = "u1",
+                        Name = "txtUsername",
+                        Type = ControlType.TextBox,
+                        Bindings = [new BindingDefinition { TargetProperty = "Text", ViewModelProperty = "Username" }]
+                    },
+                    new AstNode
+                    {
+                        Id = "b1",
+                        Name = "btnSubmit",
+                        Type = ControlType.Button,
+                        Text = "送出",
+                        Events = [new EventMappingDefinition { EventName = "Click", CommandProperty = "SubmitCommand" }]
+                    }
+                ]
+            }
+        };
+
+        // Act
+        var result = _generator.Generate(doc);
+
+        // Assert: 類別中宣告強型別私有欄位
+        result.Content.Should().Contain("private TextBox _txtUsername;");
+        result.Content.Should().Contain("private Button _btnSubmit;");
+
+        // Assert: 在 InitializeComponent 內賦值並註冊 NameScope
+        result.Content.Should().Contain("_txtUsername = new TextBox()");
+        result.Content.Should().Contain(".Name(\"txtUsername\")");
+        result.Content.Should().Contain("_btnSubmit = new Button()");
+        result.Content.Should().Contain(".Name(\"btnSubmit\")");
+
+        // Assert: 保留 MVVM 資料綁定與事件命令
+        result.Content.Should().Contain(".Text((MainViewModel vm) => vm.Username");
+        result.Content.Should().Contain(".OnClick((MainViewModel vm) => vm.SubmitCommand)");
+
+        var diagnostics = RoslynCompilerService.CheckSyntaxDiagnostics(result.Content);
+        diagnostics.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Generate_WithDuplicateNodeNames_ShouldResolveConflictWithIdSuffix_AndEmitWarningComment()
+    {
+        // Arrange: 兩個同名為 "txtInput" 的節點
+        var doc = new FormDocument
+        {
+            RootNamespace = "TestApp.Views",
+            ViewClassName = "DuplicateView",
+            ViewModelClassName = "DuplicateViewModel",
+            GenerateCodeBehindFields = true,
+            RootNode = new AstNode
+            {
+                Name = "RootCanvas",
+                Type = ControlType.Canvas,
+                Children = [
+                    new AstNode
+                    {
+                        Id = "nodeA",
+                        Name = "txtInput",
+                        Type = ControlType.TextBox
+                    },
+                    new AstNode
+                    {
+                        Id = "nodeB",
+                        Name = "txtInput",
+                        Type = ControlType.TextBox
+                    }
+                ]
+            }
+        };
+
+        // Act
+        var result = _generator.Generate(doc);
+
+        // Assert: 第一個使用 _txtInput，第二個自動加上 ID 後綴 _txtInput_nodeB 並輸出警告提示
+        result.Content.Should().Contain("private TextBox _txtInput;");
+        result.Content.Should().Contain("private TextBox _txtInput_nodeB;");
+        result.Content.Should().Contain("// 提示: 控制項名稱 'txtInput' 發生重複，已自動附加 ID 後綴 'nodeB' 以消除衝突保護編譯安全");
+
+        result.Content.Should().Contain("_txtInput = new TextBox()");
+        result.Content.Should().Contain(".Name(\"txtInput\")");
+        result.Content.Should().Contain("_txtInput_nodeB = new TextBox()");
+        result.Content.Should().Contain(".Name(\"txtInput_nodeB\")");
+
+        var diagnostics = RoslynCompilerService.CheckSyntaxDiagnostics(result.Content);
+        diagnostics.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Generate_WithPureMvvmMode_ShouldNotEmitFields_AndKeepInlineDeclaration()
+    {
+        // Arrange
+        var doc = new FormDocument
+        {
+            RootNamespace = "TestApp.Views",
+            ViewClassName = "PureMvvmView",
+            ViewModelClassName = "PureMvvmViewModel",
+            GenerateCodeBehindFields = false, // 關閉 Code-Behind 欄位
+            RootNode = new AstNode
+            {
+                Name = "RootCanvas",
+                Type = ControlType.Canvas,
+                Children = [
+                    new AstNode
+                    {
+                        Id = "b1",
+                        Name = "btnSubmit",
+                        Type = ControlType.Button
+                    }
+                ]
+            }
+        };
+
+        // Act
+        var result = _generator.Generate(doc);
+
+        // Assert: 不應包含欄位宣告，維持 Inline
+        result.Content.Should().NotContain("private Button _btnSubmit;");
+        result.Content.Should().NotContain("_btnSubmit = new Button()");
+        result.Content.Should().Contain("new Button()");
+
+        var diagnostics = RoslynCompilerService.CheckSyntaxDiagnostics(result.Content);
+        diagnostics.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Generate_StaticContainersWithoutInteraction_ShouldBeFilteredOutFromFields()
+    {
+        // Arrange: 靜態無自訂名稱的 StackPanel 與裝飾用的 TextBlock
+        var doc = new FormDocument
+        {
+            RootNamespace = "TestApp.Views",
+            ViewClassName = "StaticLayoutView",
+            ViewModelClassName = "StaticLayoutViewModel",
+            GenerateCodeBehindFields = true,
+            RootNode = new AstNode
+            {
+                Name = "RootCanvas",
+                Type = ControlType.Canvas,
+                Children = [
+                    new AstNode
+                    {
+                        Name = "StackPanel", // 預設名稱，無事件無綁定
+                        Type = ControlType.StackPanel,
+                        Children = [
+                            new AstNode
+                            {
+                                Name = "TextBlock", // 預設裝飾文字，無事件無綁定
+                                Type = ControlType.TextBlock,
+                                Text = "靜態標籤"
+                            },
+                            new AstNode
+                            {
+                                Id = "btnSave",
+                                Name = "btnSave", // 具名按鈕
+                                Type = ControlType.Button,
+                                Text = "儲存"
+                            }
+                        ]
+                    }
+                ]
+            }
+        };
+
+        // Act
+        var result = _generator.Generate(doc);
+
+        // Assert: 靜態容器與裝飾文字不產生欄位，僅具名按鈕產生欄位
+        result.Content.Should().NotContain("private StackPanel _stackPanel;");
+        result.Content.Should().NotContain("private TextBlock _textBlock;");
+        result.Content.Should().Contain("private Button _btnSave;");
+        result.Content.Should().Contain("_btnSave = new Button()");
+
+        var diagnostics = RoslynCompilerService.CheckSyntaxDiagnostics(result.Content);
+        diagnostics.Should().BeEmpty();
     }
 }
