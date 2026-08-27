@@ -455,8 +455,11 @@ public sealed class ProjectExportService(FormCodeGenerator? codeGenerator = null
         /// </summary>
         public interface IDialogService
         {
+            string? ShowOpenFileDialog(string title = "開啟檔案", string? filter = null);
             Task<string?> ShowOpenFileDialogAsync(string title = "開啟檔案", string? filter = null);
+            string? ShowSaveFileDialog(string title = "儲存檔案", string defaultFileName = "Untitled", string? defaultExtension = null, string? filter = null);
             Task<string?> ShowSaveFileDialogAsync(string title = "儲存檔案", string defaultFileName = "Untitled", string? defaultExtension = null, string? filter = null);
+            bool ShowMessageBox(string message, string title = "提示");
             Task<bool> ShowMessageBoxAsync(string message, string title = "提示");
         }
         """;
@@ -473,6 +476,9 @@ public sealed class ProjectExportService(FormCodeGenerator? codeGenerator = null
         /// </summary>
         public sealed class DialogService : IDialogService
         {
+            public string? ShowOpenFileDialog(string title = "開啟檔案", string? filter = null) =>
+                RunSynchronously(() => ShowOpenFileDialogAsync(title, filter));
+
             public async Task<string?> ShowOpenFileDialogAsync(string title = "開啟檔案", string? filter = null)
             {
                 var topLevel = App.GetTopLevel();
@@ -498,6 +504,9 @@ public sealed class ProjectExportService(FormCodeGenerator? codeGenerator = null
                 var files = await topLevel.StorageProvider.OpenFilePickerAsync(options);
                 return files.Count > 0 ? files[0].Path.LocalPath : null;
             }
+
+            public string? ShowSaveFileDialog(string title = "儲存檔案", string defaultFileName = "Untitled", string? defaultExtension = null, string? filter = null) =>
+                RunSynchronously(() => ShowSaveFileDialogAsync(title, defaultFileName, defaultExtension, filter));
 
             public async Task<string?> ShowSaveFileDialogAsync(string title = "儲存檔案", string defaultFileName = "Untitled", string? defaultExtension = null, string? filter = null)
             {
@@ -526,6 +535,9 @@ public sealed class ProjectExportService(FormCodeGenerator? codeGenerator = null
                 return file?.Path.LocalPath;
             }
 
+            public bool ShowMessageBox(string message, string title = "提示") =>
+                RunSynchronously(() => ShowMessageBoxAsync(message, title));
+
             public async Task<bool> ShowMessageBoxAsync(string message, string title = "提示")
             {
                 var window = App.GetMainWindow();
@@ -533,6 +545,31 @@ public sealed class ProjectExportService(FormCodeGenerator? codeGenerator = null
 
                 var dialog = new MessageBoxWindow(title, message);
                 return await dialog.ShowDialog<bool>(window);
+            }
+
+            private static T RunSynchronously<T>(Func<Task<T>> taskFunc)
+            {
+                if (Dispatcher.UIThread.CheckAccess())
+                {
+                    var frame = new DispatcherFrame();
+                    T result = default!;
+                    Exception? error = null;
+
+                    _ = taskFunc().ContinueWith(t =>
+                    {
+                        if (t.IsFaulted) error = t.Exception?.GetBaseException() ?? t.Exception;
+                        else result = t.Result;
+                        frame.Continue = false;
+                    }, TaskScheduler.FromCurrentSynchronizationContext());
+
+                    Dispatcher.UIThread.PushFrame(frame);
+                    if (error is not null) throw error;
+                    return result;
+                }
+                else
+                {
+                    return Dispatcher.UIThread.InvokeAsync(taskFunc).GetAwaiter().GetResult();
+                }
             }
         }
         """;
@@ -630,6 +667,23 @@ public sealed class ProjectExportService(FormCodeGenerator? codeGenerator = null
 
             public event EventHandler<string?>? FileOk;
 
+            public string? Show()
+            {
+                var dialogService = App.Services?.GetService<IDialogService>() ?? new DialogService();
+                var result = dialogService.ShowOpenFileDialog(Title, Filter);
+                if (!string.IsNullOrEmpty(result))
+                {
+                    FileOk?.Invoke(this, result);
+                }
+                return result;
+            }
+
+            public static string? Show(string title = "開啟檔案", string? filter = null)
+            {
+                var dlg = new OpenFileDialog { Title = title, Filter = filter };
+                return dlg.Show();
+            }
+
             public async Task<string?> ShowAsync()
             {
                 var dialogService = App.Services?.GetService<IDialogService>() ?? new DialogService();
@@ -661,6 +715,23 @@ public sealed class ProjectExportService(FormCodeGenerator? codeGenerator = null
 
             public event EventHandler<string?>? FileOk;
 
+            public string? Show(string? defaultFileName = null)
+            {
+                var dialogService = App.Services?.GetService<IDialogService>() ?? new DialogService();
+                var result = dialogService.ShowSaveFileDialog(Title, defaultFileName ?? "Untitled", DefaultExtension, Filter);
+                if (!string.IsNullOrEmpty(result))
+                {
+                    FileOk?.Invoke(this, result);
+                }
+                return result;
+            }
+
+            public static string? Show(string defaultFileName = "Untitled", string title = "儲存檔案", string? filter = null)
+            {
+                var dlg = new SaveFileDialog { Title = title, Filter = filter };
+                return dlg.Show(defaultFileName);
+            }
+
             public async Task<string?> ShowAsync(string? defaultFileName = null)
             {
                 var dialogService = App.Services?.GetService<IDialogService>() ?? new DialogService();
@@ -690,6 +761,20 @@ public sealed class ProjectExportService(FormCodeGenerator? codeGenerator = null
             public string Message { get; set; } = string.Empty;
 
             public event EventHandler<bool?>? Confirmed;
+
+            public bool? Show()
+            {
+                var dialogService = App.Services?.GetService<IDialogService>() ?? new DialogService();
+                var result = dialogService.ShowMessageBox(Message, Title);
+                Confirmed?.Invoke(this, result);
+                return result;
+            }
+
+            public static bool? Show(string message, string title = "提示")
+            {
+                var msgBox = new MessageBox { Message = message, Title = title };
+                return msgBox.Show();
+            }
 
             public async Task<bool?> ShowAsync(string? message = null, string? title = null)
             {

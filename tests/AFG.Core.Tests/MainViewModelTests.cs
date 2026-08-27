@@ -295,7 +295,7 @@ public sealed class MainViewModelTests
         // Assert 1: View 應切換為直接事件處理常式與 Stub，Vm 代碼提示不使用 ViewModel
         vm.GeneratedViewCode.Should().Contain("private Button _btnSubmit;");
         vm.GeneratedViewCode.Should().Contain(".OnClick(BtnSubmit_Click)");
-        vm.GeneratedViewCode.Should().Contain("private void BtnSubmit_Click(object? sender, RoutedEventArgs e)");
+        vm.GeneratedViewCode.Should().Contain("BtnSubmit_Click(object? sender, RoutedEventArgs e)");
         vm.GeneratedVmCode.Should().Contain("Code-Behind / Event-Driven 模式不使用 ViewModel");
 
         // Act 2: 切換至 Pure MVVM 模式

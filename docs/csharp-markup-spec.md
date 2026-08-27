@@ -737,6 +737,49 @@ public partial class MainView : UserControl
      private TextBox _txtUsername_b2c3;
      ```
 
+---
+
+## 11. 對話方塊同步呼叫與非同步事件常式支援 (Dialog Synchronous Show & Async Events)
+
+### 11.1 對話方塊同步 `Show()` 與靜態方法
+為了滿足 WinForms 轉移者與純 Code-Behind 開發者習慣，對話方塊元件（`OpenFileDialog`, `SaveFileDialog`, `MessageBox`）與 `IDialogService` 同時提供**同步 `Show()`** 與 **非同步 `ShowAsync()`**：
+
+```csharp
+// 1. 訊息框實例與靜態同步呼叫 (Classic WinForms Style)
+MessageBox.Show("儲存成功！", "系統提示");
+_messageBox.Show();
+
+// 2. 開啟檔案對話方塊同步選取
+var selectedFile = OpenFileDialog.Show("請選擇文字檔", "*.txt");
+var path = _openFileDialog.Show();
+
+// 3. 儲存檔案對話方塊同步呼叫
+var savePath = SaveFileDialog.Show("Report.csv", "匯出報表", "*.csv");
+var target = _saveFileDialog.Show("Data.json");
+```
+
+> [!NOTE]
+> 內部透過 Avalonia `DispatcherFrame` 嵌套訊息泵（Nested Message Loop），在 UI 執行緒執行同步等待時避免死結（Deadlock），保持 UI 渲染與視窗回應性。
+
+### 11.2 Code-Behind 模式下的非同步事件常式 (`async void`)
+在 Code-Behind 模式下，當事件標記為非同步 (`IsAsync = true`) 時，生成器自動產出符合 C# 事件標準的 `async void` 事件處理常式 Method Stubs：
+
+```csharp
+#region 事件處理常式 (Event Handlers)
+private async void BtnFetchData_Click(object? sender, RoutedEventArgs e)
+{
+    // TODO: 在此實作 BtnFetchData 的非同步 Click 事件邏輯
+    await Task.CompletedTask;
+}
+
+private async void BgWorker_DoWork(object? sender, DoWorkEventArgs e)
+{
+    // TODO: 在此實作 BgWorker 的非同步 DoWork 事件邏輯
+    await Task.CompletedTask;
+}
+#endregion
+```
+
 
 
 

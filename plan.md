@@ -317,6 +317,21 @@ AvaloniaFormGenerator/
 
 ---
 
+### 🔹 階段 19：Code-Behind 模式非同步事件生成修復與對話方塊同步 `Show()` 支援 (Code-Behind Async Events & Dialog Synchronous Show)
+- [x] **階段狀態：已完成 (Completed)**
+- **目標**：修復在純 Code-Behind 模式下事件標記非同步時未能產出 `async void` 事件常式之問題，並為對話方塊（`OpenFileDialog`, `SaveFileDialog`, `MessageBox`, `IDialogService`）加入無死結之同步 `Show()` 呼叫指令與靜態捷徑方法。
+- **任務清單**：
+  - [x] 19.1 **Phase 1: Code-Behind View 生成器非同步事件 Stubs 支援 (`CSharpMarkupViewGenerator.cs`)**
+    - 支援表單生命週期事件、控制項事件與不可視元件事件之 `IsAsync` 標記，自動產出 `private async void ...` 與 `await Task.CompletedTask;`。
+  - [x] 19.2 **Phase 2: 對話方塊元件與服務層加入同步 `Show()` 指令 (`ProjectExportService.cs`)**
+    - 在 `IDialogService` 與 `DialogService` 實作 `ShowOpenFileDialog`, `ShowSaveFileDialog`, `ShowMessageBox` 同步方法（採用 Avalonia `DispatcherFrame` 避免 UI 執行緒死結）。
+    - 在 `OpenFileDialog`, `SaveFileDialog`, `MessageBox` 提供實例與靜態同步 `Show()` 方法。
+  - [x] 19.3 **Phase 3: 單元測試、專案匯出編譯測試與技術文件更新**
+    - 撰寫非同步事件 Stubs 生成單元測試與專案實體編譯測試（293 項單元測試 100% 通過，0 錯誤 0 警告）。
+    - 更新技術文件 `docs/csharp-markup-spec.md` 與 `plan.md`。
+
+---
+
 ## 4. 驗證標準與品質指標
 
 1. **單元測試覆蓋率**：所有純函式、AST 操作、歷史堆疊、生成器與序列化演算法 100% 覆蓋。

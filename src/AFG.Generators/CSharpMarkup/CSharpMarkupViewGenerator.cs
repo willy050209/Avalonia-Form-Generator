@@ -192,10 +192,15 @@ public sealed class CSharpMarkupViewGenerator : ICodeGenerator
                 {
                     var handlerName = $"{document.ViewClassName}_{evt.EventName.Trim()}";
                     sb.AppendLine($"        {evt.EventName} += {handlerName};");
+                    var asyncMod = evt.IsAsync ? "async " : "";
+                    var todoBody = evt.IsAsync
+                        ? $"// TODO: 在此實作表單非同步 {evt.EventName} 事件邏輯\n        await Task.CompletedTask;"
+                        : $"// TODO: 在此實作表單 {evt.EventName} 事件邏輯";
+
                     codeBehindMethodStubs.Add($$"""
-    private void {{handlerName}}(object? sender, EventArgs e)
+    private {{asyncMod}}void {{handlerName}}(object? sender, EventArgs e)
     {
-        // TODO: 在此實作表單 {{evt.EventName}} 事件邏輯
+        {{todoBody}}
     }
 """);
                 }
@@ -229,10 +234,15 @@ public sealed class CSharpMarkupViewGenerator : ICodeGenerator
                     sb.AppendLine($"        {fieldName}.{evt.EventName.Trim()} += {handlerName};");
 
                     var (argsType, argName) = GetEventArgsInfo(evt.EventName, comp.Type);
+                    var asyncMod = evt.IsAsync ? "async " : "";
+                    var todoBody = evt.IsAsync
+                        ? $"// TODO: 在此實作 {methodPrefix} 的非同步 {evt.EventName} 事件邏輯\n        await Task.CompletedTask;"
+                        : $"// TODO: 在此實作 {methodPrefix} 的 {evt.EventName} 事件邏輯";
+
                     codeBehindMethodStubs.Add($$"""
-    private void {{handlerName}}(object? sender, {{argsType}} {{argName}})
+    private {{asyncMod}}void {{handlerName}}(object? sender, {{argsType}} {{argName}})
     {
-        // TODO: 在此實作 {{methodPrefix}} 的 {{evt.EventName}} 事件邏輯
+        {{todoBody}}
     }
 """);
                 }
@@ -747,10 +757,15 @@ public sealed class CSharpMarkupViewGenerator : ICodeGenerator
                 sb.AppendLine($"{innerIndent}.{eventMethod}({handlerName})");
 
                 var (argsType, argName) = GetEventArgsInfo(evt.EventName, node.Type);
+                var asyncMod = evt.IsAsync ? "async " : "";
+                var todoBody = evt.IsAsync
+                    ? $"// TODO: 在此實作 {cleanPrefix} 的非同步 {evt.EventName} 事件邏輯\n        await Task.CompletedTask;"
+                    : $"// TODO: 在此實作 {cleanPrefix} 的 {evt.EventName} 事件邏輯";
+
                 codeBehindMethodStubs?.Add($$"""
-    private void {{handlerName}}(object? sender, {{argsType}} {{argName}})
+    private {{asyncMod}}void {{handlerName}}(object? sender, {{argsType}} {{argName}})
     {
-        // TODO: 在此實作 {{cleanPrefix}} 的 {{evt.EventName}} 事件邏輯
+        {{todoBody}}
     }
 """);
             }

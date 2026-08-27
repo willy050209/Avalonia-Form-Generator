@@ -289,7 +289,7 @@ public sealed class FormCodeGeneratorTests
                         Name = "btnClickMe",
                         Type = ControlType.Button,
                         Text = "Click Me",
-                        Events = [new EventMappingDefinition { EventName = "Click" }]
+                        Events = [new EventMappingDefinition { EventName = "Click", IsAsync = false }]
                     }
                 ]
             }

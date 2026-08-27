@@ -1023,7 +1023,7 @@ public sealed class CSharpMarkupViewGeneratorTests
                         Name = "btnSubmit",
                         Type = ControlType.Button,
                         Text = "送出",
-                        Events = [new EventMappingDefinition { EventName = "Click", CommandProperty = "SubmitCommand" }]
+                        Events = [new EventMappingDefinition { EventName = "Click", CommandProperty = "SubmitCommand", IsAsync = false }]
                     },
                     new AstNode
                     {
@@ -1034,7 +1034,7 @@ public sealed class CSharpMarkupViewGeneratorTests
                     }
                 ]
             },
-            Events = [new EventMappingDefinition { EventName = "Loaded", CommandProperty = "LoadedCommand" }]
+            Events = [new EventMappingDefinition { EventName = "Loaded", CommandProperty = "LoadedCommand", IsAsync = false }]
         };
 
         // Act
@@ -1052,7 +1052,7 @@ public sealed class CSharpMarkupViewGeneratorTests
         result.Content.Should().Contain(".OnClick(BtnSubmit_Click)");
         result.Content.Should().Contain("Loaded += CodeBehindView_Loaded;");
 
-        // Assert: 事件處理常式 Method Stubs
+        // Assert: 事件處理常式 Method Stubs (同步)
         result.Content.Should().Contain("private void BtnSubmit_Click(object? sender, RoutedEventArgs e)");
         result.Content.Should().Contain("private void CodeBehindView_Loaded(object? sender, EventArgs e)");
 
@@ -1126,49 +1126,49 @@ public sealed class CSharpMarkupViewGeneratorTests
                         Name = "pollTimer",
                         Type = ControlType.DispatcherTimer,
                         Interval = 500,
-                        Events = [new EventMappingDefinition { EventName = "Tick" }]
+                        Events = [new EventMappingDefinition { EventName = "Tick", IsAsync = false }]
                     },
                     new AstNode
                     {
                         Id = "worker1",
                         Name = "backgroundWorker",
                         Type = ControlType.BackgroundWorker,
-                        Events = [new EventMappingDefinition { EventName = "DoWork" }]
+                        Events = [new EventMappingDefinition { EventName = "DoWork", IsAsync = false }]
                     },
                     new AstNode
                     {
                         Id = "ble1",
                         Name = "bleClient",
                         Type = ControlType.BluetoothClient,
-                        Events = [new EventMappingDefinition { EventName = "DataReceived" }]
+                        Events = [new EventMappingDefinition { EventName = "DataReceived", IsAsync = false }]
                     },
                     new AstNode
                     {
                         Id = "sp1",
                         Name = "serialPort",
                         Type = ControlType.SerialPortService,
-                        Events = [new EventMappingDefinition { EventName = "DataReceived" }]
+                        Events = [new EventMappingDefinition { EventName = "DataReceived", IsAsync = false }]
                     },
                     new AstNode
                     {
                         Id = "openDlg1",
                         Name = "openFileDialog",
                         Type = ControlType.OpenFileDialog,
-                        Events = [new EventMappingDefinition { EventName = "FileOk" }]
+                        Events = [new EventMappingDefinition { EventName = "FileOk", IsAsync = false }]
                     },
                     new AstNode
                     {
                         Id = "saveDlg1",
                         Name = "saveFileDialog",
                         Type = ControlType.SaveFileDialog,
-                        Events = [new EventMappingDefinition { EventName = "FileOk" }]
+                        Events = [new EventMappingDefinition { EventName = "FileOk", IsAsync = false }]
                     },
                     new AstNode
                     {
                         Id = "msgBox1",
                         Name = "messageBox",
                         Type = ControlType.MessageBox,
-                        Events = [new EventMappingDefinition { EventName = "Confirmed" }]
+                        Events = [new EventMappingDefinition { EventName = "Confirmed", IsAsync = false }]
                     },
                     new AstNode
                     {
@@ -1176,7 +1176,7 @@ public sealed class CSharpMarkupViewGeneratorTests
                         Name = "btnStart",
                         Type = ControlType.Button,
                         Text = "開始監控",
-                        Events = [new EventMappingDefinition { EventName = "Click" }]
+                        Events = [new EventMappingDefinition { EventName = "Click", IsAsync = false }]
                     }
                 ]
             }
@@ -1218,6 +1218,53 @@ public sealed class CSharpMarkupViewGeneratorTests
         result.Content.Should().Contain("private void SaveFileDialog_FileOk(object? sender, string e)");
         result.Content.Should().Contain("private void MessageBox_Confirmed(object? sender, bool? e)");
         result.Content.Should().Contain("private void BtnStart_Click(object? sender, RoutedEventArgs e)");
+
+        var diagnostics = RoslynCompilerService.CheckSyntaxDiagnostics(result.Content);
+        diagnostics.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Generate_WithCodeBehindMode_AndAsyncEvents_ShouldEmitAsyncVoidMethodStubs()
+    {
+        // Arrange: 包含非同步表單事件、非同步按鈕事件與非同步不可視元件事件
+        var doc = new FormDocument
+        {
+            RootNamespace = "AsyncApp.Views",
+            ViewClassName = "AsyncView",
+            ViewModelClassName = "AsyncViewModel",
+            ArchitectureMode = ArchitectureMode.CodeBehind,
+            Events = [new EventMappingDefinition { EventName = "Loaded", IsAsync = true }],
+            RootNode = new AstNode
+            {
+                Name = "RootCanvas",
+                Type = ControlType.Canvas,
+                Children = [
+                    new AstNode
+                    {
+                        Id = "btnFetch",
+                        Name = "btnFetch",
+                        Type = ControlType.Button,
+                        Text = "取得資料",
+                        Events = [new EventMappingDefinition { EventName = "Click", IsAsync = true }]
+                    },
+                    new AstNode
+                    {
+                        Id = "worker",
+                        Name = "bgWorker",
+                        Type = ControlType.BackgroundWorker,
+                        Events = [new EventMappingDefinition { EventName = "DoWork", IsAsync = true }]
+                    }
+                ]
+            }
+        };
+
+        // Act
+        var result = _generator.Generate(doc);
+
+        // Assert: 產出 async void 事件方法 Stubs
+        result.Content.Should().Contain("private async void AsyncView_Loaded(object? sender, EventArgs e)");
+        result.Content.Should().Contain("private async void BtnFetch_Click(object? sender, RoutedEventArgs e)");
+        result.Content.Should().Contain("private async void BgWorker_DoWork(object? sender, DoWorkEventArgs e)");
 
         var diagnostics = RoslynCompilerService.CheckSyntaxDiagnostics(result.Content);
         diagnostics.Should().BeEmpty();
