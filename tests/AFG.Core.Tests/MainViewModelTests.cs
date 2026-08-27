@@ -239,4 +239,35 @@ public sealed class MainViewModelTests
         vm.GeneratedViewCode.Should().Contain("Loaded += (sender, e) => (DataContext as MainFormViewModel)?.InitializeWindowCommand.Execute(e);");
         vm.GeneratedVmCode.Should().Contain("private async Task InitializeWindowAsync(");
     }
+
+    [Fact]
+    public void TogglingFormGenerateCodeBehindFields_InInspector_ShouldSynchronouslyUpdateGeneratedPreviewCode()
+    {
+        // Arrange
+        var vm = new MainViewModel();
+        var tbItem = new ToolboxItem("文字方塊", "常用", ControlType.TextBox, "txtUsername", 150, 30, "");
+        vm.Canvas.AddControlFromToolbox(tbItem, 50, 50);
+        vm.Inspector.NodeName = "txtUsername";
+
+        // 預設開啟 Code-Behind Friendly 模式，應包含欄位宣告與 Name 註冊
+        vm.GeneratedViewCode.Should().Contain("private TextBox _txtUsername;");
+        vm.GeneratedViewCode.Should().Contain("_txtUsername = new TextBox()");
+        vm.GeneratedViewCode.Should().Contain(".Name(\"txtUsername\")");
+
+        // Act: 在 Inspector 中切換開關關閉 Code-Behind 欄位
+        vm.Inspector.FormGenerateCodeBehindFields = false;
+
+        // Assert: 預覽程式碼必須立即更新為純 MVVM 模式（不包含欄位宣告，維持 Inline）
+        vm.GeneratedViewCode.Should().NotContain("private TextBox _txtUsername;");
+        vm.GeneratedViewCode.Should().NotContain("_txtUsername = new TextBox()");
+        vm.GeneratedViewCode.Should().Contain("new TextBox()");
+
+        // Act 2: 再次切換開啟
+        vm.Inspector.FormGenerateCodeBehindFields = true;
+
+        // Assert 2: 預覽程式碼必須立即恢復欄位宣告
+        vm.GeneratedViewCode.Should().Contain("private TextBox _txtUsername;");
+        vm.GeneratedViewCode.Should().Contain("_txtUsername = new TextBox()");
+        vm.GeneratedViewCode.Should().Contain(".Name(\"txtUsername\")");
+    }
 }

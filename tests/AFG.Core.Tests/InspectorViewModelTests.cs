@@ -454,4 +454,33 @@ public sealed class InspectorViewModelTests
         bindingItem.CommonDataTypes.Should().NotContain("Avalonia.Media.Imaging.Bitmap?");
         bindingItem.CustomDataType.Should().Be("bool");
     }
+
+    [Fact]
+    public void InspectorViewModel_ChangingFormGenerateCodeBehindFields_ShouldTriggerFormUpdated()
+    {
+        // Arrange
+        var vm = new InspectorViewModel();
+        var doc = new FormDocument
+        {
+            Title = "TestForm",
+            GenerateCodeBehindFields = true
+        };
+        vm.LoadDocument(doc);
+
+        FormDocument? updatedDoc = null;
+        vm.FormUpdated += d => updatedDoc = d;
+
+        // Act
+        vm.FormGenerateCodeBehindFields = false;
+
+        // Assert
+        updatedDoc.Should().NotBeNull();
+        updatedDoc!.GenerateCodeBehindFields.Should().BeFalse();
+
+        // Act 2: Toggle back to true
+        vm.FormGenerateCodeBehindFields = true;
+
+        // Assert 2
+        updatedDoc.GenerateCodeBehindFields.Should().BeTrue();
+    }
 }

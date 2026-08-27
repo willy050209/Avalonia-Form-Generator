@@ -934,6 +934,7 @@ public sealed partial class InspectorViewModel : ObservableObject
     partial void OnFormViewClassNameChanged(string value) => ApplyFormChanges();
     partial void OnFormViewModelClassNameChanged(string value) => ApplyFormChanges();
     partial void OnFormRootNamespaceChanged(string value) => ApplyFormChanges();
+    partial void OnFormGenerateCodeBehindFieldsChanged(bool value) => ApplyFormChanges();
 
     partial void OnNodeNameChanged(string value) => ApplyChanges();
     partial void OnTextChanged(string value) => ApplyChanges();
@@ -945,6 +946,9 @@ public sealed partial class InspectorViewModel : ObservableObject
     partial void OnUseRelativePathChanged(bool value) => ApplyChanges();
     partial void OnInitBitmapChanged(bool value) => ApplyChanges();
     partial void OnBitmapBackgroundColorChanged(string? value) => ApplyChanges();
+    partial void OnAutoPlayChanged(bool? value) => ApplyChanges();
+    partial void OnIsLoopingChanged(bool? value) => ApplyChanges();
+    partial void OnVolumeChanged(double? value) => ApplyChanges();
     partial void OnWidthChanged(double? value) => ApplyChanges();
     partial void OnHeightChanged(double? value) => ApplyChanges();
     partial void OnAutoSizeChanged(bool value) => ApplyChanges();
