@@ -10,6 +10,9 @@ namespace AFG.Shared.ViewModels;
 public sealed partial class BindingItemViewModel : ObservableObject
 {
     [ObservableProperty]
+    private ControlType _targetControlType = ControlType.Button;
+
+    [ObservableProperty]
     private string _targetProperty = "Text";
 
     [ObservableProperty]
@@ -21,57 +24,38 @@ public sealed partial class BindingItemViewModel : ObservableObject
     [ObservableProperty]
     private CoreBindingMode _mode = CoreBindingMode.Default;
 
-    public IReadOnlyList<string> AvailableProperties { get; } =
-    [
-        "Text",
-        "Content",
-        "IsChecked",
-        "Value",
-        "IsEnabled",
-        "IsVisible",
-        "Opacity",
-        "Width",
-        "Height",
-        "FontSize",
-        "ItemsSource",
-        "SelectedItem",
-        "SelectedIndex",
-        "Header",
-        "Watermark",
-        "Source",
-        "Stretch",
-        "Background",
-        "Foreground"
-    ];
+    [ObservableProperty]
+    private IReadOnlyList<string> _availableProperties = [];
 
-    public IReadOnlyList<string> CommonDataTypes { get; } =
-    [
-        "string",
-        "int",
-        "double",
-        "decimal",
-        "bool",
-        "Avalonia.Media.IImage",
-        "Avalonia.Media.Stretch",
-        "DateTime?",
-        "ObservableCollection<string>",
-        "ObservableCollection<object>",
-        "List<string>"
-    ];
+    [ObservableProperty]
+    private IReadOnlyList<string> _commonDataTypes = [];
+
+    public BindingItemViewModel()
+    {
+        _availableProperties = ControlBindingCatalog.GetSupportedProperties(TargetControlType);
+        _commonDataTypes = ControlBindingCatalog.GetCompatibleDataTypes(TargetProperty, TargetControlType);
+    }
+
+    partial void OnTargetControlTypeChanged(ControlType value)
+    {
+        AvailableProperties = ControlBindingCatalog.GetSupportedProperties(value);
+        if (!AvailableProperties.Contains(TargetProperty, StringComparer.OrdinalIgnoreCase) && AvailableProperties.Count > 0)
+        {
+            TargetProperty = AvailableProperties[0];
+        }
+        else
+        {
+            CommonDataTypes = ControlBindingCatalog.GetCompatibleDataTypes(TargetProperty, value);
+        }
+    }
 
     partial void OnTargetPropertyChanged(string value)
     {
-        CustomDataType = value switch
+        CommonDataTypes = ControlBindingCatalog.GetCompatibleDataTypes(value, TargetControlType);
+        if (!ControlBindingCatalog.IsDataTypeCompatible(value, CustomDataType, TargetControlType))
         {
-            "IsChecked" or "IsEnabled" or "IsVisible" => "bool",
-            "Value" or "Opacity" or "Width" or "Height" or "FontSize" => "double",
-            "SelectedIndex" => "int",
-            "ItemsSource" => "ObservableCollection<string>",
-            "SelectedItem" => "string?",
-            "Source" => "Avalonia.Media.IImage?",
-            "Stretch" => "Avalonia.Media.Stretch",
-            _ => "string"
-        };
+            CustomDataType = ControlBindingCatalog.GetDefaultDataType(value, TargetControlType);
+        }
     }
 
     public BindingDefinition ToDefinition() => new(
@@ -80,13 +64,26 @@ public sealed partial class BindingItemViewModel : ObservableObject
         Mode: Mode,
         CustomDataType: string.IsNullOrWhiteSpace(CustomDataType) ? null : CustomDataType.Trim());
 
-    public static BindingItemViewModel FromDefinition(BindingDefinition def) => new()
+    public static BindingItemViewModel FromDefinition(BindingDefinition def, ControlType controlType = ControlType.Button)
     {
-        TargetProperty = def.TargetProperty,
-        ViewModelProperty = def.ViewModelProperty,
-        CustomDataType = def.CustomDataType ?? "string",
-        Mode = def.Mode
-    };
+        var supportedProps = ControlBindingCatalog.GetSupportedProperties(controlType);
+        var targetProp = !string.IsNullOrWhiteSpace(def.TargetProperty) ? def.TargetProperty.Trim() : (supportedProps.Count > 0 ? supportedProps[0] : "Text");
+        var compatibleTypes = ControlBindingCatalog.GetCompatibleDataTypes(targetProp, controlType);
+        var customType = !string.IsNullOrWhiteSpace(def.CustomDataType) && ControlBindingCatalog.IsDataTypeCompatible(targetProp, def.CustomDataType, controlType)
+            ? def.CustomDataType.Trim()
+            : ControlBindingCatalog.GetDefaultDataType(targetProp, controlType);
+
+        return new BindingItemViewModel
+        {
+            TargetControlType = controlType,
+            AvailableProperties = supportedProps,
+            TargetProperty = targetProp,
+            ViewModelProperty = def.ViewModelProperty,
+            CustomDataType = customType,
+            Mode = def.Mode,
+            CommonDataTypes = compatibleTypes
+        };
+    }
 }
 
 /// <summary>

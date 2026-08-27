@@ -386,4 +386,72 @@ public sealed class InspectorViewModelTests
         updatedDoc!.Events.Should().HaveCount(1);
         updatedDoc.Events[0].CommandProperty.Should().Be("RefreshOnLoadCommand");
     }
+
+    [Fact]
+    public void LoadNode_WhenMediaPlayerLoaded_AddBindingShouldProvideMediaPlayerPropertiesOnly()
+    {
+        // Arrange
+        var vm = new InspectorViewModel();
+        var node = new AstNode
+        {
+            Id = "player1",
+            Name = "VideoPlayer",
+            Type = ControlType.MediaPlayer
+        };
+        vm.LoadNode(node);
+
+        // Act
+        vm.AddBindingCommand.Execute(null);
+
+        // Assert
+        vm.IsMediaPlayerSupported.Should().BeTrue();
+        vm.IsTextSupported.Should().BeFalse();
+        vm.IsImageSupported.Should().BeFalse();
+        vm.Bindings.Should().HaveCount(1);
+
+        var bindingItem = vm.Bindings[0];
+        bindingItem.AvailableProperties.Should().Contain("Source");
+        bindingItem.AvailableProperties.Should().Contain("AutoPlay");
+        bindingItem.AvailableProperties.Should().Contain("IsLooping");
+        bindingItem.AvailableProperties.Should().Contain("Volume");
+        bindingItem.AvailableProperties.Should().Contain("Position");
+        bindingItem.AvailableProperties.Should().Contain("Duration");
+        bindingItem.AvailableProperties.Should().Contain("State");
+        bindingItem.AvailableProperties.Should().Contain("CurrentFrame");
+        bindingItem.AvailableProperties.Should().NotContain("Text");
+        bindingItem.AvailableProperties.Should().NotContain("Content");
+        bindingItem.AvailableProperties.Should().NotContain("Watermark");
+    }
+
+    [Fact]
+    public void InspectorViewModel_ChangingTargetProperty_ShouldUpdateCommonDataTypes_AndAdjustIncompatibleCustomDataType()
+    {
+        // Arrange
+        var vm = new InspectorViewModel();
+        var node = new AstNode
+        {
+            Id = "player1",
+            Name = "VideoPlayer",
+            Type = ControlType.MediaPlayer
+        };
+        vm.LoadNode(node);
+        vm.AddBindingCommand.Execute(null);
+
+        var bindingItem = vm.Bindings[0];
+        bindingItem.TargetProperty = "CurrentFrame";
+
+        // Assert 1: CurrentFrame 只能選影像相關型別
+        bindingItem.CommonDataTypes.Should().Contain("Avalonia.Media.Imaging.Bitmap?");
+        bindingItem.CommonDataTypes.Should().NotContain("bool");
+        bindingItem.CommonDataTypes.Should().NotContain("int");
+        bindingItem.CustomDataType.Should().Be("Avalonia.Media.Imaging.Bitmap?");
+
+        // Act 2: Switch to AutoPlay
+        bindingItem.TargetProperty = "AutoPlay";
+
+        // Assert 2: AutoPlay 只能選 bool
+        bindingItem.CommonDataTypes.Should().Contain("bool");
+        bindingItem.CommonDataTypes.Should().NotContain("Avalonia.Media.Imaging.Bitmap?");
+        bindingItem.CustomDataType.Should().Be("bool");
+    }
 }

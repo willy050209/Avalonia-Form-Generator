@@ -127,6 +127,10 @@ public static partial class AstValidator
             {
                 errors.Add(new("AFG201", "綁定的 TargetProperty 不得為空。", node.Id));
             }
+            else if (!ControlBindingCatalog.IsPropertySupported(node.Type, binding.TargetProperty))
+            {
+                errors.Add(new("AFG204", $"控制項類型 '{node.Type}' 不支援可綁定屬性 '{binding.TargetProperty}'。", node.Id));
+            }
 
             if (string.IsNullOrWhiteSpace(binding.ViewModelProperty))
             {
@@ -135,6 +139,14 @@ public static partial class AstValidator
             else if (!IsValidCSharpIdentifier(binding.ViewModelProperty))
             {
                 errors.Add(new("AFG203", $"ViewModel 綁定屬性名稱 '{binding.ViewModelProperty}' 不符合 C# 屬性命名規範。", node.Id));
+            }
+
+            if (!string.IsNullOrWhiteSpace(binding.TargetProperty) && !string.IsNullOrWhiteSpace(binding.CustomDataType))
+            {
+                if (!ControlBindingCatalog.IsDataTypeCompatible(binding.TargetProperty, binding.CustomDataType, node.Type))
+                {
+                    errors.Add(new("AFG205", $"目標屬性 '{binding.TargetProperty}' 與指定型別 '{binding.CustomDataType}' 不相容。", node.Id));
+                }
             }
         }
 

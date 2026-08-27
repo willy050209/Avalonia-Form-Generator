@@ -458,6 +458,30 @@
                                 </StackPanel>
                             </StackPanel>
 
+                            <!-- 多媒體播放器專屬設定 (MediaPlayerControl Properties) -->
+                            <StackPanel Spacing="6" IsVisible="{Binding IsMediaPlayerSupported}">
+                                <TextBlock Text="媒體來源 (URL / 本地檔案路徑)" FontSize="11" Foreground="#38BDF8" FontWeight="SemiBold" />
+                                <TextBox Text="{Binding Source, Mode=TwoWay}"
+                                         PlaceholderText="https://... 或 avares:// 或 本地路徑" />
+
+                                <Grid ColumnDefinitions="*, *" Margin="0,2">
+                                    <CheckBox Grid.Column="0" Content="自動播放 (AutoPlay)" IsChecked="{Binding AutoPlay, Mode=TwoWay}" FontSize="11" />
+                                    <CheckBox Grid.Column="1" Content="循環播放 (IsLooping)" IsChecked="{Binding IsLooping, Mode=TwoWay}" FontSize="11" />
+                                </Grid>
+
+                                <StackPanel Spacing="2">
+                                    <TextBlock Text="{Binding Volume, StringFormat='音量 (Volume): {0:P0}'}" FontSize="11" Foreground="#A1A1AA" />
+                                    <Slider Minimum="0" Maximum="1" Value="{Binding Volume, Mode=TwoWay}" />
+                                </StackPanel>
+
+                                <StackPanel Spacing="2">
+                                    <TextBlock Text="縮放模式 (Stretch)" FontSize="11" Foreground="#A1A1AA" />
+                                    <ComboBox ItemsSource="{Binding StretchOptions}"
+                                              SelectedItem="{Binding Stretch, Mode=TwoWay}"
+                                              HorizontalAlignment="Stretch" />
+                                </StackPanel>
+                            </StackPanel>
+
                             <!-- 選取狀態 (IsChecked) - 僅適用於 CheckBox / RadioButton -->
                             <StackPanel Spacing="4" IsVisible="{Binding IsCheckableSupported}">
                                 <CheckBox Content="選中狀態 (IsChecked)" IsChecked="{Binding IsChecked, Mode=TwoWay}" />

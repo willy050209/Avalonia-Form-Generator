@@ -991,6 +991,42 @@ public static class AvaloniaMarkupExtensionsSource
             return player;
         }
 
+        public static MediaPlayerControl Duration(this MediaPlayerControl player, TimeSpan duration) { player.Duration = duration; return player; }
+        public static MediaPlayerControl Duration(this MediaPlayerControl player, string path, BindingMode mode = BindingMode.Default)
+        {
+            player.Bind(MediaPlayerControl.DurationProperty, new Binding(path) { Mode = mode });
+            return player;
+        }
+        public static MediaPlayerControl Duration<TVm, TProp>(this MediaPlayerControl player, Expression<Func<TVm, TProp>> expr, BindingMode mode = BindingMode.Default)
+        {
+            player.Bind(MediaPlayerControl.DurationProperty, new Binding(GetPropertyPath(expr)) { Mode = mode });
+            return player;
+        }
+
+        public static MediaPlayerControl State(this MediaPlayerControl player, MediaState state) { player.Bind(MediaPlayerControl.StateProperty, new Binding { Source = state }); return player; }
+        public static MediaPlayerControl State(this MediaPlayerControl player, string path, BindingMode mode = BindingMode.Default)
+        {
+            player.Bind(MediaPlayerControl.StateProperty, new Binding(path) { Mode = mode });
+            return player;
+        }
+        public static MediaPlayerControl State<TVm, TProp>(this MediaPlayerControl player, Expression<Func<TVm, TProp>> expr, BindingMode mode = BindingMode.Default)
+        {
+            player.Bind(MediaPlayerControl.StateProperty, new Binding(GetPropertyPath(expr)) { Mode = mode });
+            return player;
+        }
+
+        public static MediaPlayerControl SpeedRatio(this MediaPlayerControl player, double speedRatio) { player.SpeedRatio = speedRatio; return player; }
+        public static MediaPlayerControl SpeedRatio(this MediaPlayerControl player, string path, BindingMode mode = BindingMode.Default)
+        {
+            player.Bind(MediaPlayerControl.SpeedRatioProperty, new Binding(path) { Mode = mode });
+            return player;
+        }
+        public static MediaPlayerControl SpeedRatio<TVm, TProp>(this MediaPlayerControl player, Expression<Func<TVm, TProp>> expr, BindingMode mode = BindingMode.Default)
+        {
+            player.Bind(MediaPlayerControl.SpeedRatioProperty, new Binding(GetPropertyPath(expr)) { Mode = mode });
+            return player;
+        }
+
         public static MediaPlayerControl Stretch(this MediaPlayerControl player, Stretch stretch) { player.Stretch = stretch; return player; }
         public static MediaPlayerControl Stretch(this MediaPlayerControl player, string path, BindingMode mode = BindingMode.Default)
         {
@@ -1381,7 +1417,9 @@ public static class AvaloniaMarkupExtensionsSource
             if (CurrentFrame is Bitmap bmp)
             {
                 using var ms = new MemoryStream();
+                #pragma warning disable CS0618
                 bmp.Save(ms);
+                #pragma warning restore CS0618
                 ms.Position = 0;
                 captured = new Bitmap(ms);
             }

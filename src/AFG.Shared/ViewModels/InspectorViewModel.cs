@@ -210,6 +210,15 @@ public sealed partial class InspectorViewModel : ObservableObject
     private string? _bitmapBackgroundColor = "#F0F0F0";
 
     [ObservableProperty]
+    private bool? _autoPlay;
+
+    [ObservableProperty]
+    private bool? _isLooping;
+
+    [ObservableProperty]
+    private double? _volume = 1.0;
+
+    [ObservableProperty]
     private string? _imageFileInfo;
 
     [ObservableProperty]
@@ -230,6 +239,9 @@ public sealed partial class InspectorViewModel : ObservableObject
 
     [ObservableProperty]
     private bool _isImageSupported;
+
+    [ObservableProperty]
+    private bool _isMediaPlayerSupported;
 
     [ObservableProperty]
     private bool _isTimerSupported;
@@ -475,6 +487,9 @@ public sealed partial class InspectorViewModel : ObservableObject
         UseRelativePath = node.UseRelativePath;
         InitBitmap = node.InitBitmap;
         BitmapBackgroundColor = node.BitmapBackgroundColor ?? "#F0F0F0";
+        AutoPlay = node.AutoPlay;
+        IsLooping = node.IsLooping;
+        Volume = node.Volume ?? 1.0;
         UpdateImagePreviewInfo();
 
         var isNonVisual = node.Type is CoreControlType.DispatcherTimer
@@ -486,11 +501,12 @@ public sealed partial class InspectorViewModel : ObservableObject
                                     or CoreControlType.MessageBox;
 
         IsVisualControl = !isNonVisual;
-        IsTextSupported = !isNonVisual && node.Type is not CoreControlType.PictureBox;
+        IsTextSupported = node.Type is CoreControlType.Button or CoreControlType.TextBox or CoreControlType.TextBlock or CoreControlType.CheckBox or CoreControlType.RadioButton;
         IsContentSupported = node.Type is CoreControlType.Button or CoreControlType.CheckBox or CoreControlType.RadioButton or CoreControlType.Border;
         IsHeaderSupported = false;
         IsWatermarkSupported = node.Type is CoreControlType.TextBox;
-        IsImageSupported = node.Type is CoreControlType.PictureBox;
+        IsImageSupported = node.Type is CoreControlType.PictureBox or CoreControlType.Image;
+        IsMediaPlayerSupported = node.Type is CoreControlType.MediaPlayer;
         IsTimerSupported = node.Type is CoreControlType.DispatcherTimer;
         IsCheckableSupported = node.Type is CoreControlType.CheckBox or CoreControlType.RadioButton;
         IsValueSupported = node.Type is CoreControlType.Slider or CoreControlType.ProgressBar;
@@ -511,7 +527,7 @@ public sealed partial class InspectorViewModel : ObservableObject
             Bindings.Clear();
             foreach (var b in targetBindings)
             {
-                Bindings.Add(BindingItemViewModel.FromDefinition(b));
+                Bindings.Add(BindingItemViewModel.FromDefinition(b, node.Type));
             }
         }
 
@@ -666,16 +682,19 @@ public sealed partial class InspectorViewModel : ObservableObject
     public void AddBinding()
     {
         if (_currentNode is null) return;
-        var availableProperties = GetAvailablePropertiesForCurrentControl();
+        var availableProperties = ControlBindingCatalog.GetSupportedProperties(_currentNode.Type);
         var targetProperty = availableProperties.Count > 0 ? availableProperties[0] : "Text";
-        var defaultMode = targetProperty is "Text" or "IsChecked" or "Value"
+        var defaultMode = targetProperty is "Text" or "IsChecked" or "Value" or "Position" or "Volume" or "AutoPlay" or "IsLooping"
             ? CoreBindingMode.TwoWay
             : CoreBindingMode.Default;
 
         Bindings.Add(new BindingItemViewModel
         {
+            TargetControlType = _currentNode.Type,
+            AvailableProperties = availableProperties,
             TargetProperty = targetProperty,
             ViewModelProperty = $"{NodeName}_{targetProperty}",
+            CustomDataType = ControlBindingCatalog.GetDefaultDataType(targetProperty, _currentNode.Type),
             Mode = defaultMode
         });
         ApplyChanges();
@@ -684,19 +703,7 @@ public sealed partial class InspectorViewModel : ObservableObject
     public IReadOnlyList<string> GetAvailablePropertiesForCurrentControl()
     {
         if (_currentNode is null) return ["Text", "Content"];
-        return _currentNode.Type switch
-        {
-            CoreControlType.Button => ["Text", "Content", "IsEnabled", "IsVisible", "Background", "Foreground", "Width", "Height"],
-            CoreControlType.TextBox => ["Text", "Watermark", "IsEnabled", "IsVisible", "FontSize", "Width", "Height"],
-            CoreControlType.TextBlock => ["Text", "FontSize", "Foreground", "IsVisible", "Width", "Height"],
-            CoreControlType.CheckBox or CoreControlType.RadioButton => ["IsChecked", "Text", "Content", "IsEnabled", "IsVisible"],
-            CoreControlType.Slider or CoreControlType.ProgressBar => ["Value", "IsEnabled", "IsVisible", "Width", "Height"],
-            CoreControlType.ComboBox => ["ItemsSource", "SelectedItem", "SelectedIndex", "IsEnabled", "IsVisible", "Width", "Height"],
-            CoreControlType.ListBox => ["ItemsSource", "SelectedItem", "SelectedIndex", "IsEnabled", "IsVisible", "Width", "Height"],
-            CoreControlType.PictureBox => ["Source", "Stretch", "IsEnabled", "IsVisible", "Width", "Height"],
-            CoreControlType.Border => ["Background", "BorderBrush", "Padding", "Width", "Height", "IsVisible"],
-            _ => ["Text", "Content", "IsEnabled", "IsVisible", "Width", "Height"]
-        };
+        return ControlBindingCatalog.GetSupportedProperties(_currentNode.Type);
     }
 
     [RelayCommand]
@@ -836,6 +843,9 @@ public sealed partial class InspectorViewModel : ObservableObject
                 UseRelativePath = UseRelativePath,
                 InitBitmap = InitBitmap,
                 BitmapBackgroundColor = string.IsNullOrWhiteSpace(BitmapBackgroundColor) ? "#F0F0F0" : BitmapBackgroundColor.Trim(),
+                AutoPlay = IsMediaPlayerSupported ? AutoPlay : null,
+                IsLooping = IsMediaPlayerSupported ? IsLooping : null,
+                Volume = IsMediaPlayerSupported ? (Volume.HasValue ? Math.Clamp(Volume.Value, 0.0, 1.0) : 1.0) : null,
                 Bindings = Bindings.Select(b => b.ToDefinition()).ToImmutableList(),
                 Events = Events.Select(e => e.ToDefinition()).ToImmutableList()
             };

@@ -140,4 +140,48 @@ public sealed class AstValidatorTests
         result.Errors.Should().Contain(e => e.ErrorCode == "AFG301");
         result.Errors.Should().Contain(e => e.ErrorCode == "AFG303");
     }
+
+    [Fact]
+    public void ValidateTree_ShouldDetectUnsupportedPropertyOnControl()
+    {
+        // Arrange: Button doesn't support AutoPlay or Watermark
+        var node = new AstNode
+        {
+            Id = "btn1",
+            Name = "SubmitBtn",
+            Type = ControlType.Button,
+            Bindings = [
+                new BindingDefinition { TargetProperty = "AutoPlay", ViewModelProperty = "IsAutoPlaying" }
+            ]
+        };
+
+        // Act
+        var result = AstValidator.ValidateTree(node);
+
+        // Assert
+        result.IsValid.Should().BeFalse();
+        result.Errors.Should().Contain(e => e.ErrorCode == "AFG204");
+    }
+
+    [Fact]
+    public void ValidateTree_ShouldDetectIncompatibleDataTypeOnBinding()
+    {
+        // Arrange: MediaPlayer CurrentFrame bound to bool
+        var node = new AstNode
+        {
+            Id = "player1",
+            Name = "VideoPlayer",
+            Type = ControlType.MediaPlayer,
+            Bindings = [
+                new BindingDefinition { TargetProperty = "CurrentFrame", ViewModelProperty = "FrameData", CustomDataType = "bool" }
+            ]
+        };
+
+        // Act
+        var result = AstValidator.ValidateTree(node);
+
+        // Assert
+        result.IsValid.Should().BeFalse();
+        result.Errors.Should().Contain(e => e.ErrorCode == "AFG205");
+    }
 }

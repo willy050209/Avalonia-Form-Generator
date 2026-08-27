@@ -329,7 +329,9 @@ public class MediaPlayerControl : UserControl
         if (CurrentFrame is Bitmap bmp)
         {
             using var ms = new MemoryStream();
+#pragma warning disable CS0618
             bmp.Save(ms);
+#pragma warning restore CS0618
             ms.Position = 0;
             captured = new Bitmap(ms);
         }

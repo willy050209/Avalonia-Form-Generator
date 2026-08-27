@@ -340,20 +340,8 @@ public sealed class MvvmViewModelGenerator : ICodeGenerator
         return Roslyn.CSharpSyntaxSanitizer.EscapeIdentifier(camel);
     }
 
-    private static string InferPropertyType(string targetProperty, ControlType controlType) => targetProperty switch
-    {
-        "IsChecked" or "IsEnabled" or "IsVisible" or "CanSubmit" or "AutoPlay" or "IsLooping" => "bool",
-        "Value" or "Minimum" or "Maximum" or "Progress" or "Volume" or "SpeedRatio" => "double",
-        "SelectedIndex" or "Count" => "int",
-        "ItemsSource" => "ObservableCollection<string>",
-        "SelectedItem" => "string?",
-        "Source" when controlType == ControlType.MediaPlayer => "string",
-        "Source" => "Avalonia.Media.IImage?",
-        "CurrentFrame" or "Frame" or "CapturedFrame" => "Avalonia.Media.Imaging.Bitmap?",
-        "Position" or "Duration" => "TimeSpan",
-        "Stretch" => "Avalonia.Media.Stretch",
-        _ => "string"
-    };
+    private static string InferPropertyType(string targetProperty, ControlType controlType) =>
+        ControlBindingCatalog.GetDefaultDataType(targetProperty, controlType);
 
     private static string GetDefaultValueExpression(string typeName)
     {

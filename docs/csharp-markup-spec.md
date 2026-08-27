@@ -527,6 +527,32 @@ new MediaPlayerControl()
     .OnFrameCaptured((MyViewModel vm) => vm.FrameCapturedCommand);
 ```
 
+---
+
+## 9. 控制項專屬資料綁定白名單目錄與強型別約束規範 (Control Binding Catalog & Type Constraints)
+
+### 9.1 控制項資料綁定屬性白名單 (`ControlBindingCatalog`)
+為避免各元件出現不存在之屬性綁定（例如在 `MediaPlayerControl` 綁定 `Text`，或在 `TextBox` 綁定 `AutoPlay`），AFG 透過 `ControlBindingCatalog` 建立嚴格之屬性白名單：
+
+| 控制項類型 | 專屬支援可綁定屬性清單 | 屏蔽之屬性範例 |
+| :--- | :--- | :--- |
+| `MediaPlayerControl` | `Source`, `AutoPlay`, `IsLooping`, `Volume`, `Position`, `Duration`, `State`, `CurrentFrame`, `Stretch`, `SpeedRatio`, `IsEnabled`, `IsVisible`, `Width`, `Height`, `Opacity` | `Text`, `Content`, `Watermark`, `Header`, `IsChecked`, `ItemsSource` |
+| `TextBox` | `Text`, `Watermark`, `FontSize`, `Background`, `Foreground`, `IsEnabled`, `IsVisible`, `Width`, `Height`, `Opacity` | `AutoPlay`, `IsLooping`, `CurrentFrame`, `IsChecked`, `Value` |
+| `Button` | `Text`, `Content`, `Background`, `Foreground`, `IsEnabled`, `IsVisible`, `Width`, `Height`, `Opacity` | `Source`, `CurrentFrame`, `Interval`, `Watermark` |
+| `CheckBox` / `RadioButton` | `IsChecked`, `Text`, `Content`, `Foreground`, `Background`, `IsEnabled`, `IsVisible`, `Width`, `Height`, `Opacity` | `Value`, `CurrentFrame`, `AutoPlay`, `ItemsSource` |
+| `Slider` / `ProgressBar` | `Value`, `IsEnabled`, `IsVisible`, `Width`, `Height`, `Opacity` | `Text`, `Content`, `IsChecked`, `Source` |
+| `Image` / `PictureBox` | `Source`, `Stretch`, `IsEnabled`, `IsVisible`, `Width`, `Height`, `Opacity` | `Text`, `Content`, `Watermark`, `IsChecked` |
+| `DispatcherTimer` | `Interval`, `IsEnabled` | 幾何與排版屬性（非視覺化元件） |
+
+### 9.2 資料綁定強型別約束規則 (Type Compatibility Rules)
+AFG 在 AST 驗證器 (`AstValidator`) 與屬性檢查器 (`InspectorViewModel` / `BindingItemViewModel`) 內建強型別約束，嚴格防止不相容型態綁定：
+1. **影像型別約束**：`CurrentFrame` 僅相容 `Bitmap?`, `Bitmap`, `IImage?`, `IImage`, `WriteableBitmap?`，**嚴禁**綁定 `bool`, `int`, `string` 或自訂不相容物件（違反時觸發 `AFG205` 驗證錯誤）。
+2. **布林型別約束**：`IsChecked`, `IsEnabled`, `IsVisible`, `AutoPlay`, `IsLooping` 等僅相容 `bool` 與 `bool?`。
+3. **數值型別約束**：`Value`, `Volume`, `Opacity`, `SpeedRatio`, `FontSize` 僅相容 `double`, `float`, `int`, `decimal`。
+4. **時間型別約束**：`Position`, `Duration`, `SelectedTime` 僅相容 `TimeSpan` 與 `TimeSpan?`。
+5. **列舉狀態約束**：`State` 僅相容 `MediaState` 與 `string`。
+
+
 
 
 
