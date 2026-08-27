@@ -233,6 +233,56 @@ public sealed partial class InspectorViewModel : ObservableObject
     [ObservableProperty]
     private bool _hasImageSource;
 
+    // --- 邊框與圓角屬性 (Border & CornerRadius) ---
+    [ObservableProperty]
+    private string? _borderBrush;
+
+    [ObservableProperty]
+    private double _borderThicknessLeft;
+
+    [ObservableProperty]
+    private double _borderThicknessTop;
+
+    [ObservableProperty]
+    private double _borderThicknessRight;
+
+    [ObservableProperty]
+    private double _borderThicknessBottom;
+
+    [ObservableProperty]
+    private double _cornerRadiusTopLeft;
+
+    [ObservableProperty]
+    private double _cornerRadiusTopRight;
+
+    [ObservableProperty]
+    private double _cornerRadiusBottomRight;
+
+    [ObservableProperty]
+    private double _cornerRadiusBottomLeft;
+
+    // --- 陰影屬性 (BoxShadow) ---
+    [ObservableProperty]
+    private bool _hasBoxShadow;
+
+    [ObservableProperty]
+    private double _boxShadowOffsetX = 0;
+
+    [ObservableProperty]
+    private double _boxShadowOffsetY = 4;
+
+    [ObservableProperty]
+    private double _boxShadowBlur = 8;
+
+    [ObservableProperty]
+    private double _boxShadowSpread = 0;
+
+    [ObservableProperty]
+    private string _boxShadowColor = "#40000000";
+
+    [ObservableProperty]
+    private bool _boxShadowInset = false;
+
     // --- 控制項特性可見度旗標 (Property Visibility Capabilities) ---
     [ObservableProperty]
     private bool _isTextSupported = true;
@@ -500,6 +550,36 @@ public sealed partial class InspectorViewModel : ObservableObject
         IsLooping = node.IsLooping;
         Volume = node.Volume ?? 1.0;
         UpdateImagePreviewInfo();
+
+        BorderBrush = node.BorderBrush;
+        BorderThicknessLeft = node.BorderThickness?.Left ?? 0;
+        BorderThicknessTop = node.BorderThickness?.Top ?? 0;
+        BorderThicknessRight = node.BorderThickness?.Right ?? 0;
+        BorderThicknessBottom = node.BorderThickness?.Bottom ?? 0;
+        CornerRadiusTopLeft = node.CornerRadius?.TopLeft ?? 0;
+        CornerRadiusTopRight = node.CornerRadius?.TopRight ?? 0;
+        CornerRadiusBottomRight = node.CornerRadius?.BottomRight ?? 0;
+        CornerRadiusBottomLeft = node.CornerRadius?.BottomLeft ?? 0;
+        HasBoxShadow = node.BoxShadow.HasValue;
+        if (node.BoxShadow.HasValue)
+        {
+            var bs = node.BoxShadow.Value;
+            BoxShadowOffsetX = bs.OffsetX;
+            BoxShadowOffsetY = bs.OffsetY;
+            BoxShadowBlur = bs.Blur;
+            BoxShadowSpread = bs.Spread;
+            BoxShadowColor = bs.Color;
+            BoxShadowInset = bs.IsInset;
+        }
+        else
+        {
+            BoxShadowOffsetX = 0;
+            BoxShadowOffsetY = 4;
+            BoxShadowBlur = 8;
+            BoxShadowSpread = 0;
+            BoxShadowColor = "#40000000";
+            BoxShadowInset = false;
+        }
 
         var isNonVisual = node.Type is CoreControlType.DispatcherTimer
                                     or CoreControlType.BackgroundWorker
@@ -848,6 +928,16 @@ public sealed partial class InspectorViewModel : ObservableObject
                 FontSize = FontSize.HasValue ? Math.Clamp(FontSize.Value, 1.0, 200.0) : null,
                 Background = string.IsNullOrWhiteSpace(Background) ? null : Background.Trim(),
                 Foreground = string.IsNullOrWhiteSpace(Foreground) ? null : Foreground.Trim(),
+                BorderBrush = string.IsNullOrWhiteSpace(BorderBrush) ? null : BorderBrush.Trim(),
+                BorderThickness = (BorderThicknessLeft > 0 || BorderThicknessTop > 0 || BorderThicknessRight > 0 || BorderThicknessBottom > 0)
+                    ? new ThicknessModel(Math.Max(0, BorderThicknessLeft), Math.Max(0, BorderThicknessTop), Math.Max(0, BorderThicknessRight), Math.Max(0, BorderThicknessBottom))
+                    : null,
+                CornerRadius = (CornerRadiusTopLeft > 0 || CornerRadiusTopRight > 0 || CornerRadiusBottomRight > 0 || CornerRadiusBottomLeft > 0)
+                    ? new CornerRadiusModel(Math.Max(0, CornerRadiusTopLeft), Math.Max(0, CornerRadiusTopRight), Math.Max(0, CornerRadiusBottomRight), Math.Max(0, CornerRadiusBottomLeft))
+                    : null,
+                BoxShadow = HasBoxShadow
+                    ? new BoxShadowModel(BoxShadowOffsetX, BoxShadowOffsetY, Math.Max(0, BoxShadowBlur), BoxShadowSpread, string.IsNullOrWhiteSpace(BoxShadowColor) ? "#40000000" : BoxShadowColor.Trim(), BoxShadowInset)
+                    : null,
                 IsChecked = IsChecked,
                 Value = Value,
                 Source = string.IsNullOrWhiteSpace(Source) ? null : Source.Trim(),
@@ -997,6 +1087,22 @@ public sealed partial class InspectorViewModel : ObservableObject
     partial void OnFontSizeChanged(double? value) => ApplyChanges();
     partial void OnBackgroundChanged(string? value) => ApplyChanges();
     partial void OnForegroundChanged(string? value) => ApplyChanges();
+    partial void OnBorderBrushChanged(string? value) => ApplyChanges();
+    partial void OnBorderThicknessLeftChanged(double value) => ApplyChanges();
+    partial void OnBorderThicknessTopChanged(double value) => ApplyChanges();
+    partial void OnBorderThicknessRightChanged(double value) => ApplyChanges();
+    partial void OnBorderThicknessBottomChanged(double value) => ApplyChanges();
+    partial void OnCornerRadiusTopLeftChanged(double value) => ApplyChanges();
+    partial void OnCornerRadiusTopRightChanged(double value) => ApplyChanges();
+    partial void OnCornerRadiusBottomRightChanged(double value) => ApplyChanges();
+    partial void OnCornerRadiusBottomLeftChanged(double value) => ApplyChanges();
+    partial void OnHasBoxShadowChanged(bool value) => ApplyChanges();
+    partial void OnBoxShadowOffsetXChanged(double value) => ApplyChanges();
+    partial void OnBoxShadowOffsetYChanged(double value) => ApplyChanges();
+    partial void OnBoxShadowBlurChanged(double value) => ApplyChanges();
+    partial void OnBoxShadowSpreadChanged(double value) => ApplyChanges();
+    partial void OnBoxShadowColorChanged(string value) => ApplyChanges();
+    partial void OnBoxShadowInsetChanged(bool value) => ApplyChanges();
     partial void OnIsCheckedChanged(bool? value) => ApplyChanges();
     partial void OnValueChanged(double? value) => ApplyChanges();
 }

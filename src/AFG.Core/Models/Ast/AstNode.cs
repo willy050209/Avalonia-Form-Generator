@@ -66,7 +66,10 @@ public sealed record AstNode
     public string? Foreground { get; init; }
     public double? FontSize { get; init; }
     public string? FontWeight { get; init; }
+    public string? BorderBrush { get; init; }
+    public ThicknessModel? BorderThickness { get; init; }
     public CornerRadiusModel? CornerRadius { get; init; }
+    public BoxShadowModel? BoxShadow { get; init; }
     public string? ItemsSource { get; init; }
     public string? SelectedItem { get; init; }
     public string? Source { get; init; }

@@ -151,6 +151,73 @@ public static class AvaloniaMarkupExtensionsSource
             return control;
         }
 
+        public static T BorderBrush<T>(this T control, IBrush brush) where T : Control
+        {
+            if (control is TemplatedControl tc) tc.BorderBrush = brush;
+            else if (control is Border b) b.BorderBrush = brush;
+            return control;
+        }
+        public static T BorderBrush<T>(this T control, string path, BindingMode mode = BindingMode.Default) where T : Control
+        {
+            if (control is TemplatedControl tc) tc.Bind(TemplatedControl.BorderBrushProperty, new Binding(path) { Mode = mode });
+            else if (control is Border b) b.Bind(Border.BorderBrushProperty, new Binding(path) { Mode = mode });
+            return control;
+        }
+        public static T BorderBrush<T, TVm, TProp>(this T control, Expression<Func<TVm, TProp>> expr, BindingMode mode = BindingMode.Default) where T : Control
+        {
+            var path = GetPropertyPath(expr);
+            if (control is TemplatedControl tc) tc.Bind(TemplatedControl.BorderBrushProperty, new Binding(path) { Mode = mode });
+            else if (control is Border b) b.Bind(Border.BorderBrushProperty, new Binding(path) { Mode = mode });
+            return control;
+        }
+
+        public static T BorderThickness<T>(this T control, Thickness thickness) where T : Control
+        {
+            if (control is TemplatedControl tc) tc.BorderThickness = thickness;
+            else if (control is Border b) b.BorderThickness = thickness;
+            return control;
+        }
+        public static T BorderThickness<T>(this T control, double uniformLength) where T : Control =>
+            control.BorderThickness(new Thickness(uniformLength));
+
+        public static T CornerRadius<T>(this T control, CornerRadius radius) where T : Control
+        {
+            if (control is TemplatedControl tc) tc.CornerRadius = radius;
+            else if (control is Border b) b.CornerRadius = radius;
+            else if (control is Button btn) btn.CornerRadius = radius;
+            return control;
+        }
+        public static T CornerRadius<T>(this T control, double uniformRadius) where T : Control =>
+            control.CornerRadius(new CornerRadius(uniformRadius));
+
+        public static T BoxShadow<T>(this T control, BoxShadows shadows) where T : Control
+        {
+            if (control is Border b)
+            {
+                b.BoxShadow = shadows;
+            }
+            else
+            {
+                if (shadows.Count > 0)
+                {
+                    var s = shadows[0];
+                    control.Effect = new DropShadowEffect
+                    {
+                        OffsetX = s.OffsetX,
+                        OffsetY = s.OffsetY,
+                        BlurRadius = s.Blur,
+                        Color = s.Color,
+                        Opacity = s.Color.A / 255.0
+                    };
+                }
+            }
+            return control;
+        }
+        public static T BoxShadow<T>(this T control, string shadowString) where T : Control =>
+            control.BoxShadow(BoxShadows.Parse(shadowString));
+        public static T BoxShadow<T>(this T control, BoxShadow shadow) where T : Control =>
+            control.BoxShadow(new BoxShadows(shadow));
+
         public static T IsEnabled<T>(this T control, bool value) where T : Control { control.IsEnabled = value; return control; }
         public static T IsEnabled<T>(this T control, string path, BindingMode mode = BindingMode.Default) where T : Control
         {
@@ -356,27 +423,6 @@ public static class AvaloniaMarkupExtensionsSource
             {
                 b.Padding = padding;
             }
-            return control;
-        }
-
-        public static T BorderBrush<T>(this T control, IBrush brush) where T : Control
-        {
-            if (control is Border b) b.BorderBrush = brush;
-            else if (control is TemplatedControl tc) tc.BorderBrush = brush;
-            return control;
-        }
-
-        public static T BorderThickness<T>(this T control, Thickness thickness) where T : Control
-        {
-            if (control is Border b) b.BorderThickness = thickness;
-            else if (control is TemplatedControl tc) tc.BorderThickness = thickness;
-            return control;
-        }
-
-        public static T CornerRadius<T>(this T control, CornerRadius cornerRadius) where T : Control
-        {
-            if (control is Border b) b.CornerRadius = cornerRadius;
-            else if (control is TemplatedControl tc) tc.CornerRadius = cornerRadius;
             return control;
         }
 

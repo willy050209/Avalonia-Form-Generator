@@ -115,6 +115,27 @@ public sealed record FormProjectDefinition
   "isVisible": true,
   "background": "#1E293B",
   "foreground": "#FFFFFF",
+  "borderBrush": "#3B82F6",
+  "borderThickness": {
+    "left": 2.0,
+    "top": 2.0,
+    "right": 2.0,
+    "bottom": 2.0
+  },
+  "cornerRadius": {
+    "topLeft": 8.0,
+    "topRight": 8.0,
+    "bottomRight": 8.0,
+    "bottomLeft": 8.0
+  },
+  "boxShadow": {
+    "offsetX": 0.0,
+    "offsetY": 4.0,
+    "blur": 12.0,
+    "spread": 0.0,
+    "color": "#40000000",
+    "isInset": false
+  },
   "canvasLeft": 100.0,
   "canvasTop": 80.0,
   "gridRow": 0,

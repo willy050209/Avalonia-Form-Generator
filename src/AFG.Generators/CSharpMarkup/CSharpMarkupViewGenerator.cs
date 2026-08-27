@@ -634,6 +634,26 @@ public sealed class CSharpMarkupViewGenerator : ICodeGenerator
             sb.AppendLine($"{innerIndent}.Foreground(Brush.Parse(\"{CSharpSyntaxSanitizer.EscapeStringLiteral(node.Foreground)}\"))");
         }
 
+        if (!string.IsNullOrWhiteSpace(node.BorderBrush))
+        {
+            sb.AppendLine($"{innerIndent}.BorderBrush(Brush.Parse(\"{CSharpSyntaxSanitizer.EscapeStringLiteral(node.BorderBrush)}\"))");
+        }
+
+        if (node.BorderThickness.HasValue && node.BorderThickness.Value != ThicknessModel.Zero)
+        {
+            sb.AppendLine($"{innerIndent}.BorderThickness(new Thickness({FormatThickness(node.BorderThickness.Value)}))");
+        }
+
+        if (node.CornerRadius.HasValue && node.CornerRadius.Value != CornerRadiusModel.Zero)
+        {
+            sb.AppendLine($"{innerIndent}.CornerRadius(new CornerRadius({FormatCornerRadius(node.CornerRadius.Value)}))");
+        }
+
+        if (node.BoxShadow.HasValue)
+        {
+            sb.AppendLine($"{innerIndent}.BoxShadow(BoxShadows.Parse(\"{CSharpSyntaxSanitizer.EscapeStringLiteral(node.BoxShadow.Value.ToString())}\"))");
+        }
+
         if (node.Type == ControlType.MediaPlayer)
         {
             if (!boundProps.Contains("Source") && !string.IsNullOrWhiteSpace(node.Source))
@@ -1028,4 +1048,7 @@ public sealed class CSharpMarkupViewGenerator : ICodeGenerator
 
     private static string FormatThickness(ThicknessModel thickness) =>
         $"{thickness.Left.ToString(CultureInfo.InvariantCulture)}, {thickness.Top.ToString(CultureInfo.InvariantCulture)}, {thickness.Right.ToString(CultureInfo.InvariantCulture)}, {thickness.Bottom.ToString(CultureInfo.InvariantCulture)}";
+
+    private static string FormatCornerRadius(CornerRadiusModel cornerRadius) =>
+        $"{cornerRadius.TopLeft.ToString(CultureInfo.InvariantCulture)}, {cornerRadius.TopRight.ToString(CultureInfo.InvariantCulture)}, {cornerRadius.BottomRight.ToString(CultureInfo.InvariantCulture)}, {cornerRadius.BottomLeft.ToString(CultureInfo.InvariantCulture)}";
 }

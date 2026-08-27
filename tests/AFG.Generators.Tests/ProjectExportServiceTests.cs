@@ -1310,4 +1310,90 @@ public sealed class ProjectExportServiceTests
             }
         }
     }
+
+    [Fact]
+    public async Task ExportToFolderAsync_WithBorderAndBoxShadow_ShouldBuildSuccessfully()
+    {
+        // Arrange
+        var tempFolder = Path.Combine(Path.GetTempPath(), "AFG_BorderShadow_Test_" + Guid.NewGuid().ToString("N"));
+        var doc = new FormDocument
+        {
+            Title = "邊框與陰影卡片測試",
+            CanvasWidth = 800,
+            CanvasHeight = 600,
+            RootNamespace = "BorderShadowApp.Views",
+            ViewClassName = "BorderShadowView",
+            ViewModelClassName = "BorderShadowViewModel",
+            ArchitectureMode = ArchitectureMode.PureMvvm,
+            RootNode = new AstNode
+            {
+                Name = "RootCanvas",
+                Type = ControlType.Canvas,
+                Children = [
+                    new AstNode
+                    {
+                        Id = "cardBorder",
+                        Name = "cardBorder",
+                        Type = ControlType.Border,
+                        Width = 300,
+                        Height = 200,
+                        CanvasLeft = 50,
+                        CanvasTop = 50,
+                        Background = "#FFFFFF",
+                        BorderBrush = "#3B82F6",
+                        BorderThickness = new ThicknessModel(2, 2, 2, 2),
+                        CornerRadius = new CornerRadiusModel(12, 12, 12, 12),
+                        BoxShadow = new BoxShadowModel(0, 8, 20, 0, "#26000000", false),
+                        Children = [
+                            new AstNode
+                            {
+                                Id = "btnAction",
+                                Name = "btnAction",
+                                Type = ControlType.Button,
+                                Text = "送出卡片",
+                                BorderBrush = "#2563EB",
+                                BorderThickness = new ThicknessModel(1, 1, 1, 1),
+                                CornerRadius = new CornerRadiusModel(6, 6, 6, 6),
+                                BoxShadow = new BoxShadowModel(0, 2, 4, 0, "#1A000000", false)
+                            }
+                        ]
+                    }
+                ]
+            }
+        };
+
+        try
+        {
+            await _exportService.ExportToFolderAsync(doc, tempFolder, new ProjectExportOptions(IncludeMobileProject: false, CustomProjectName: "BorderShadowApp"));
+            var desktopCsprojPath = Path.Combine(tempFolder, "src", "BorderShadowApp.Desktop", "BorderShadowApp.Desktop.csproj");
+
+            var psi = new ProcessStartInfo
+            {
+                FileName = "dotnet",
+                Arguments = $"build \"{desktopCsprojPath}\" -c Release",
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            };
+
+            using var process = Process.Start(psi);
+            var stdout = await process!.StandardOutput.ReadToEndAsync();
+            var stderr = await process.StandardError.ReadToEndAsync();
+            await process.WaitForExitAsync();
+
+            process.ExitCode.Should().Be(0, $"含邊框與陰影之匯出專案應成功編譯。\n標準輸出:\n{stdout}\n錯誤輸出:\n{stderr}");
+        }
+        finally
+        {
+            if (Directory.Exists(tempFolder))
+            {
+                try
+                {
+                    Directory.Delete(tempFolder, recursive: true);
+                }
+                catch { }
+            }
+        }
+    }
 }

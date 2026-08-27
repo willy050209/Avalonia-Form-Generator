@@ -1269,4 +1269,46 @@ public sealed class CSharpMarkupViewGeneratorTests
         var diagnostics = RoslynCompilerService.CheckSyntaxDiagnostics(result.Content);
         diagnostics.Should().BeEmpty();
     }
+
+    [Fact]
+    public void Generate_WithBorderAndBoxShadow_ShouldEmitFluentBorderAndShadowCalls()
+    {
+        // Arrange
+        var doc = new FormDocument
+        {
+            RootNamespace = "StyledApp.Views",
+            ViewClassName = "StyledView",
+            ViewModelClassName = "StyledViewModel",
+            RootNode = new AstNode
+            {
+                Name = "RootCanvas",
+                Type = ControlType.Canvas,
+                Children = [
+                    new AstNode
+                    {
+                        Id = "cardBorder",
+                        Name = "cardBorder",
+                        Type = ControlType.Border,
+                        Background = "#FFFFFF",
+                        BorderBrush = "#E2E8F0",
+                        BorderThickness = new ThicknessModel(2, 2, 2, 2),
+                        CornerRadius = new CornerRadiusModel(12, 12, 12, 12),
+                        BoxShadow = new BoxShadowModel(0, 8, 24, 0, "#1A000000", false)
+                    }
+                ]
+            }
+        };
+
+        // Act
+        var result = _generator.Generate(doc);
+
+        // Assert: 輸出流暢鏈式語法
+        result.Content.Should().Contain(".BorderBrush(Brush.Parse(\"#E2E8F0\"))");
+        result.Content.Should().Contain(".BorderThickness(new Thickness(2, 2, 2, 2))");
+        result.Content.Should().Contain(".CornerRadius(new CornerRadius(12, 12, 12, 12))");
+        result.Content.Should().Contain(".BoxShadow(BoxShadows.Parse(\"0 8 24 0 #1A000000\"))");
+
+        var diagnostics = RoslynCompilerService.CheckSyntaxDiagnostics(result.Content);
+        diagnostics.Should().BeEmpty();
+    }
 }

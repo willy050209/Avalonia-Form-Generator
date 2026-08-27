@@ -306,4 +306,46 @@ public sealed class MainViewModelTests
         vm.GeneratedViewCode.Should().Contain(".OnClick((MainFormViewModel vm) => vm.SubmitCommand)");
         vm.GeneratedVmCode.Should().Contain("[RelayCommand]");
     }
+
+    [Fact]
+    public void Inspector_ChangingBorderAndShadow_ShouldUpdateNodeAndGeneratedCodeImmediately()
+    {
+        // Arrange
+        var vm = new MainViewModel();
+        var tbItem = new ToolboxItem("邊框卡片", "容器", ControlType.Border, "cardPanel", 200, 150, null);
+        vm.Canvas.AddControlFromToolbox(tbItem, 20, 20);
+        vm.Inspector.NodeName = "cardPanel";
+
+        // Act: 設定邊框與陰影屬性
+        vm.Inspector.BorderBrush = "#3B82F6";
+        vm.Inspector.BorderThicknessLeft = 2;
+        vm.Inspector.BorderThicknessTop = 2;
+        vm.Inspector.BorderThicknessRight = 2;
+        vm.Inspector.BorderThicknessBottom = 2;
+        vm.Inspector.CornerRadiusTopLeft = 8;
+        vm.Inspector.CornerRadiusTopRight = 8;
+        vm.Inspector.CornerRadiusBottomRight = 8;
+        vm.Inspector.CornerRadiusBottomLeft = 8;
+        vm.Inspector.HasBoxShadow = true;
+        vm.Inspector.BoxShadowOffsetX = 0;
+        vm.Inspector.BoxShadowOffsetY = 6;
+        vm.Inspector.BoxShadowBlur = 16;
+        vm.Inspector.BoxShadowSpread = 0;
+        vm.Inspector.BoxShadowColor = "#33000000";
+
+        // Assert: 節點屬性應即時更新
+        var node = vm.Canvas.Document.RootNode.Children.First(c => c.Name == "cardPanel");
+        node.BorderBrush.Should().Be("#3B82F6");
+        node.BorderThickness.Should().Be(new ThicknessModel(2, 2, 2, 2));
+        node.CornerRadius.Should().Be(new CornerRadiusModel(8, 8, 8, 8));
+        node.BoxShadow.Should().NotBeNull();
+        node.BoxShadow!.Value.OffsetY.Should().Be(6);
+        node.BoxShadow!.Value.Blur.Should().Be(16);
+
+        // Assert: 預覽程式碼應包含相應鏈式調用
+        vm.GeneratedViewCode.Should().Contain(".BorderBrush(Brush.Parse(\"#3B82F6\"))");
+        vm.GeneratedViewCode.Should().Contain(".BorderThickness(new Thickness(2, 2, 2, 2))");
+        vm.GeneratedViewCode.Should().Contain(".CornerRadius(new CornerRadius(8, 8, 8, 8))");
+        vm.GeneratedViewCode.Should().Contain(".BoxShadow(BoxShadows.Parse(\"0 6 16 0 #33000000\"))");
+    }
 }

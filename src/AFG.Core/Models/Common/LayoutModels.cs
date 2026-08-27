@@ -77,3 +77,67 @@ public readonly record struct GridLengthModel(double Value, GridUnitType UnitTyp
         _ => "Auto"
     };
 }
+
+/// <summary>
+/// 表示控制項陰影效果 (BoxShadow / DropShadow) 的不可變模型。
+/// </summary>
+public readonly record struct BoxShadowModel(
+    double OffsetX = 0,
+    double OffsetY = 4,
+    double Blur = 8,
+    double Spread = 0,
+    string Color = "#40000000",
+    bool IsInset = false)
+{
+    /// <summary>
+    /// 取得標準柔和陰影。
+    /// </summary>
+    public static BoxShadowModel Default => new(0, 4, 8, 0, "#40000000", false);
+
+    /// <summary>
+    /// 格式化為 Avalonia BoxShadows 支援的字串表示法（例如 "0 4 8 0 #40000000" 或 "inset 0 2 4 0 #20000000"）。
+    /// </summary>
+    public override string ToString()
+    {
+        var insetStr = IsInset ? "inset " : "";
+        return $"{insetStr}{OffsetX.ToString(System.Globalization.CultureInfo.InvariantCulture)} {OffsetY.ToString(System.Globalization.CultureInfo.InvariantCulture)} {Blur.ToString(System.Globalization.CultureInfo.InvariantCulture)} {Spread.ToString(System.Globalization.CultureInfo.InvariantCulture)} {Color}";
+    }
+
+    private static readonly char[] Separators = [' ', ','];
+
+    /// <summary>
+    /// 解析字串為 BoxShadowModel。
+    /// </summary>
+    public static BoxShadowModel? Parse(string? text)
+    {
+        if (string.IsNullOrWhiteSpace(text)) return null;
+
+        var isInset = false;
+        var parts = text.Split(Separators, StringSplitOptions.RemoveEmptyEntries);
+        var numList = new System.Collections.Generic.List<double>();
+        string color = "#40000000";
+
+        foreach (var part in parts)
+        {
+            if (part.Equals("inset", StringComparison.OrdinalIgnoreCase))
+            {
+                isInset = true;
+            }
+            else if (part.StartsWith('#') || part.StartsWith("rgb", StringComparison.OrdinalIgnoreCase))
+            {
+                color = part;
+            }
+            else if (double.TryParse(part, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var num))
+            {
+                numList.Add(num);
+            }
+        }
+
+        double offsetX = numList.Count > 0 ? numList[0] : 0;
+        double offsetY = numList.Count > 1 ? numList[1] : 4;
+        double blur = numList.Count > 2 ? numList[2] : 8;
+        double spread = numList.Count > 3 ? numList[3] : 0;
+
+        return new BoxShadowModel(offsetX, offsetY, blur, spread, color, isInset);
+    }
+}

@@ -332,6 +332,31 @@ AvaloniaFormGenerator/
 
 ---
 
+### 🔹 階段 20：物件可選且可自訂之框線 (Border) 與陰影 (BoxShadow) 系統
+- [x] **階段狀態：已完成 (Completed)**
+- **目標**：在 AST 模型、C# Markup 程式碼生成器、Fluent 擴充方法、畫布渲染引擎與屬性檢查器中，全面支援控制項與容器之可選且可自訂的框線顏色 (`BorderBrush`)、框線粗細 (`BorderThickness`)、圓角 (`CornerRadius`) 以及陰影 (`BoxShadowModel`：`OffsetX`, `OffsetY`, `Blur`, `Spread`, `Color`, `IsInset`)。
+- **任務清單**：
+  - [x] 20.1 **Phase 1: AST 語意模型擴充 (`BoxShadowModel` & `AstNode` in `AFG.Core`)**
+    - 新增 `BoxShadowModel.cs`，支援 `OffsetX`, `OffsetY`, `Blur`, `Spread`, `Color`, `IsInset` 與 `ToString()`、`Parse()`。
+    - 更新 `AstNode.cs`：新增 `BorderBrush`、`BorderThickness`、`BoxShadow` 屬性。
+    - 撰寫 `AfgSerializerTests` 驗證序列化/反序列化 roundtrip 與相容性。
+  - [x] 20.2 **Phase 2: Fluent C# Markup 擴充方法庫更新 (`AvaloniaMarkupExtensionsSource.cs`)**
+    - 新增 `.BorderBrush(...)`、`.BorderThickness(...)`、`.CornerRadius(...)`、`.BoxShadow(...)` 之 Fluent 鏈式調用重載（支援 `Border` 以及一般控制項之 `DropShadowEffect` / `BoxShadows`）。
+  - [x] 20.3 **Phase 3: C# Declarative View 生成器擴充 (`CSharpMarkupViewGenerator.cs`)**
+    - 支援依據 `AstNode` 的 `BorderBrush`、`BorderThickness`、`CornerRadius`、`BoxShadow` 自動輸出鏈式調用程式碼。
+    - 撰寫 `CSharpMarkupViewGeneratorTests` 驗證生成程式碼與 Roslyn 語法樹診斷。
+  - [x] 20.4 **Phase 4: 畫布即時渲染與屬性檢查器 UI (`DesignCanvas.cs`, `InspectorViewModel.cs`, `InspectorView.axaml`)**
+    - 更新 `DesignCanvas.cs`，在畫布建立控制項時即時套用邊框與陰影效果。
+    - 在 `InspectorViewModel.cs` 新增邊框與陰影相關可觀測屬性與雙向綁定邏輯。
+    - 在 `InspectorView.axaml` 呈現「邊框與陰影樣式 (Borders & Shadows)」專屬屬性編輯分組。
+    - 撰寫 `InspectorViewModelTests` 驗證屬性變更與 Form/Node 更新事件。
+  - [x] 20.5 **Phase 5: 全專案自動化測試、專案匯出編譯驗證、技術文件更新與 Git Commit**
+    - 執行包含邊框與陰影之專案匯出與 `dotnet build` 實體編譯測試。
+    - 執行全套單元測試，確保 0 Error, 0 Warning 且 100% 通過（297 項單元測試全數通過）。
+    - 更新技術規格文件 `docs/csharp-markup-spec.md`、`docs/ast-schema.md` 與 `plan.md`。
+
+---
+
 ## 4. 驗證標準與品質指標
 
 1. **單元測試覆蓋率**：所有純函式、AST 操作、歷史堆疊、生成器與序列化演算法 100% 覆蓋。

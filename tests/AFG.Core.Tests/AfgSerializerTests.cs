@@ -376,6 +376,41 @@ public sealed class AfgSerializerTests
     }
 
     [Fact]
+    public void Roundtrip_AstNode_ShouldPreserveBorderAndBoxShadowProperties()
+    {
+        // Arrange
+        var doc = new FormDocument
+        {
+            Title = "BorderShadowTest",
+            RootNode = new AstNode
+            {
+                Name = "StyledButton",
+                Type = ControlType.Button,
+                BorderBrush = "#3B82F6",
+                BorderThickness = new ThicknessModel(2, 2, 2, 2),
+                CornerRadius = new CornerRadiusModel(8, 8, 8, 8),
+                BoxShadow = new BoxShadowModel(0, 4, 12, 2, "#60000000", false)
+            }
+        };
+
+        // Act
+        var json = AfgSerializer.SerializeDocument(doc);
+        var result = AfgSerializer.DeserializeDocument(json);
+
+        // Assert
+        result.RootNode.BorderBrush.Should().Be("#3B82F6");
+        result.RootNode.BorderThickness.Should().Be(new ThicknessModel(2, 2, 2, 2));
+        result.RootNode.CornerRadius.Should().Be(new CornerRadiusModel(8, 8, 8, 8));
+        result.RootNode.BoxShadow.Should().NotBeNull();
+        result.RootNode.BoxShadow!.Value.OffsetX.Should().Be(0);
+        result.RootNode.BoxShadow!.Value.OffsetY.Should().Be(4);
+        result.RootNode.BoxShadow!.Value.Blur.Should().Be(12);
+        result.RootNode.BoxShadow!.Value.Spread.Should().Be(2);
+        result.RootNode.BoxShadow!.Value.Color.Should().Be("#60000000");
+        result.RootNode.BoxShadow!.Value.IsInset.Should().BeFalse();
+    }
+
+    [Fact]
     public void DeserializeDocument_ShouldThrowArgumentNullException_WhenInputIsNull()
     {
         var act = () => AfgSerializer.DeserializeDocument(null!);

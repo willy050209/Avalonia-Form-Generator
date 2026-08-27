@@ -589,6 +589,54 @@ public sealed class DesignCanvas : Grid
 
         control.Margin = new Thickness(node.Margin.Left, node.Margin.Top, node.Margin.Right, node.Margin.Bottom);
 
+        // 套用邊框顏色、粗細與圓角
+        if (!string.IsNullOrWhiteSpace(node.BorderBrush) && Color.TryParse(node.BorderBrush, out var bColor))
+        {
+            var brush = new SolidColorBrush(bColor);
+            if (control is TemplatedControl tc) tc.BorderBrush = brush;
+            else if (control is Border b) b.BorderBrush = brush;
+        }
+
+        if (node.BorderThickness.HasValue)
+        {
+            var bt = new Thickness(node.BorderThickness.Value.Left, node.BorderThickness.Value.Top, node.BorderThickness.Value.Right, node.BorderThickness.Value.Bottom);
+            if (control is TemplatedControl tc) tc.BorderThickness = bt;
+            else if (control is Border b) b.BorderThickness = bt;
+        }
+
+        if (node.CornerRadius.HasValue)
+        {
+            var cr = new CornerRadius(node.CornerRadius.Value.TopLeft, node.CornerRadius.Value.TopRight, node.CornerRadius.Value.BottomRight, node.CornerRadius.Value.BottomLeft);
+            if (control is TemplatedControl tc) tc.CornerRadius = cr;
+            else if (control is Border b) b.CornerRadius = cr;
+            else if (control is Button btn) btn.CornerRadius = cr;
+        }
+
+        // 套用陰影 (BoxShadow / DropShadowEffect)
+        if (node.BoxShadow.HasValue)
+        {
+            var bs = node.BoxShadow.Value;
+            if (control is Border b)
+            {
+                try
+                {
+                    b.BoxShadow = BoxShadows.Parse(bs.ToString());
+                }
+                catch { }
+            }
+            else if (Color.TryParse(bs.Color, out var sColor))
+            {
+                control.Effect = new DropShadowEffect
+                {
+                    OffsetX = bs.OffsetX,
+                    OffsetY = bs.OffsetY,
+                    BlurRadius = bs.Blur,
+                    Color = sColor,
+                    Opacity = sColor.A / 255.0
+                };
+            }
+        }
+
         var left = node.CanvasLeft ?? 0;
         var top = node.CanvasTop ?? 0;
         Canvas.SetLeft(control, left);

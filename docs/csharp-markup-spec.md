@@ -780,6 +780,47 @@ private async void BgWorker_DoWork(object? sender, DoWorkEventArgs e)
 #endregion
 ```
 
+---
+
+## 12. 控制項邊框 (Border) 與陰影效果 (BoxShadow / DropShadow) 系統
+
+### 12.1 邊框與圓角規格
+AFG 支援控制項與容器設定可選且可自訂的邊框筆刷 (`BorderBrush`)、粗細 (`BorderThickness`) 與圓角弧度 (`CornerRadius`)：
+- **`BorderBrush`**：支援 16 進位顏色代碼（如 `#3B82F6`）或顏色名稱，透過 `Brush.Parse(...)` 解析。
+- **`BorderThickness`**：支援統一或四邊獨立邊距（`Left, Top, Right, Bottom`），以 `new Thickness(...)` 輸出。
+- **`CornerRadius`**：支援統一或四角獨立半徑（`TopLeft, TopRight, BottomRight, BottomLeft`），以 `new CornerRadius(...)` 輸出。
+
+### 12.2 陰影規格 (`BoxShadowModel` & `BoxShadows`)
+AFG 提供完整的陰影效果配置，支援偏移量、模糊半徑、擴展大小、色彩與內外陰影：
+- **`OffsetX` / `OffsetY`**：水平與垂直位移像素。
+- **`Blur`**：陰影模糊半徑。
+- **`Spread`**：陰影擴展半徑。
+- **`Color`**：含 Alpha 通道之顏色代碼（如 `#40000000`）。
+- **`IsInset`**：是否為內陰影（Inset）。
+
+### 12.3 C# Declarative Markup Fluent 語法範例
+```csharp
+// 建立具備圓角邊框與柔和陰影之卡片容器
+new Border()
+    .Name("cardPanel")
+    .Width(320)
+    .Height(200)
+    .Background(Brush.Parse("#FFFFFF"))
+    .BorderBrush(Brush.Parse("#E2E8F0"))
+    .BorderThickness(new Thickness(1.5, 1.5, 1.5, 1.5))
+    .CornerRadius(new CornerRadius(12, 12, 12, 12))
+    .BoxShadow(BoxShadows.Parse("0 8 24 0 #1A000000"))
+    .Child(
+        new Button()
+            .Name("btnSubmit")
+            .Text("送出")
+            .BorderBrush(Brush.Parse("#2563EB"))
+            .BorderThickness(new Thickness(1, 1, 1, 1))
+            .CornerRadius(new CornerRadius(6, 6, 6, 6))
+            .BoxShadow(BoxShadows.Parse("0 2 6 0 #20000000"))
+    );
+```
+
 
 
 

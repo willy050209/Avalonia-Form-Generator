@@ -533,6 +533,86 @@
                                 <TextBlock Text="{Binding Opacity, StringFormat='不透明度: {0:P0}'}" FontSize="11" Foreground="#A1A1AA" />
                                 <Slider Minimum="0" Maximum="1" Value="{Binding Opacity, Mode=TwoWay}" />
                             </StackPanel>
+
+                            <!-- 邊框與圓角配置 -->
+                            <Border Background="#27272A" CornerRadius="6" Padding="8" Margin="0,4" IsVisible="{Binding IsVisualControl}">
+                                <StackPanel Spacing="6">
+                                    <TextBlock Text="邊框與圓角 (Border &amp; CornerRadius)" FontSize="11" FontWeight="SemiBold" Foreground="#38BDF8" />
+                                    <StackPanel Spacing="4">
+                                        <TextBlock Text="邊框顏色 (BorderBrush)" FontSize="10" Foreground="#A1A1AA" />
+                                        <TextBox Text="{Binding BorderBrush, Mode=TwoWay}" PlaceholderText="#RRGGBB 或顏色名" />
+                                    </StackPanel>
+
+                                    <!-- 邊框粗細 (L, T, R, B) -->
+                                    <StackPanel Spacing="4">
+                                        <TextBlock Text="邊框粗細 (BorderThickness: 左, 上, 右, 下)" FontSize="10" Foreground="#A1A1AA" />
+                                        <Grid ColumnDefinitions="*, *, *, *">
+                                            <NumericUpDown Grid.Column="0" Margin="0,0,2,0" Value="{Binding BorderThicknessLeft, Mode=TwoWay}" Minimum="0" Maximum="100" />
+                                            <NumericUpDown Grid.Column="1" Margin="2,0,2,0" Value="{Binding BorderThicknessTop, Mode=TwoWay}" Minimum="0" Maximum="100" />
+                                            <NumericUpDown Grid.Column="2" Margin="2,0,2,0" Value="{Binding BorderThicknessRight, Mode=TwoWay}" Minimum="0" Maximum="100" />
+                                            <NumericUpDown Grid.Column="3" Margin="2,0,0,0" Value="{Binding BorderThicknessBottom, Mode=TwoWay}" Minimum="0" Maximum="100" />
+                                        </Grid>
+                                    </StackPanel>
+
+                                    <!-- 圓角半徑 (TL, TR, BR, BL) -->
+                                    <StackPanel Spacing="4">
+                                        <TextBlock Text="圓角半徑 (CornerRadius: 左上, 右上, 右下, 左下)" FontSize="10" Foreground="#A1A1AA" />
+                                        <Grid ColumnDefinitions="*, *, *, *">
+                                            <NumericUpDown Grid.Column="0" Margin="0,0,2,0" Value="{Binding CornerRadiusTopLeft, Mode=TwoWay}" Minimum="0" Maximum="200" />
+                                            <NumericUpDown Grid.Column="1" Margin="2,0,2,0" Value="{Binding CornerRadiusTopRight, Mode=TwoWay}" Minimum="0" Maximum="200" />
+                                            <NumericUpDown Grid.Column="2" Margin="2,0,2,0" Value="{Binding CornerRadiusBottomRight, Mode=TwoWay}" Minimum="0" Maximum="200" />
+                                            <NumericUpDown Grid.Column="3" Margin="2,0,0,0" Value="{Binding CornerRadiusBottomLeft, Mode=TwoWay}" Minimum="0" Maximum="200" />
+                                        </Grid>
+                                    </StackPanel>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- 陰影效果配置 (BoxShadow / DropShadow) -->
+                            <Border Background="#27272A" CornerRadius="6" Padding="8" Margin="0,4" IsVisible="{Binding IsVisualControl}">
+                                <StackPanel Spacing="6">
+                                    <Grid ColumnDefinitions="*, Auto">
+                                        <TextBlock Text="陰影效果 (BoxShadow / DropShadow)" FontSize="11" FontWeight="SemiBold" Foreground="#38BDF8" VerticalAlignment="Center" />
+                                        <ToggleSwitch Grid.Column="1" IsChecked="{Binding HasBoxShadow, Mode=TwoWay}" OnContent="開" OffContent="關" />
+                                    </Grid>
+
+                                    <StackPanel Spacing="6" IsVisible="{Binding HasBoxShadow}">
+                                        <!-- X / Y 偏移 -->
+                                        <Grid ColumnDefinitions="*, *">
+                                            <StackPanel Grid.Column="0" Margin="0,0,4,0" Spacing="4">
+                                                <TextBlock Text="水平位移 (OffsetX)" FontSize="10" Foreground="#A1A1AA" />
+                                                <NumericUpDown Value="{Binding BoxShadowOffsetX, Mode=TwoWay}" Minimum="-200" Maximum="200" />
+                                            </StackPanel>
+                                            <StackPanel Grid.Column="1" Margin="4,0,0,0" Spacing="4">
+                                                <TextBlock Text="垂直位移 (OffsetY)" FontSize="10" Foreground="#A1A1AA" />
+                                                <NumericUpDown Value="{Binding BoxShadowOffsetY, Mode=TwoWay}" Minimum="-200" Maximum="200" />
+                                            </StackPanel>
+                                        </Grid>
+
+                                        <!-- 模糊 / 擴展 -->
+                                        <Grid ColumnDefinitions="*, *">
+                                            <StackPanel Grid.Column="0" Margin="0,0,4,0" Spacing="4">
+                                                <TextBlock Text="模糊半徑 (Blur)" FontSize="10" Foreground="#A1A1AA" />
+                                                <NumericUpDown Value="{Binding BoxShadowBlur, Mode=TwoWay}" Minimum="0" Maximum="200" />
+                                            </StackPanel>
+                                            <StackPanel Grid.Column="1" Margin="4,0,0,0" Spacing="4">
+                                                <TextBlock Text="擴展半徑 (Spread)" FontSize="10" Foreground="#A1A1AA" />
+                                                <NumericUpDown Value="{Binding BoxShadowSpread, Mode=TwoWay}" Minimum="-100" Maximum="100" />
+                                            </StackPanel>
+                                        </Grid>
+
+                                        <!-- 陰影顏色與內陰影開關 -->
+                                        <Grid ColumnDefinitions="*, Auto">
+                                            <StackPanel Grid.Column="0" Margin="0,0,4,0" Spacing="4">
+                                                <TextBlock Text="陰影顏色 (Color)" FontSize="10" Foreground="#A1A1AA" />
+                                                <TextBox Text="{Binding BoxShadowColor, Mode=TwoWay}" PlaceholderText="#40000000" />
+                                            </StackPanel>
+                                            <StackPanel Grid.Column="1" VerticalAlignment="Bottom" Margin="4,0,0,0">
+                                                <CheckBox Content="內陰影 (Inset)" IsChecked="{Binding BoxShadowInset, Mode=TwoWay}" FontSize="11" />
+                                            </StackPanel>
+                                        </Grid>
+                                    </StackPanel>
+                                </StackPanel>
+                            </Border>
                         </StackPanel>
                     </ScrollViewer>
                 </TabItem>
