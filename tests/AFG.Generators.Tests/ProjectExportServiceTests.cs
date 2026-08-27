@@ -1194,4 +1194,120 @@ public sealed class ProjectExportServiceTests
             }
         }
     }
+
+    /// <summary>
+    /// 驗證 Code-Behind 模式下包含不可視元件、對話方塊與硬體通訊時匯出專案之實體編譯通過。
+    /// </summary>
+    [Fact]
+    public async Task ExportedProject_WithCodeBehindMode_AndNonVisualComponents_ShouldCompileSuccessfully()
+    {
+        var tempFolder = Path.Combine(Path.GetTempPath(), "AFG_CodeBehindNonVisual_" + Guid.NewGuid().ToString("N"));
+        var doc = new FormDocument
+        {
+            ViewClassName = "DeviceControlView",
+            ViewModelClassName = "DeviceControlViewModel",
+            Title = "Device Control App",
+            ArchitectureMode = ArchitectureMode.CodeBehind,
+            RootNode = new AstNode
+            {
+                Id = "root",
+                Type = ControlType.Canvas,
+                Children = [
+                    new AstNode
+                    {
+                        Id = "timer1",
+                        Name = "pollTimer",
+                        Type = ControlType.DispatcherTimer,
+                        Interval = 500,
+                        Events = [new EventMappingDefinition { EventName = "Tick" }]
+                    },
+                    new AstNode
+                    {
+                        Id = "worker1",
+                        Name = "backgroundWorker",
+                        Type = ControlType.BackgroundWorker,
+                        Events = [new EventMappingDefinition { EventName = "DoWork" }]
+                    },
+                    new AstNode
+                    {
+                        Id = "ble1",
+                        Name = "bleClient",
+                        Type = ControlType.BluetoothClient,
+                        Events = [new EventMappingDefinition { EventName = "DataReceived" }]
+                    },
+                    new AstNode
+                    {
+                        Id = "sp1",
+                        Name = "serialPort",
+                        Type = ControlType.SerialPortService,
+                        Events = [new EventMappingDefinition { EventName = "DataReceived" }]
+                    },
+                    new AstNode
+                    {
+                        Id = "openDlg1",
+                        Name = "openFileDialog",
+                        Type = ControlType.OpenFileDialog,
+                        Events = [new EventMappingDefinition { EventName = "FileOk" }]
+                    },
+                    new AstNode
+                    {
+                        Id = "saveDlg1",
+                        Name = "saveFileDialog",
+                        Type = ControlType.SaveFileDialog,
+                        Events = [new EventMappingDefinition { EventName = "FileOk" }]
+                    },
+                    new AstNode
+                    {
+                        Id = "msgBox1",
+                        Name = "messageBox",
+                        Type = ControlType.MessageBox,
+                        Events = [new EventMappingDefinition { EventName = "Confirmed" }]
+                    },
+                    new AstNode
+                    {
+                        Id = "btnStart",
+                        Name = "btnStart",
+                        Type = ControlType.Button,
+                        Text = "開始監控",
+                        Events = [new EventMappingDefinition { EventName = "Click" }]
+                    }
+                ]
+            },
+            Events = [new EventMappingDefinition { EventName = "Loaded" }]
+        };
+
+        try
+        {
+            await _exportService.ExportToFolderAsync(doc, tempFolder, new ProjectExportOptions(IncludeMobileProject: false, CustomProjectName: "DeviceControlApp"));
+            var desktopCsprojPath = Path.Combine(tempFolder, "src", "DeviceControlApp.Desktop", "DeviceControlApp.Desktop.csproj");
+
+            var psi = new ProcessStartInfo
+            {
+                FileName = "dotnet",
+                Arguments = $"build \"{desktopCsprojPath}\" -c Release",
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            };
+
+            using var process = Process.Start(psi);
+            var stdout = await process!.StandardOutput.ReadToEndAsync();
+            var stderr = await process.StandardError.ReadToEndAsync();
+            await process.WaitForExitAsync();
+
+            process.ExitCode.Should().Be(0, $"Code-Behind 模式含不可視元件之匯出專案應成功編譯。\n標準輸出:\n{stdout}\n錯誤輸出:\n{stderr}");
+        }
+        finally
+        {
+            if (Directory.Exists(tempFolder))
+            {
+                try
+                {
+                    Directory.Delete(tempFolder, recursive: true);
+                }
+                catch { }
+            }
+        }
+    }
 }

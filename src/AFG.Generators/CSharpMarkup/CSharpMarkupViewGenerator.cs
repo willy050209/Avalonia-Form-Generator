@@ -36,6 +36,12 @@ public sealed class CSharpMarkupViewGenerator : ICodeGenerator
             ? CollectCodeBehindFields(document.RootNode)
             : new Dictionary<string, CodeBehindFieldInfo>(StringComparer.Ordinal);
 
+        var allNodes = AstTreeOperations.Flatten(document.RootNode);
+        var nonVisualComponents = allNodes
+            .Where(n => IsNonVisualComponent(n.Type))
+            .ToList();
+
+        var services = document.InjectedServices ?? [];
         var codeBehindMethodStubs = new List<string>();
 
         var sb = new StringBuilder();
@@ -47,7 +53,7 @@ public sealed class CSharpMarkupViewGenerator : ICodeGenerator
         sb.AppendLine($"public partial class {document.ViewClassName} : UserControl");
         sb.AppendLine("{");
 
-        // 輸出 Code-Behind 強型別欄位宣告
+        // 輸出 Code-Behind 可視控制項強型別欄位宣告
         if (fieldMap.Count > 0)
         {
             sb.AppendLine("    // 提供編譯期強型別欄位，方便 Code-Behind 使用者 (Code-Behind Friendly Fields)");
@@ -62,11 +68,96 @@ public sealed class CSharpMarkupViewGenerator : ICodeGenerator
             sb.AppendLine();
         }
 
+        // 輸出 Code-Behind 模式下的不可視元件、對話方塊與硬體通訊宣告
+        if (isCodeBehindMode && nonVisualComponents.Count > 0)
+        {
+            sb.AppendLine("    // 不可視元件、對話方塊與硬體通訊 (Non-Visual Components, Dialogs & Hardware Services)");
+            foreach (var comp in nonVisualComponents)
+            {
+                var rawName = !string.IsNullOrWhiteSpace(comp.Name) ? comp.Name.Trim() : comp.Type.ToString();
+                var cleanName = CSharpSyntaxSanitizer.SanitizeIdentifier(rawName);
+                var fieldName = cleanName.StartsWith('_') ? cleanName : "_" + char.ToLowerInvariant(cleanName[0]) + cleanName[1..];
+
+                if (comp.Type == ControlType.DispatcherTimer)
+                {
+                    var initClause = comp.Interval.HasValue
+                        ? $" = new() {{ Interval = TimeSpan.FromMilliseconds({comp.Interval.Value}) }};"
+                        : " = new();";
+                    sb.AppendLine($"    private readonly DispatcherTimer {fieldName}{initClause}");
+                }
+                else if (comp.Type == ControlType.BackgroundWorker)
+                {
+                    sb.AppendLine($"    private readonly BackgroundWorker {fieldName} = new();");
+                }
+                else if (comp.Type == ControlType.BluetoothClient)
+                {
+                    sb.AppendLine($"    private readonly BluetoothClient {fieldName} = new();");
+                }
+                else if (comp.Type == ControlType.SerialPortService)
+                {
+                    sb.AppendLine($"    private readonly SerialPortService {fieldName} = new();");
+                }
+                else if (comp.Type == ControlType.OpenFileDialog)
+                {
+                    sb.AppendLine($"    private readonly OpenFileDialog {fieldName} = new();");
+                }
+                else if (comp.Type == ControlType.SaveFileDialog)
+                {
+                    sb.AppendLine($"    private readonly SaveFileDialog {fieldName} = new();");
+                }
+                else if (comp.Type == ControlType.MessageBox)
+                {
+                    sb.AppendLine($"    private readonly MessageBox {fieldName} = new();");
+                }
+            }
+            sb.AppendLine();
+        }
+
+        // 輸出 Code-Behind 模式下的注入服務相依性欄位
+        if (isCodeBehindMode && services.Count > 0)
+        {
+            sb.AppendLine("    // 注入服務相依性 (Injected Services)");
+            foreach (var svc in services)
+            {
+                var rawName = svc.InterfaceName.StartsWith('I') ? svc.InterfaceName[1..] : svc.InterfaceName;
+                var fieldName = "_" + char.ToLowerInvariant(rawName[0]) + rawName[1..];
+                sb.AppendLine($"    private readonly {svc.InterfaceName}? {fieldName};");
+            }
+            sb.AppendLine();
+        }
+
+        // 無參數預設建構子
         sb.AppendLine($"    public {document.ViewClassName}()");
         sb.AppendLine("    {");
         sb.AppendLine("        InitializeComponent();");
         sb.AppendLine("    }");
         sb.AppendLine();
+
+        // 服務注入建構子
+        if (isCodeBehindMode && services.Count > 0)
+        {
+            var ctorParamList = new List<string>();
+            foreach (var svc in services)
+            {
+                var paramType = svc.InterfaceName;
+                var rawName = svc.InterfaceName.StartsWith('I') ? svc.InterfaceName[1..] : svc.InterfaceName;
+                var paramName = char.ToLowerInvariant(rawName[0]) + rawName[1..];
+                ctorParamList.Add($"{paramType} {paramName}");
+            }
+            var ctorParams = string.Join(", ", ctorParamList);
+            sb.AppendLine($"    public {document.ViewClassName}({ctorParams}) : this()");
+            sb.AppendLine("    {");
+            foreach (var svc in services)
+            {
+                var rawName = svc.InterfaceName.StartsWith('I') ? svc.InterfaceName[1..] : svc.InterfaceName;
+                var fieldName = "_" + char.ToLowerInvariant(rawName[0]) + rawName[1..];
+                var paramName = char.ToLowerInvariant(rawName[0]) + rawName[1..];
+                sb.AppendLine($"        {fieldName} = {paramName};");
+            }
+            sb.AppendLine("    }");
+            sb.AppendLine();
+        }
+
         sb.AppendLine("    private void InitializeComponent()");
         sb.AppendLine("    {");
         if (!string.IsNullOrWhiteSpace(document.BackgroundColor))
@@ -114,6 +205,36 @@ public sealed class CSharpMarkupViewGenerator : ICodeGenerator
                     var normalizedCmd = Mvvm.MvvmViewModelGenerator.NormalizeCommandName(evt.CommandProperty);
                     var safeCmd = CSharpSyntaxSanitizer.EscapeIdentifier(normalizedCmd);
                     sb.AppendLine($"        {evt.EventName} += (sender, e) => (DataContext as {document.ViewModelClassName})?.{safeCmd}.Execute(e);");
+                }
+            }
+        }
+
+        // 不可視元件、對話方塊與硬體通訊事件監聽綁定
+        if (isCodeBehindMode && nonVisualComponents.Count > 0)
+        {
+            sb.AppendLine();
+            sb.AppendLine("        // 不可視元件與通訊事件監聽 (Non-Visual & Hardware Events)");
+            foreach (var comp in nonVisualComponents)
+            {
+                var rawName = !string.IsNullOrWhiteSpace(comp.Name) ? comp.Name.Trim() : comp.Type.ToString();
+                var cleanName = CSharpSyntaxSanitizer.SanitizeIdentifier(rawName);
+                var fieldName = cleanName.StartsWith('_') ? cleanName : "_" + char.ToLowerInvariant(cleanName[0]) + cleanName[1..];
+                var methodPrefix = cleanName.TrimStart('_');
+                if (methodPrefix.Length > 0) methodPrefix = char.ToUpperInvariant(methodPrefix[0]) + methodPrefix[1..];
+
+                foreach (var evt in comp.Events)
+                {
+                    if (string.IsNullOrWhiteSpace(evt.EventName)) continue;
+                    var handlerName = $"{methodPrefix}_{evt.EventName.Trim()}";
+                    sb.AppendLine($"        {fieldName}.{evt.EventName.Trim()} += {handlerName};");
+
+                    var (argsType, argName) = GetEventArgsInfo(evt.EventName, comp.Type);
+                    codeBehindMethodStubs.Add($$"""
+    private void {{handlerName}}(object? sender, {{argsType}} {{argName}})
+    {
+        // TODO: 在此實作 {{methodPrefix}} 的 {{evt.EventName}} 事件邏輯
+    }
+""");
                 }
             }
         }
@@ -625,7 +746,7 @@ public sealed class CSharpMarkupViewGenerator : ICodeGenerator
                 var handlerName = $"{cleanPrefix}_{evt.EventName.Trim()}";
                 sb.AppendLine($"{innerIndent}.{eventMethod}({handlerName})");
 
-                var (argsType, argName) = GetEventArgsInfo(evt.EventName);
+                var (argsType, argName) = GetEventArgsInfo(evt.EventName, node.Type);
                 codeBehindMethodStubs?.Add($$"""
     private void {{handlerName}}(object? sender, {{argsType}} {{argName}})
     {
@@ -857,23 +978,37 @@ public sealed class CSharpMarkupViewGenerator : ICodeGenerator
         _ => false
     };
 
-    public static (string ArgsType, string ArgName) GetEventArgsInfo(string eventName) => eventName.Trim() switch
+    public static (string ArgsType, string ArgName) GetEventArgsInfo(string eventName, ControlType? controlType = null) => (eventName.Trim(), controlType) switch
     {
-        "Click" => ("RoutedEventArgs", "e"),
-        "Tapped" => ("TappedEventArgs", "e"),
-        "DoubleTapped" => ("TappedEventArgs", "e"),
-        "PointerPressed" => ("PointerPressedEventArgs", "e"),
-        "PointerReleased" => ("PointerReleasedEventArgs", "e"),
-        "PointerMoved" => ("PointerEventArgs", "e"),
-        "KeyDown" => ("KeyEventArgs", "e"),
-        "KeyUp" => ("KeyEventArgs", "e"),
-        "TextChanged" => ("TextChangedEventArgs", "e"),
-        "SelectionChanged" => ("SelectionChangedEventArgs", "e"),
-        "ValueChanged" => ("RangeBaseValueChangedEventArgs", "e"),
-        "MediaOpened" => ("EventArgs", "e"),
-        "MediaEnded" => ("EventArgs", "e"),
-        "FrameCaptured" => ("Bitmap", "e"),
-        _ => ("RoutedEventArgs", "e")
+        ("Click", _) => ("RoutedEventArgs", "e"),
+        ("Tapped", _) => ("TappedEventArgs", "e"),
+        ("DoubleTapped", _) => ("TappedEventArgs", "e"),
+        ("PointerPressed", _) => ("PointerPressedEventArgs", "e"),
+        ("PointerReleased", _) => ("PointerReleasedEventArgs", "e"),
+        ("PointerMoved", _) => ("PointerEventArgs", "e"),
+        ("KeyDown", _) => ("KeyEventArgs", "e"),
+        ("KeyUp", _) => ("KeyEventArgs", "e"),
+        ("TextChanged", _) => ("TextChangedEventArgs", "e"),
+        ("SelectionChanged", _) => ("SelectionChangedEventArgs", "e"),
+        ("ValueChanged", _) => ("RangeBaseValueChangedEventArgs", "e"),
+        ("MediaOpened", _) => ("EventArgs", "e"),
+        ("MediaEnded", _) => ("EventArgs", "e"),
+        ("FrameCaptured", _) => ("Bitmap?", "e"),
+        ("Tick", _) => ("EventArgs", "e"),
+        ("DoWork", _) => ("DoWorkEventArgs", "e"),
+        ("RunWorkerCompleted", _) => ("RunWorkerCompletedEventArgs", "e"),
+        ("ProgressChanged", _) => ("ProgressChangedEventArgs", "e"),
+        ("DeviceDiscovered", _) => ("string", "e"),
+        ("Connected", _) => ("EventArgs", "e"),
+        ("Disconnected", _) => ("EventArgs", "e"),
+        ("DataReceived", ControlType.BluetoothClient) => ("byte[]", "e"),
+        ("DataReceived", ControlType.SerialPortService) => ("string", "e"),
+        ("DataReceived", _) => ("object?", "e"),
+        ("ErrorReceived", _) => ("string", "e"),
+        ("PinChanged", _) => ("EventArgs", "e"),
+        ("FileOk", _) => ("string", "e"),
+        ("Confirmed", _) => ("bool?", "e"),
+        _ => ("EventArgs", "e")
     };
 
     private static string FormatThickness(ThicknessModel thickness) =>

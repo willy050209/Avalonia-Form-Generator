@@ -1103,4 +1103,123 @@ public sealed class CSharpMarkupViewGeneratorTests
         var diagnostics = RoslynCompilerService.CheckSyntaxDiagnostics(result.Content);
         diagnostics.Should().BeEmpty();
     }
+
+    [Fact]
+    public void Generate_WithCodeBehindMode_AndNonVisualComponentsAndServices_ShouldEmitFields_EventWiring_AndMethodStubs()
+    {
+        // Arrange: 包含 DispatcherTimer, BackgroundWorker, BluetoothClient, SerialPortService, OpenFileDialog, SaveFileDialog, MessageBox 與自訂注入服務
+        var doc = new FormDocument
+        {
+            RootNamespace = "HardwareApp.Views",
+            ViewClassName = "DeviceControlView",
+            ViewModelClassName = "DeviceControlViewModel",
+            ArchitectureMode = ArchitectureMode.CodeBehind,
+            InjectedServices = [new ServiceDependencyDefinition { InterfaceName = "ISensorService", ImplementationName = "SensorService" }],
+            RootNode = new AstNode
+            {
+                Name = "RootCanvas",
+                Type = ControlType.Canvas,
+                Children = [
+                    new AstNode
+                    {
+                        Id = "timer1",
+                        Name = "pollTimer",
+                        Type = ControlType.DispatcherTimer,
+                        Interval = 500,
+                        Events = [new EventMappingDefinition { EventName = "Tick" }]
+                    },
+                    new AstNode
+                    {
+                        Id = "worker1",
+                        Name = "backgroundWorker",
+                        Type = ControlType.BackgroundWorker,
+                        Events = [new EventMappingDefinition { EventName = "DoWork" }]
+                    },
+                    new AstNode
+                    {
+                        Id = "ble1",
+                        Name = "bleClient",
+                        Type = ControlType.BluetoothClient,
+                        Events = [new EventMappingDefinition { EventName = "DataReceived" }]
+                    },
+                    new AstNode
+                    {
+                        Id = "sp1",
+                        Name = "serialPort",
+                        Type = ControlType.SerialPortService,
+                        Events = [new EventMappingDefinition { EventName = "DataReceived" }]
+                    },
+                    new AstNode
+                    {
+                        Id = "openDlg1",
+                        Name = "openFileDialog",
+                        Type = ControlType.OpenFileDialog,
+                        Events = [new EventMappingDefinition { EventName = "FileOk" }]
+                    },
+                    new AstNode
+                    {
+                        Id = "saveDlg1",
+                        Name = "saveFileDialog",
+                        Type = ControlType.SaveFileDialog,
+                        Events = [new EventMappingDefinition { EventName = "FileOk" }]
+                    },
+                    new AstNode
+                    {
+                        Id = "msgBox1",
+                        Name = "messageBox",
+                        Type = ControlType.MessageBox,
+                        Events = [new EventMappingDefinition { EventName = "Confirmed" }]
+                    },
+                    new AstNode
+                    {
+                        Id = "btnStart",
+                        Name = "btnStart",
+                        Type = ControlType.Button,
+                        Text = "開始監控",
+                        Events = [new EventMappingDefinition { EventName = "Click" }]
+                    }
+                ]
+            }
+        };
+
+        // Act
+        var result = _generator.Generate(doc);
+
+        // Assert: 欄位宣告
+        result.Content.Should().Contain("private readonly DispatcherTimer _pollTimer = new() { Interval = TimeSpan.FromMilliseconds(500) };");
+        result.Content.Should().Contain("private readonly BackgroundWorker _backgroundWorker = new();");
+        result.Content.Should().Contain("private readonly BluetoothClient _bleClient = new();");
+        result.Content.Should().Contain("private readonly SerialPortService _serialPort = new();");
+        result.Content.Should().Contain("private readonly OpenFileDialog _openFileDialog = new();");
+        result.Content.Should().Contain("private readonly SaveFileDialog _saveFileDialog = new();");
+        result.Content.Should().Contain("private readonly MessageBox _messageBox = new();");
+        result.Content.Should().Contain("private readonly ISensorService? _sensorService;");
+        result.Content.Should().Contain("private Button _btnStart;");
+
+        // Assert: DI 建構子
+        result.Content.Should().Contain("public DeviceControlView(ISensorService sensorService) : this()");
+
+        // Assert: InitializeComponent 內事件監聽
+        result.Content.Should().Contain("_pollTimer.Tick += PollTimer_Tick;");
+        result.Content.Should().Contain("_backgroundWorker.DoWork += BackgroundWorker_DoWork;");
+        result.Content.Should().Contain("_bleClient.DataReceived += BleClient_DataReceived;");
+        result.Content.Should().Contain("_serialPort.DataReceived += SerialPort_DataReceived;");
+        result.Content.Should().Contain("_openFileDialog.FileOk += OpenFileDialog_FileOk;");
+        result.Content.Should().Contain("_saveFileDialog.FileOk += SaveFileDialog_FileOk;");
+        result.Content.Should().Contain("_messageBox.Confirmed += MessageBox_Confirmed;");
+        result.Content.Should().Contain(".OnClick(BtnStart_Click)");
+
+        // Assert: Method Stubs
+        result.Content.Should().Contain("private void PollTimer_Tick(object? sender, EventArgs e)");
+        result.Content.Should().Contain("private void BackgroundWorker_DoWork(object? sender, DoWorkEventArgs e)");
+        result.Content.Should().Contain("private void BleClient_DataReceived(object? sender, byte[] e)");
+        result.Content.Should().Contain("private void SerialPort_DataReceived(object? sender, string e)");
+        result.Content.Should().Contain("private void OpenFileDialog_FileOk(object? sender, string e)");
+        result.Content.Should().Contain("private void SaveFileDialog_FileOk(object? sender, string e)");
+        result.Content.Should().Contain("private void MessageBox_Confirmed(object? sender, bool? e)");
+        result.Content.Should().Contain("private void BtnStart_Click(object? sender, RoutedEventArgs e)");
+
+        var diagnostics = RoslynCompilerService.CheckSyntaxDiagnostics(result.Content);
+        diagnostics.Should().BeEmpty();
+    }
 }

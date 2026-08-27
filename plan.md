@@ -297,6 +297,26 @@ AvaloniaFormGenerator/
 
 ---
 
+### 🔹 階段 18：Code-Behind 模式支援不可視元件、對話方塊與硬體通訊生成 (Code-Behind Non-Visual Components & Hardware Services Support)
+- [x] **階段狀態：已完成 (Completed)**
+- **目標**：修復在 `ArchitectureMode.CodeBehind` 模式下，因無 ViewModel 導致畫布上的不可視元件（`DispatcherTimer`, `BackgroundWorker`）、對話方塊（`OpenFileDialog`, `SaveFileDialog`, `MessageBox`）、硬體通訊（`BluetoothClient`, `SerialPortService`）以及注入服務未能生成的問題；直接在 `View.cs` 宣告私有欄位、在 `InitializeComponent()` 註冊事件監聽，並產出強型別事件 Method Stubs 與 DI 建構子。
+- **任務清單**：
+  - [x] 18.1 **Phase 1: C# Markup View 生成器擴充不可視元件、對話方塊與服務宣告 (`CSharpMarkupViewGenerator.cs`)**
+    - 掃描 AST 樹收集所有不可視元件與對話方塊。
+    - 在 CodeBehind 模式下於 View 類別產出 `private readonly DispatcherTimer/BackgroundWorker/BluetoothClient/SerialPortService/OpenFileDialog/SaveFileDialog/MessageBox` 私有欄位與初始化。
+    - 產出注入服務欄位與 DI 多載建構子（`public MainView(IService service) : this()`）。
+    - 在 `InitializeComponent()` 內掛載不可視元件事件處理常式（如 `_timer.Tick += Timer_Tick;`, `_backgroundWorker.DoWork += BackgroundWorker_DoWork;`）。
+    - 產出對應之強型別事件處理常式 Method Stubs。
+  - [x] 18.2 **Phase 2: 單元測試與語法驗證 (`CSharpMarkupViewGeneratorTests.cs`)**
+    - 撰寫包含所有不可視元件、對話方塊與硬體通訊之 CodeBehind View 生成單元測試與 Roslyn 語法樹診斷驗證。
+  - [x] 18.3 **Phase 3: 專案匯出與實體編譯測試 (`ProjectExportServiceTests.cs`)**
+    - 撰寫包含不可視元件、對話方塊與硬體通訊之 CodeBehind 專案匯出整合測試，執行 `dotnet build` 驗證 0 錯誤 0 警告通過。
+  - [x] 18.4 **Phase 4: 全專案自動化測試、技術文件更新與 Git Commit**
+    - 執行全專案自動化測試，確保 0 Error, 0 Warning 且 100% 通過（292 項單元測試全數通過）。
+    - 更新技術規格文件 `docs/csharp-markup-spec.md` 與 `plan.md`。
+
+---
+
 ## 4. 驗證標準與品質指標
 
 1. **單元測試覆蓋率**：所有純函式、AST 操作、歷史堆疊、生成器與序列化演算法 100% 覆蓋。

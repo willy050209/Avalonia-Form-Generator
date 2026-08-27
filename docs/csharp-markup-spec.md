@@ -570,7 +570,11 @@ AFG 在 AST 驗證器 (`AstValidator`) 與屬性檢查器 (`InspectorViewModel` 
 
 ### 10.1 模式一：Code-Behind / Event-Driven 模式 (`ArchitectureMode.CodeBehind`)
 - **定位**：快速驗證、Demo 原型測試或 WinForms 習慣開發者。
-- **產出物**：僅產出 `MainView.generated.cs`（宣告強型別欄位如 `_btnSubmit`、`_txtInput`）與使用者事件處理常式 Stub。**不生成 `ViewModel.cs`**。
+- **產出物**：僅產出 `MainView.generated.cs`（宣告可視強型別欄位如 `_btnSubmit`、`_txtInput`，以及不可視元件、對話方塊與硬體通訊欄位）與使用者事件處理常式 Method Stubs。**不生成 `ViewModel.cs`**。
+- **不可視元件與硬體通訊**：
+  - 在 View 內自動產出 `DispatcherTimer`, `BackgroundWorker`, `BluetoothClient`, `SerialPortService`, `OpenFileDialog`, `SaveFileDialog`, `MessageBox` 之私有欄位與初始化。
+  - 在 `InitializeComponent()` 內自動掛載事件監聽（如 `_pollTimer.Tick += PollTimer_Tick;`, `_bleClient.DataReceived += BleClient_DataReceived;`）。
+  - 若配置了自訂注入服務，自動產出 View 的多載相依性注入建構子（`public MainView(ISensorService sensor) : this()`）。
 - **事件處理**：直接在 `InitializeComponent()` 內透過 `.OnClick(BtnSubmit_Click)` 或 `Loaded += MainView_Loaded;` 綁定 View 內部事件方法。
 - **DI / 啟動設定**：`App.cs` 與 DI 容器直接註冊 `services.AddTransient<MainView>()`，無需 `DataContext` 依賴。
 
@@ -585,6 +589,14 @@ public partial class MainView : UserControl
     // 提供編譯期強型別欄位，方便 Code-Behind 使用者 (Code-Behind Friendly Fields)
     private TextBox _txtUsername;
     private Button _btnSubmit;
+
+    // 不可視元件、對話方塊與硬體通訊 (Non-Visual Components, Dialogs & Hardware Services)
+    private readonly DispatcherTimer _pollTimer = new() { Interval = TimeSpan.FromMilliseconds(500) };
+    private readonly BackgroundWorker _backgroundWorker = new();
+    private readonly BluetoothClient _bleClient = new();
+    private readonly SerialPortService _serialPort = new();
+    private readonly OpenFileDialog _openFileDialog = new();
+    private readonly MessageBox _messageBox = new();
 
     public MainView()
     {
@@ -608,12 +620,35 @@ public partial class MainView : UserControl
                     .Text("送出")
                     .OnClick(BtnSubmit_Click)
             );
+
+        // 不可視元件與通訊事件監聽 (Non-Visual & Hardware Events)
+        _pollTimer.Tick += PollTimer_Tick;
+        _backgroundWorker.DoWork += BackgroundWorker_DoWork;
+        _bleClient.DataReceived += BleClient_DataReceived;
+        _serialPort.DataReceived += SerialPort_DataReceived;
+        _openFileDialog.FileOk += OpenFileDialog_FileOk;
+        _messageBox.Confirmed += MessageBox_Confirmed;
     }
 
     #region 事件處理常式 (Event Handlers)
     private void BtnSubmit_Click(object? sender, RoutedEventArgs e)
     {
         // TODO: 在此實作 BtnSubmit 的 Click 事件邏輯
+    }
+
+    private void PollTimer_Tick(object? sender, EventArgs e)
+    {
+        // TODO: 在此實作 PollTimer 的 Tick 事件邏輯
+    }
+
+    private void BackgroundWorker_DoWork(object? sender, DoWorkEventArgs e)
+    {
+        // TODO: 在此實作 BackgroundWorker 的 DoWork 事件邏輯
+    }
+
+    private void BleClient_DataReceived(object? sender, byte[] e)
+    {
+        // TODO: 在此實作 BleClient 的 DataReceived 事件邏輯
     }
     #endregion
 }
