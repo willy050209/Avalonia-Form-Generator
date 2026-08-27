@@ -323,7 +323,14 @@ public sealed partial class MainViewModel : ObservableObject
                 var vmFile = result.Files.FirstOrDefault(f => f.FileType == SourceFileType.ViewModel);
 
                 GeneratedViewCode = viewFile?.Content ?? string.Empty;
-                GeneratedVmCode = vmFile?.Content ?? string.Empty;
+                if (Canvas.Document.ArchitectureMode == ArchitectureMode.CodeBehind)
+                {
+                    GeneratedVmCode = "// Code-Behind / Event-Driven 模式不使用 ViewModel\n// 所有強型別欄位與事件處理直接在 View 內部完成。";
+                }
+                else
+                {
+                    GeneratedVmCode = vmFile?.Content ?? string.Empty;
+                }
             }
         }
         catch (Exception ex)

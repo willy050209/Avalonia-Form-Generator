@@ -872,6 +872,40 @@ public static class AvaloniaMarkupExtensionsSource
             return rb;
         }
 
+        // Direct Event Handler Overloads (Code-Behind / Event-Driven Friendly)
+        public static Button OnClick(this Button btn, EventHandler<RoutedEventArgs> handler) { btn.Click += handler; return btn; }
+        public static Button OnClick(this Button btn, Action handler) { btn.Click += (s, e) => handler(); return btn; }
+
+        public static T OnTapped<T>(this T control, EventHandler<TappedEventArgs> handler) where T : Control { control.Tapped += handler; return control; }
+        public static T OnTapped<T>(this T control, Action handler) where T : Control { control.Tapped += (s, e) => handler(); return control; }
+
+        public static T OnDoubleTapped<T>(this T control, EventHandler<TappedEventArgs> handler) where T : Control { control.DoubleTapped += handler; return control; }
+        public static T OnDoubleTapped<T>(this T control, Action handler) where T : Control { control.DoubleTapped += (s, e) => handler(); return control; }
+
+        public static T OnPointerPressed<T>(this T control, EventHandler<PointerPressedEventArgs> handler) where T : Control { control.PointerPressed += handler; return control; }
+        public static T OnPointerPressed<T>(this T control, Action handler) where T : Control { control.PointerPressed += (s, e) => handler(); return control; }
+
+        public static T OnPointerReleased<T>(this T control, EventHandler<PointerReleasedEventArgs> handler) where T : Control { control.PointerReleased += handler; return control; }
+        public static T OnPointerReleased<T>(this T control, Action handler) where T : Control { control.PointerReleased += (s, e) => handler(); return control; }
+
+        public static T OnPointerMoved<T>(this T control, EventHandler<PointerEventArgs> handler) where T : Control { control.PointerMoved += handler; return control; }
+        public static T OnPointerMoved<T>(this T control, Action handler) where T : Control { control.PointerMoved += (s, e) => handler(); return control; }
+
+        public static T OnKeyDown<T>(this T control, EventHandler<KeyEventArgs> handler) where T : Control { control.KeyDown += handler; return control; }
+        public static T OnKeyDown<T>(this T control, Action handler) where T : Control { control.KeyDown += (s, e) => handler(); return control; }
+
+        public static T OnKeyUp<T>(this T control, EventHandler<KeyEventArgs> handler) where T : Control { control.KeyUp += handler; return control; }
+        public static T OnKeyUp<T>(this T control, Action handler) where T : Control { control.KeyUp += (s, e) => handler(); return control; }
+
+        public static TextBox OnTextChanged(this TextBox tb, EventHandler<TextChangedEventArgs> handler) { tb.TextChanged += handler; return tb; }
+        public static TextBox OnTextChanged(this TextBox tb, Action handler) { tb.TextChanged += (s, e) => handler(); return tb; }
+
+        public static T OnSelectionChanged<T>(this T control, EventHandler<SelectionChangedEventArgs> handler) where T : SelectingItemsControl { control.SelectionChanged += handler; return control; }
+        public static T OnSelectionChanged<T>(this T control, Action handler) where T : SelectingItemsControl { control.SelectionChanged += (s, e) => handler(); return control; }
+
+        public static RangeBase OnValueChanged(this RangeBase rb, EventHandler<RangeBaseValueChangedEventArgs> handler) { rb.ValueChanged += handler; return rb; }
+        public static RangeBase OnValueChanged(this RangeBase rb, Action handler) { rb.ValueChanged += (s, e) => handler(); return rb; }
+
         public static T ItemsSource<T>(this T control, string path, BindingMode mode = BindingMode.Default) where T : ItemsControl
         {
             control.Bind(ItemsControl.ItemsSourceProperty, new Binding(path) { Mode = mode });
@@ -1091,6 +1125,15 @@ public static class AvaloniaMarkupExtensionsSource
             };
             return player;
         }
+
+        public static MediaPlayerControl OnMediaOpened(this MediaPlayerControl player, EventHandler handler) { player.MediaOpened += handler; return player; }
+        public static MediaPlayerControl OnMediaOpened(this MediaPlayerControl player, Action handler) { player.MediaOpened += (s, e) => handler(); return player; }
+
+        public static MediaPlayerControl OnMediaEnded(this MediaPlayerControl player, EventHandler handler) { player.MediaEnded += handler; return player; }
+        public static MediaPlayerControl OnMediaEnded(this MediaPlayerControl player, Action handler) { player.MediaEnded += (s, e) => handler(); return player; }
+
+        public static MediaPlayerControl OnFrameCaptured(this MediaPlayerControl player, EventHandler<Bitmap?> handler) { player.FrameCaptured += handler; return player; }
+        public static MediaPlayerControl OnFrameCaptured(this MediaPlayerControl player, Action<Bitmap?> handler) { player.FrameCaptured += (s, f) => handler(f); return player; }
     }
 
     /// <summary>

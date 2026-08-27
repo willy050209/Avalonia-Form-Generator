@@ -196,14 +196,22 @@ public sealed class ProjectExportService(FormCodeGenerator? codeGenerator = null
         var viewRegistrations = new StringBuilder();
         foreach (var doc in project.Documents)
         {
-            viewRegistrations.AppendLine($"        // 註冊 {doc.ViewClassName} 與對應 ViewModel");
-            viewRegistrations.AppendLine($"        services.AddTransient<{doc.ViewModelClassName}>();");
-            viewRegistrations.AppendLine($"        services.AddTransient<{doc.ViewClassName}>(sp =>");
-            viewRegistrations.AppendLine("        {");
-            viewRegistrations.AppendLine($"            var view = new {doc.ViewClassName}();");
-            viewRegistrations.AppendLine($"            view.DataContext = sp.GetRequiredService<{doc.ViewModelClassName}>();");
-            viewRegistrations.AppendLine("            return view;");
-            viewRegistrations.AppendLine("        });");
+            if (doc.ArchitectureMode == ArchitectureMode.CodeBehind)
+            {
+                viewRegistrations.AppendLine($"        // 註冊 {doc.ViewClassName} (Code-Behind 模式)");
+                viewRegistrations.AppendLine($"        services.AddTransient<{doc.ViewClassName}>();");
+            }
+            else
+            {
+                viewRegistrations.AppendLine($"        // 註冊 {doc.ViewClassName} 與對應 ViewModel");
+                viewRegistrations.AppendLine($"        services.AddTransient<{doc.ViewModelClassName}>();");
+                viewRegistrations.AppendLine($"        services.AddTransient<{doc.ViewClassName}>(sp =>");
+                viewRegistrations.AppendLine("        {");
+                viewRegistrations.AppendLine($"            var view = new {doc.ViewClassName}();");
+                viewRegistrations.AppendLine($"            view.DataContext = sp.GetRequiredService<{doc.ViewModelClassName}>();");
+                viewRegistrations.AppendLine("            return view;");
+                viewRegistrations.AppendLine("        });");
+            }
         }
 
         var initialDoc = project.Documents.FirstOrDefault(d => d.ViewClassName == project.InitialFormName) ?? project.Documents[0];
@@ -1067,7 +1075,7 @@ public sealed class ProjectExportService(FormCodeGenerator? codeGenerator = null
             }
 
             var vmFile = genResult.Files.FirstOrDefault(f => f.FileType == SourceFileType.ViewModel);
-            if (vmFile is not null)
+            if (vmFile is not null && effectiveDoc.ArchitectureMode != ArchitectureMode.CodeBehind)
             {
                 files.Add(new GeneratedSourceFile(
                     Path.Combine(sharedDir, "ViewModels", vmFile.FileName),

@@ -90,7 +90,13 @@ public sealed partial class InspectorViewModel : ObservableObject
     private string _formRootNamespace = "GeneratedApp.Views";
 
     [ObservableProperty]
+    private ArchitectureMode _formArchitectureMode = ArchitectureMode.Hybrid;
+
+    [ObservableProperty]
     private bool _formGenerateCodeBehindFields = true;
+
+    public IReadOnlyList<ArchitectureMode> ArchitectureModeOptions { get; } =
+        Enum.GetValues<ArchitectureMode>();
 
     public IReadOnlyList<CoreWindowStartupLocation> WindowStartupLocationOptions { get; } =
         Enum.GetValues<CoreWindowStartupLocation>();
@@ -582,6 +588,7 @@ public sealed partial class InspectorViewModel : ObservableObject
         FormViewClassName = doc.ViewClassName;
         FormViewModelClassName = doc.ViewModelClassName;
         FormRootNamespace = doc.RootNamespace;
+        FormArchitectureMode = doc.ArchitectureMode;
         FormGenerateCodeBehindFields = doc.GenerateCodeBehindFields;
 
         var docEvents = doc.Events ?? [];
@@ -670,7 +677,7 @@ public sealed partial class InspectorViewModel : ObservableObject
                 ViewClassName = string.IsNullOrWhiteSpace(FormViewClassName) ? "MainFormView" : FormViewClassName.Trim(),
                 ViewModelClassName = string.IsNullOrWhiteSpace(FormViewModelClassName) ? "MainFormViewModel" : FormViewModelClassName.Trim(),
                 RootNamespace = string.IsNullOrWhiteSpace(FormRootNamespace) ? "GeneratedApp.Views" : FormRootNamespace.Trim(),
-                GenerateCodeBehindFields = FormGenerateCodeBehindFields,
+                ArchitectureMode = FormArchitectureMode,
                 Events = FormEvents.Select(e => e.ToDefinition()).ToImmutableList()
             };
 
@@ -934,7 +941,26 @@ public sealed partial class InspectorViewModel : ObservableObject
     partial void OnFormViewClassNameChanged(string value) => ApplyFormChanges();
     partial void OnFormViewModelClassNameChanged(string value) => ApplyFormChanges();
     partial void OnFormRootNamespaceChanged(string value) => ApplyFormChanges();
-    partial void OnFormGenerateCodeBehindFieldsChanged(bool value) => ApplyFormChanges();
+    partial void OnFormArchitectureModeChanged(ArchitectureMode value)
+    {
+        _formGenerateCodeBehindFields = value is ArchitectureMode.Hybrid or ArchitectureMode.CodeBehind;
+        OnPropertyChanged(nameof(FormGenerateCodeBehindFields));
+        ApplyFormChanges();
+    }
+    partial void OnFormGenerateCodeBehindFieldsChanged(bool value)
+    {
+        if (value && _formArchitectureMode == ArchitectureMode.PureMvvm)
+        {
+            _formArchitectureMode = ArchitectureMode.Hybrid;
+            OnPropertyChanged(nameof(FormArchitectureMode));
+        }
+        else if (!value && _formArchitectureMode != ArchitectureMode.PureMvvm)
+        {
+            _formArchitectureMode = ArchitectureMode.PureMvvm;
+            OnPropertyChanged(nameof(FormArchitectureMode));
+        }
+        ApplyFormChanges();
+    }
 
     partial void OnNodeNameChanged(string value) => ApplyChanges();
     partial void OnTextChanged(string value) => ApplyChanges();

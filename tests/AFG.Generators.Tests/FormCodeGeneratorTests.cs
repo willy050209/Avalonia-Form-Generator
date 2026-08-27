@@ -268,4 +268,46 @@ public sealed class FormCodeGeneratorTests
 
         RoslynCompilerService.CheckSyntaxDiagnostics(viewFile.Content).Should().BeEmpty();
     }
+
+    [Fact]
+    public void GenerateAll_WithCodeBehindMode_ShouldProduceOnlyViewFile()
+    {
+        // Arrange
+        var doc = new FormDocument
+        {
+            ViewClassName = "CodeBehindOnlyView",
+            ViewModelClassName = "CodeBehindOnlyViewModel",
+            ArchitectureMode = ArchitectureMode.CodeBehind,
+            RootNode = new AstNode
+            {
+                Id = "root",
+                Type = ControlType.Canvas,
+                Children = [
+                    new AstNode
+                    {
+                        Id = "btn",
+                        Name = "btnClickMe",
+                        Type = ControlType.Button,
+                        Text = "Click Me",
+                        Events = [new EventMappingDefinition { EventName = "Click" }]
+                    }
+                ]
+            }
+        };
+
+        // Act
+        var result = _generator.GenerateAll(doc);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        result.Files.Should().HaveCount(1);
+        var viewFile = result.Files[0];
+        viewFile.FileType.Should().Be(SourceFileType.View);
+        viewFile.FileName.Should().Be("CodeBehindOnlyView.cs");
+        viewFile.Content.Should().Contain("private Button _btnClickMe;");
+        viewFile.Content.Should().Contain(".OnClick(BtnClickMe_Click)");
+        viewFile.Content.Should().Contain("private void BtnClickMe_Click(object? sender, RoutedEventArgs e)");
+
+        RoslynCompilerService.CheckSyntaxDiagnostics(viewFile.Content).Should().BeEmpty();
+    }
 }

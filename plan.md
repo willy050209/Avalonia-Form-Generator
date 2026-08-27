@@ -259,23 +259,41 @@ AvaloniaFormGenerator/
 - **目標**：在 C# Markup View 生成器中加入 partial class 強型別私有欄位（如 `private Button _btnSubmit;`）與 `.Name(...)` NameScope 註冊機制，兼顧 MVVM 與 Code-Behind 開發者；具備智慧過濾、命名衝突保護與可選設定（預設開啟 Code-Behind Friendly 模式）。
 - **任務清單**：
   - [x] 16.1 **Phase 1: AST 模型擴充與 FormDocument 設定 (AST Model Extension & FormDocument Config)**
-    - 在 `FormDocument.cs` 新增 `bool GenerateCodeBehindFields { get; init; } = true;`。
-    - 在 `InspectorViewModel.cs` 與 `InspectorView.axaml` 表單屬性面板提供開關連動。
-    - 撰寫 `FormDocument` 序列化/反序列化單元測試。
   - [x] 16.2 **Phase 2: Fluent 擴充方法 `.Name(...)` 支援 (`AvaloniaMarkupExtensionsSource.cs`)**
-    - 在 `AvaloniaMarkupExtensionsSource.cs` 新增 `.Name(this StyledElement control, string name)` 擴充方法。
-    - 驗證 Roslyn 語法樹編譯無錯誤。
   - [x] 16.3 **Phase 3: C# Markup View 生成器欄位分析、命名清理與衝突保護演算法 (`CSharpMarkupViewGenerator.cs`)**
-    - 實作智慧過濾機制：僅對具名或有互動之控制項生成欄位，自動過濾無自訂 ID 的純靜態佈局容器。
-    - 實作命名清理與衝突保護演算法：透過 `CSharpSyntaxSanitizer` 轉為 `_camelCase` 識別碼，偵測到重複名稱時自動加入 `node.Id` 為後綴並輸出提示註解。
-    - 在 `InitializeComponent()` 內以 `_fieldName = new ControlType().Name("elementName")` 賦值並註冊至 NameScope，同時保留完整的 MVVM `.Text()`, `.Bind()`, `.Command()`, `.OnClick()` 調用。
-    - 支援 `GenerateCodeBehindFields == false`（Pure MVVM 模式）時產出無欄位的乾淨 Inline View。
-    - 撰寫單元測試驗證欄位生成、NameScope 註冊、衝突保護與 Pure MVVM 切換。
   - [x] 16.4 **Phase 4: 專案匯出與實體編譯驗證 (`ProjectExportServiceTests`)**
-    - 撰寫匯出專案包含 Code-Behind 欄位之整合測試，執行 `dotnet build` 驗證 0 錯誤 0 警告編譯通過。
   - [x] 16.5 **Phase 5: 全套單元測試驗證、技術文件更新與 Git Commit**
-    - 執行全專案自動化測試，確保 0 Error, 0 Warning 且 100% 通過。
-    - 更新技術文件 `docs/csharp-markup-spec.md`、`docs/user-guide.md` 與 `plan.md`。
+
+---
+
+### 🔹 階段 17：三種架構生成模式重構（Code-Behind / Event-Driven、Pure MVVM、Hybrid 混合模式）
+- [x] **階段狀態：已完成 (Completed)**
+- **目標**：重構程式碼生成架構與 UI 屬性檢查器，支援三種架構模式切換（1. Code-Behind / Event-Driven 模式、2. Pure MVVM 模式、3. Hybrid 混合模式），兼顧 WinForms / WPF 快速原型驗證與企業級可測試架構需求。
+- **任務清單**：
+  - [x] 17.1 **Phase 1: 核心模型與架構模式列舉 (`ArchitectureMode` in `AFG.Core`)**
+    - 新增 `ArchitectureMode` 列舉（`Hybrid = 0`, `CodeBehind = 1`, `PureMvvm = 2`）。
+    - 更新 `FormDocument.cs`：新增 `ArchitectureMode ArchitectureMode { get; init; } = ArchitectureMode.Hybrid;`。
+    - 撰寫 `AfgSerializerTests` 驗證序列化/反序列化 roundtrip 與向下相容。
+  - [x] 17.2 **Phase 2: Fluent 事件直接傳遞擴充方法 (`AvaloniaMarkupExtensionsSource.cs`)**
+    - 擴充 `AvaloniaMarkupExtensionsSource.cs` 支援 `OnClick(Action)`、`OnClick(EventHandler<RoutedEventArgs>)` 等直接事件綁定。
+  - [x] 17.3 **Phase 3: C# Markup View 與 ViewModel 生成器重構 (`CSharpMarkupViewGenerator` & `FormCodeGenerator`)**
+    - `CSharpMarkupViewGenerator`：
+      - `CodeBehind` 模式：產出強型別欄位 + 事件直接綁定 View 內部事件方法 stub（如 `_btnSubmit.Click += BtnSubmit_Click;` 或 `.OnClick(BtnSubmit_Click)`），不產生 DataContext 命令綁定。
+      - `PureMvvm` 模式：產出純 Inline View（無強型別欄位宣告），事件與屬性轉為 `[RelayCommand]` / `[ObservableProperty]`。
+      - `Hybrid` 模式：產出強型別欄位 + RelayCommand / ObservableProperty 雙重支援。
+    - `FormCodeGenerator`：`CodeBehind` 模式僅輸出 View 檔案，不輸出 ViewModel 檔案。
+    - 撰寫 `CSharpMarkupViewGeneratorTests` 與 `FormCodeGeneratorTests` 驗證三種模式語法正確性。
+  - [x] 17.4 **Phase 4: 專案匯出引擎與 DI 容器整合 (`ProjectExportService.cs`)**
+    - 適配 `ProjectExportService`：在 `CodeBehind` 模式下，`App.cs` 與 DI 容器直接註冊 View（無 ViewModel 依賴），不生成冗餘 ViewModel 檔案。
+    - 撰寫 `ProjectExportServiceTests` 驗證三種架構模式匯出之專案皆能以 `dotnet build` 0 錯誤 0 警告編譯通過。
+  - [x] 17.5 **Phase 5: 屬性檢查器 UI 連動與即時預覽更新 (`InspectorViewModel` & `MainViewModel`)**
+    - 在 `InspectorViewModel` 提供 `ArchitectureMode` 選項清單與 `FormArchitectureMode` 雙向綁定。
+    - 在 `InspectorView.axaml` 呈現「架構生成模式」下拉選單。
+    - 切換模式時即時觸發 `FormUpdated`，同步更新 `MainViewModel` 預覽程式碼。
+    - 撰寫 `InspectorViewModelTests` 與 `MainViewModelTests` 驗證 UI 連動。
+  - [x] 17.6 **Phase 6: 全專案自動化測試、技術文件更新與 Git Commit**
+    - 執行全專案自動化測試，確保 0 Error, 0 Warning 且 100% 通過（290 項單元測試全數通過）。
+    - 更新技術文件 `docs/csharp-markup-spec.md` 與 `plan.md`。
 
 ---
 

@@ -819,7 +819,7 @@ public sealed class CSharpMarkupViewGeneratorTests
             RootNamespace = "TestApp.Views",
             ViewClassName = "MainView",
             ViewModelClassName = "MainViewModel",
-            GenerateCodeBehindFields = true,
+            ArchitectureMode = ArchitectureMode.Hybrid,
             RootNode = new AstNode
             {
                 Name = "RootCanvas",
@@ -874,7 +874,7 @@ public sealed class CSharpMarkupViewGeneratorTests
             RootNamespace = "TestApp.Views",
             ViewClassName = "DuplicateView",
             ViewModelClassName = "DuplicateViewModel",
-            GenerateCodeBehindFields = true,
+            ArchitectureMode = ArchitectureMode.Hybrid,
             RootNode = new AstNode
             {
                 Name = "RootCanvas",
@@ -922,7 +922,7 @@ public sealed class CSharpMarkupViewGeneratorTests
             RootNamespace = "TestApp.Views",
             ViewClassName = "PureMvvmView",
             ViewModelClassName = "PureMvvmViewModel",
-            GenerateCodeBehindFields = false, // 關閉 Code-Behind 欄位
+            ArchitectureMode = ArchitectureMode.PureMvvm, // 關閉 Code-Behind 欄位
             RootNode = new AstNode
             {
                 Name = "RootCanvas",
@@ -959,7 +959,7 @@ public sealed class CSharpMarkupViewGeneratorTests
             RootNamespace = "TestApp.Views",
             ViewClassName = "StaticLayoutView",
             ViewModelClassName = "StaticLayoutViewModel",
-            GenerateCodeBehindFields = true,
+            ArchitectureMode = ArchitectureMode.Hybrid,
             RootNode = new AstNode
             {
                 Name = "RootCanvas",
@@ -997,6 +997,108 @@ public sealed class CSharpMarkupViewGeneratorTests
         result.Content.Should().NotContain("private TextBlock _textBlock;");
         result.Content.Should().Contain("private Button _btnSave;");
         result.Content.Should().Contain("_btnSave = new Button()");
+
+        var diagnostics = RoslynCompilerService.CheckSyntaxDiagnostics(result.Content);
+        diagnostics.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Generate_WithCodeBehindArchitectureMode_ShouldEmitFields_DirectEventHandlers_AndMethodStubs_WithoutViewModelBindings()
+    {
+        // Arrange
+        var doc = new FormDocument
+        {
+            RootNamespace = "TestApp.Views",
+            ViewClassName = "CodeBehindView",
+            ViewModelClassName = "CodeBehindViewModel",
+            ArchitectureMode = ArchitectureMode.CodeBehind,
+            RootNode = new AstNode
+            {
+                Name = "RootCanvas",
+                Type = ControlType.Canvas,
+                Children = [
+                    new AstNode
+                    {
+                        Id = "b1",
+                        Name = "btnSubmit",
+                        Type = ControlType.Button,
+                        Text = "送出",
+                        Events = [new EventMappingDefinition { EventName = "Click", CommandProperty = "SubmitCommand" }]
+                    },
+                    new AstNode
+                    {
+                        Id = "t1",
+                        Name = "txtUsername",
+                        Type = ControlType.TextBox,
+                        Text = "預設使用者"
+                    }
+                ]
+            },
+            Events = [new EventMappingDefinition { EventName = "Loaded", CommandProperty = "LoadedCommand" }]
+        };
+
+        // Act
+        var result = _generator.Generate(doc);
+
+        // Assert: 欄位宣告與 NameScope
+        result.Content.Should().Contain("private Button _btnSubmit;");
+        result.Content.Should().Contain("private TextBox _txtUsername;");
+        result.Content.Should().Contain("_btnSubmit = new Button()");
+        result.Content.Should().Contain(".Name(\"btnSubmit\")");
+        result.Content.Should().Contain("_txtUsername = new TextBox()");
+        result.Content.Should().Contain(".Name(\"txtUsername\")");
+
+        // Assert: 直接事件處理器綁定
+        result.Content.Should().Contain(".OnClick(BtnSubmit_Click)");
+        result.Content.Should().Contain("Loaded += CodeBehindView_Loaded;");
+
+        // Assert: 事件處理常式 Method Stubs
+        result.Content.Should().Contain("private void BtnSubmit_Click(object? sender, RoutedEventArgs e)");
+        result.Content.Should().Contain("private void CodeBehindView_Loaded(object? sender, EventArgs e)");
+
+        // Assert: 不包含 DataContext 或 ViewModel 依賴
+        result.Content.Should().NotContain("DataContext");
+        result.Content.Should().NotContain("CodeBehindViewModel");
+
+        var diagnostics = RoslynCompilerService.CheckSyntaxDiagnostics(result.Content);
+        diagnostics.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Generate_WithHybridArchitectureMode_ShouldEmitFields_AndMvvmBindings()
+    {
+        // Arrange
+        var doc = new FormDocument
+        {
+            RootNamespace = "TestApp.Views",
+            ViewClassName = "HybridView",
+            ViewModelClassName = "HybridViewModel",
+            ArchitectureMode = ArchitectureMode.Hybrid,
+            RootNode = new AstNode
+            {
+                Name = "RootCanvas",
+                Type = ControlType.Canvas,
+                Children = [
+                    new AstNode
+                    {
+                        Id = "b1",
+                        Name = "btnSubmit",
+                        Type = ControlType.Button,
+                        Text = "送出",
+                        Events = [new EventMappingDefinition { EventName = "Click", CommandProperty = "SubmitCommand" }]
+                    }
+                ]
+            }
+        };
+
+        // Act
+        var result = _generator.Generate(doc);
+
+        // Assert: 包含欄位宣告與 MVVM RelayCommand 綁定
+        result.Content.Should().Contain("private Button _btnSubmit;");
+        result.Content.Should().Contain("_btnSubmit = new Button()");
+        result.Content.Should().Contain(".Name(\"btnSubmit\")");
+        result.Content.Should().Contain(".OnClick((HybridViewModel vm) => vm.SubmitCommand)");
 
         var diagnostics = RoslynCompilerService.CheckSyntaxDiagnostics(result.Content);
         diagnostics.Should().BeEmpty();

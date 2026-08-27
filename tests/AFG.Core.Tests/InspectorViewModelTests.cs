@@ -463,7 +463,7 @@ public sealed class InspectorViewModelTests
         var doc = new FormDocument
         {
             Title = "TestForm",
-            GenerateCodeBehindFields = true
+            ArchitectureMode = ArchitectureMode.Hybrid
         };
         vm.LoadDocument(doc);
 
@@ -482,5 +482,36 @@ public sealed class InspectorViewModelTests
 
         // Assert 2
         updatedDoc.GenerateCodeBehindFields.Should().BeTrue();
+    }
+
+    [Fact]
+    public void InspectorViewModel_ChangingFormArchitectureMode_ShouldTriggerFormUpdated()
+    {
+        // Arrange
+        var vm = new InspectorViewModel();
+        var doc = new FormDocument
+        {
+            Title = "ArchTestForm",
+            ArchitectureMode = ArchitectureMode.Hybrid
+        };
+        vm.LoadDocument(doc);
+
+        FormDocument? updatedDoc = null;
+        vm.FormUpdated += d => updatedDoc = d;
+
+        // Act 1: Switch to CodeBehind
+        vm.FormArchitectureMode = ArchitectureMode.CodeBehind;
+
+        // Assert 1
+        updatedDoc.Should().NotBeNull();
+        updatedDoc!.ArchitectureMode.Should().Be(ArchitectureMode.CodeBehind);
+        updatedDoc.GenerateCodeBehindFields.Should().BeTrue();
+
+        // Act 2: Switch to PureMvvm
+        vm.FormArchitectureMode = ArchitectureMode.PureMvvm;
+
+        // Assert 2
+        updatedDoc.ArchitectureMode.Should().Be(ArchitectureMode.PureMvvm);
+        updatedDoc.GenerateCodeBehindFields.Should().BeFalse();
     }
 }

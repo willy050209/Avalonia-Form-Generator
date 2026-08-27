@@ -342,7 +342,7 @@ public sealed class AfgSerializerTests
         var doc = new FormDocument
         {
             Title = "CodeBehindTest",
-            GenerateCodeBehindFields = false
+            ArchitectureMode = ArchitectureMode.PureMvvm
         };
 
         // Act
@@ -351,6 +351,28 @@ public sealed class AfgSerializerTests
 
         // Assert
         result.GenerateCodeBehindFields.Should().BeFalse();
+        result.ArchitectureMode.Should().Be(ArchitectureMode.PureMvvm);
+    }
+
+    [Theory]
+    [InlineData(ArchitectureMode.CodeBehind)]
+    [InlineData(ArchitectureMode.PureMvvm)]
+    [InlineData(ArchitectureMode.Hybrid)]
+    public void Roundtrip_FormDocument_ShouldPreserveArchitectureMode(ArchitectureMode mode)
+    {
+        // Arrange
+        var doc = new FormDocument
+        {
+            Title = "ArchModeTest",
+            ArchitectureMode = mode
+        };
+
+        // Act
+        var json = AfgSerializer.SerializeDocument(doc);
+        var result = AfgSerializer.DeserializeDocument(json);
+
+        // Assert
+        result.ArchitectureMode.Should().Be(mode);
     }
 
     [Fact]

@@ -27,9 +27,17 @@ public sealed class FormCodeGenerator(
         ArgumentNullException.ThrowIfNull(document);
 
         var rawViewFile = _viewGenerator.Generate(document);
-        var rawVmFile = _viewModelGenerator.Generate(document);
-
         var formattedViewCode = _compilerService.FormatCode(rawViewFile.Content);
+
+        if (document.ArchitectureMode == ArchitectureMode.CodeBehind)
+        {
+            var codeBehindFiles = ImmutableList.Create(
+                rawViewFile with { Content = formattedViewCode }
+            );
+            return GenerationResult.Success(codeBehindFiles);
+        }
+
+        var rawVmFile = _viewModelGenerator.Generate(document);
         var formattedVmCode = _compilerService.FormatCode(rawVmFile.Content);
 
         var formattedFiles = ImmutableList.Create(

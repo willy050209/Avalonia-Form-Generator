@@ -199,11 +199,12 @@
                             <CheckBox Content="在工作列顯示 (ShowInTaskbar)"
                                       IsChecked="{Binding FormShowInTaskbar, Mode=TwoWay}" />
 
-                            <CheckBox Content="生成 Code-Behind 強型別欄位與 NameScope 註冊"
-                                      IsChecked="{Binding FormGenerateCodeBehindFields, Mode=TwoWay}"
-                                      Margin="0,4,0,0"
-                                      FontWeight="SemiBold"
-                                      Foreground="#38BDF8" />
+                            <StackPanel Spacing="4" Margin="0,4,0,0">
+                                <TextBlock Text="代碼架構模式 (Architecture Mode)" FontSize="11" Foreground="#38BDF8" FontWeight="SemiBold" />
+                                <ComboBox ItemsSource="{Binding ArchitectureModeOptions}"
+                                          SelectedItem="{Binding FormArchitectureMode, Mode=TwoWay}"
+                                          HorizontalAlignment="Stretch" />
+                            </StackPanel>
                         </StackPanel>
                     </ScrollViewer>
                 </TabItem>

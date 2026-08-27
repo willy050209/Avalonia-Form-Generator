@@ -1121,4 +1121,77 @@ public sealed class ProjectExportServiceTests
             }
         }
     }
+
+    /// <summary>
+    /// 驗證 Code-Behind / Event-Driven 模式下匯出專案之實體編譯與無 ViewModel 正常運作。
+    /// </summary>
+    [Fact]
+    public async Task ExportedProject_WithCodeBehindArchitectureMode_ShouldCompileSuccessfully()
+    {
+        var tempFolder = Path.Combine(Path.GetTempPath(), "AFG_CodeBehindExportTest_" + Guid.NewGuid().ToString("N"));
+        var doc = new FormDocument
+        {
+            ViewClassName = "CodeBehindMainView",
+            ViewModelClassName = "CodeBehindMainViewModel",
+            Title = "Code Behind Export Test",
+            ArchitectureMode = ArchitectureMode.CodeBehind,
+            RootNode = new AstNode
+            {
+                Id = "root",
+                Type = ControlType.Canvas,
+                Children = [
+                    new AstNode
+                    {
+                        Id = "txtInput",
+                        Name = "txtInput",
+                        Type = ControlType.TextBox,
+                        Text = "Hello WinForms Style"
+                    },
+                    new AstNode
+                    {
+                        Id = "btnSubmit",
+                        Name = "btnSubmit",
+                        Type = ControlType.Button,
+                        Text = "Click Me",
+                        Events = [new EventMappingDefinition { EventName = "Click" }]
+                    }
+                ]
+            },
+            Events = [new EventMappingDefinition { EventName = "Loaded" }]
+        };
+
+        try
+        {
+            await _exportService.ExportToFolderAsync(doc, tempFolder, new ProjectExportOptions(IncludeMobileProject: false, CustomProjectName: "CodeBehindExportTest"));
+            var desktopCsprojPath = Path.Combine(tempFolder, "src", "CodeBehindExportTest.Desktop", "CodeBehindExportTest.Desktop.csproj");
+
+            var psi = new ProcessStartInfo
+            {
+                FileName = "dotnet",
+                Arguments = $"build \"{desktopCsprojPath}\" -c Release",
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            };
+
+            using var process = Process.Start(psi);
+            var stdout = await process!.StandardOutput.ReadToEndAsync();
+            var stderr = await process.StandardError.ReadToEndAsync();
+            await process.WaitForExitAsync();
+
+            process.ExitCode.Should().Be(0, $"Code-Behind 模式匯出專案應成功編譯。\n標準輸出:\n{stdout}\n錯誤輸出:\n{stderr}");
+        }
+        finally
+        {
+            if (Directory.Exists(tempFolder))
+            {
+                try
+                {
+                    Directory.Delete(tempFolder, recursive: true);
+                }
+                catch { }
+            }
+        }
+    }
 }

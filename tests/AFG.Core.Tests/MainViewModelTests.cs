@@ -270,4 +270,40 @@ public sealed class MainViewModelTests
         vm.GeneratedViewCode.Should().Contain("_txtUsername = new TextBox()");
         vm.GeneratedViewCode.Should().Contain(".Name(\"txtUsername\")");
     }
+
+    [Fact]
+    public void Inspector_ChangingArchitectureMode_ShouldUpdatePreviewCodeImmediately()
+    {
+        // Arrange
+        var vm = new MainViewModel();
+        var tbItem = new ToolboxItem("按鈕", "常用", ControlType.Button, "btnSubmit", 100, 35, "送出");
+        vm.Canvas.AddControlFromToolbox(tbItem, 50, 50);
+        vm.Inspector.NodeName = "btnSubmit";
+        vm.Inspector.AddEventCommand.Execute(null);
+        var evtItem = vm.Inspector.Events[0];
+        evtItem.EventName = "Click";
+        evtItem.CommandProperty = "SubmitCommand";
+
+        // Hybrid 模式預設
+        vm.GeneratedViewCode.Should().Contain("private Button _btnSubmit;");
+        vm.GeneratedViewCode.Should().Contain(".OnClick((MainFormViewModel vm) => vm.SubmitCommand)");
+        vm.GeneratedVmCode.Should().Contain("[RelayCommand]");
+
+        // Act 1: 切換至 Code-Behind 模式
+        vm.Inspector.FormArchitectureMode = ArchitectureMode.CodeBehind;
+
+        // Assert 1: View 應切換為直接事件處理常式與 Stub，Vm 代碼提示不使用 ViewModel
+        vm.GeneratedViewCode.Should().Contain("private Button _btnSubmit;");
+        vm.GeneratedViewCode.Should().Contain(".OnClick(BtnSubmit_Click)");
+        vm.GeneratedViewCode.Should().Contain("private void BtnSubmit_Click(object? sender, RoutedEventArgs e)");
+        vm.GeneratedVmCode.Should().Contain("Code-Behind / Event-Driven 模式不使用 ViewModel");
+
+        // Act 2: 切換至 Pure MVVM 模式
+        vm.Inspector.FormArchitectureMode = ArchitectureMode.PureMvvm;
+
+        // Assert 2: View 應不含欄位宣告，維持 Inline
+        vm.GeneratedViewCode.Should().NotContain("private Button _btnSubmit;");
+        vm.GeneratedViewCode.Should().Contain(".OnClick((MainFormViewModel vm) => vm.SubmitCommand)");
+        vm.GeneratedVmCode.Should().Contain("[RelayCommand]");
+    }
 }
