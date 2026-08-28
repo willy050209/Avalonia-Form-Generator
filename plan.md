@@ -357,9 +357,33 @@ AvaloniaFormGenerator/
 
 ---
 
+### 🔹 階段 21：修復 Android 跨平臺專案範本生成與 APK 編譯支援 (Fix Android Project Template Generation & APK Build Support)
+- [x] **階段狀態：已完成 (Completed)**
+- **目標**：修復跨平台生成之 Android 專案範本因缺少 Android 資源定義（styles、icons）、引用已廢棄/不存在之 `AvaloniaSplashActivity` 以及專案屬性不完備導致無法編譯 APK 的問題；加入完整的 Android 資源生成（`Resources/values/styles.xml`, `Resources/drawable/icon.xml`）；在單元測試中新增 Android APK 實體編譯測試項目，並具備環境偵測能力，於未安裝 Android SDK 之環境中自動安全略過。
+- **任務清單**：
+  - [x] 21.1 **Phase 1: 修復 Android 專案生成結構、資源定義與專案屬性 (`ProjectExportService.cs`)**
+    - 移除 Avalonia 11+ 已廢棄且不存在之 `SplashActivity.cs`，統一以 `MainActivity.cs` 作為入口。
+    - 生成 Android 必備資源目錄與檔案：
+      - `Resources/values/styles.xml`：定義 `MyTheme.NoActionBar` 主題（繼承 `@android:style/Theme.DeviceDefault.NoActionBar`）。
+      - `Resources/drawable/icon.xml`：定義向量圖示 Vector Drawable 資源。
+    - 完善 `.Android.csproj` 專案組態：加入 `<ApplicationId>`, `<ApplicationVersion>`, `<ApplicationDisplayVersion>`, `<AndroidPackageFormat>apk</AndroidPackageFormat>`, `<AndroidEnablePreBuildValidation>true</AndroidEnablePreBuildValidation>`，並抑制 `XA4211`、`NU1903` 等非必要警告。
+    - 完善 `AndroidManifest.xml`：加入 `android:icon="@drawable/icon"` 與 `android:theme="@style/MyTheme.NoActionBar"`。
+  - [x] 21.2 **Phase 2: 更新現有單元測試與 Android 檔案結構斷言 (`ProjectExportServiceTests.cs`)**
+    - 更新現有 `GenerateFullProject` 與 `ExportToFolderAsync` 測試中的檔案清單斷言（移除 `SplashActivity.cs`，加入 `styles.xml` 與 `icon.xml`）。
+  - [x] 21.3 **Phase 3: 新增 Android APK 實體編譯與自動跳過測試 (`ProjectExportServiceTests.cs`)**
+    - 實作 `IsAndroidSdkInstalled()` 智慧環境偵測函式，檢查環境變數（`ANDROID_HOME`, `ANDROID_SDK_ROOT`）與 Windows / macOS / Linux 系統標準 SDK 目錄中的 `platforms` 與 `build-tools`。
+    - 新增實體編譯測試 `ExportedProject_Android_ShouldCompileAndGenerateApk_WhenAndroidSdkAvailable`：匯出專案後執行 `dotnet build -c Release -t:SignAndroidPackage`，驗證建置成功（ExitCode 0）且確實產出 `.apk` 檔案；若檢測到未安裝 Android SDK 則自動略過。
+  - [x] 21.4 **Phase 4: 技術文件更新、全專案自動化測試與 Git Commit**
+    - 更新 `docs/architecture.md`、`docs/user-guide.md` 與 `plan.md`。
+    - 執行全套單元與整合測試（保持 0 錯誤 0 警告，298 項測試全數通過）。
+    - 依規範完成 Git Commit。
+
+---
+
 ## 4. 驗證標準與品質指標
 
 1. **單元測試覆蓋率**：所有純函式、AST 操作、歷史堆疊、生成器與序列化演算法 100% 覆蓋。
 2. **零警告與零錯誤**：`dotnet build` 與 `dotnet test` 保持 0 Error, 0 Warning。
-3. **實體跨平台編譯保障**：匯出之專案在 Windows / macOS / Linux 平台均可一鍵執行 `dotnet run` 成功啟動。
+3. **實體跨平台編譯保障**：匯出之專案在 Windows / macOS / Linux 平台均可一鍵執行 `dotnet run` 成功啟動，且在具備 Android SDK 之環境下可成功建置產出 APK 檔案。
+
 

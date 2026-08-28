@@ -102,12 +102,14 @@ public sealed class ProjectExportServiceTests
         var androidProj = Path.Combine("src", "OrderFormApp.Android", "OrderFormApp.Android.csproj");
         var androidGlobalUsings = Path.Combine("src", "OrderFormApp.Android", "GlobalUsings.cs");
         var mainActivity = Path.Combine("src", "OrderFormApp.Android", "MainActivity.cs");
-        var splashActivity = Path.Combine("src", "OrderFormApp.Android", "SplashActivity.cs");
+        var stylesXml = Path.Combine("src", "OrderFormApp.Android", "Resources", "values", "styles.xml");
+        var iconXml = Path.Combine("src", "OrderFormApp.Android", "Resources", "drawable", "icon.xml");
         var manifest = Path.Combine("src", "OrderFormApp.Android", "AndroidManifest.xml");
         files.Should().Contain(f => f.FileName == androidProj);
         files.Should().Contain(f => f.FileName == androidGlobalUsings);
         files.Should().Contain(f => f.FileName == mainActivity);
-        files.Should().Contain(f => f.FileName == splashActivity);
+        files.Should().Contain(f => f.FileName == stylesXml);
+        files.Should().Contain(f => f.FileName == iconXml);
         files.Should().Contain(f => f.FileName == manifest);
 
         // 5. 檢查 App.cs 是否包含 DI 與預設視窗尺寸配置
@@ -211,6 +213,10 @@ public sealed class ProjectExportServiceTests
             File.Exists(Path.Combine(tempFolder, "src", "MainFormApp.Desktop", "Program.cs")).Should().BeTrue();
             File.Exists(Path.Combine(tempFolder, "src", "MainFormApp.Android", "MainFormApp.Android.csproj")).Should().BeTrue();
             File.Exists(Path.Combine(tempFolder, "src", "MainFormApp.Android", "GlobalUsings.cs")).Should().BeTrue();
+            File.Exists(Path.Combine(tempFolder, "src", "MainFormApp.Android", "MainActivity.cs")).Should().BeTrue();
+            File.Exists(Path.Combine(tempFolder, "src", "MainFormApp.Android", "Resources", "values", "styles.xml")).Should().BeTrue();
+            File.Exists(Path.Combine(tempFolder, "src", "MainFormApp.Android", "Resources", "drawable", "icon.xml")).Should().BeTrue();
+            File.Exists(Path.Combine(tempFolder, "src", "MainFormApp.Android", "AndroidManifest.xml")).Should().BeTrue();
         }
         finally
         {
@@ -1396,4 +1402,148 @@ public sealed class ProjectExportServiceTests
             }
         }
     }
+
+    /// <summary>
+    /// 端到端實體編譯測試：驗證匯出之 .Android 專案可透過 dotnet build (-t:SignAndroidPackage) 成功編譯出 APK 檔。
+    /// 若執行環境未安裝 Android SDK 則自動跳過此測試。
+    /// </summary>
+    [Fact]
+    public async Task ExportedProject_Android_ShouldCompileAndGenerateApk_WhenAndroidSdkAvailable()
+    {
+        if (!IsAndroidSdkInstalled())
+        {
+            // 未安裝 Android SDK 之環境自動略過測試
+            return;
+        }
+
+        var tempFolder = Path.Combine(Path.GetTempPath(), "AFG_AndroidBuildTest_" + Guid.NewGuid().ToString("N"));
+        var doc = new FormDocument
+        {
+            ViewClassName = "MobileOrderView",
+            ViewModelClassName = "MobileOrderViewModel",
+            Title = "行動訂單系統",
+            RootNode = new AstNode
+            {
+                Id = "rootCanvas",
+                Type = ControlType.Canvas,
+                Children = [
+                    new AstNode
+                    {
+                        Id = "txtWelcome",
+                        Type = ControlType.TextBlock,
+                        Text = "歡迎使用行動端",
+                        CanvasLeft = 20,
+                        CanvasTop = 30,
+                        FontSize = 16
+                    },
+                    new AstNode
+                    {
+                        Id = "btnAction",
+                        Type = ControlType.Button,
+                        Content = "送出",
+                        CanvasLeft = 20,
+                        CanvasTop = 80,
+                        Width = 100,
+                        Height = 40,
+                        Events = [new EventMappingDefinition { EventName = "Click", CommandProperty = "SubmitCommand", IsAsync = false }]
+                    }
+                ]
+            }
+        };
+
+        try
+        {
+            await _exportService.ExportToFolderAsync(doc, tempFolder, new ProjectExportOptions(IncludeMobileProject: true, CustomProjectName: "MobileOrderApp"));
+
+            var androidCsprojPath = Path.Combine(tempFolder, "src", "MobileOrderApp.Android", "MobileOrderApp.Android.csproj");
+            File.Exists(androidCsprojPath).Should().BeTrue("Android 專案檔應存在於匯出目錄");
+
+            var psi = new ProcessStartInfo
+            {
+                FileName = "dotnet",
+                Arguments = $"build \"{androidCsprojPath}\" -c Release -t:SignAndroidPackage -nodeReuse:false -p:UseSharedCompilation=false",
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            };
+
+            using var process = Process.Start(psi);
+            process.Should().NotBeNull();
+
+            var stdoutTask = process!.StandardOutput.ReadToEndAsync();
+            var stderrTask = process.StandardError.ReadToEndAsync();
+
+            await process.WaitForExitAsync();
+            var stdout = await stdoutTask;
+            var stderr = await stderrTask;
+
+            process.ExitCode.Should().Be(0, $"Android 專案 build 應成功 (ExitCode 0)。\n標準輸出:\n{stdout}\n錯誤輸出:\n{stderr}");
+
+            // 驗證是否成功產生 .apk 檔案
+            var androidDir = Path.Combine(tempFolder, "src", "MobileOrderApp.Android");
+            var apkFiles = Directory.GetFiles(androidDir, "*.apk", SearchOption.AllDirectories);
+            apkFiles.Should().NotBeEmpty("編譯後應於 bin / obj 目錄下產出 APK 檔案");
+        }
+        finally
+        {
+            if (Directory.Exists(tempFolder))
+            {
+                try
+                {
+                    Directory.Delete(tempFolder, recursive: true);
+                }
+                catch
+                {
+                    // 忽略清理鎖定例外
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// 檢查當前執行環境是否已安裝 Android SDK。
+    /// </summary>
+    private static bool IsAndroidSdkInstalled()
+    {
+        var candidates = new List<string?>
+        {
+            Environment.GetEnvironmentVariable("ANDROID_HOME"),
+            Environment.GetEnvironmentVariable("ANDROID_SDK_ROOT")
+        };
+
+        if (OperatingSystem.IsWindows())
+        {
+            candidates.Add(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Android", "Sdk"));
+            candidates.Add(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), "Android", "android-sdk"));
+            candidates.Add(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "Android", "android-sdk"));
+        }
+        else if (OperatingSystem.IsMacOS())
+        {
+            candidates.Add(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Library", "Android", "sdk"));
+        }
+        else if (OperatingSystem.IsLinux())
+        {
+            candidates.Add(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Android", "Sdk"));
+            candidates.Add("/usr/lib/android-sdk");
+            candidates.Add("/opt/android-sdk");
+        }
+
+        foreach (var dir in candidates)
+        {
+            if (!string.IsNullOrWhiteSpace(dir) && Directory.Exists(dir))
+            {
+                var platformsDir = Path.Combine(dir, "platforms");
+                var buildToolsDir = Path.Combine(dir, "build-tools");
+                if (Directory.Exists(platformsDir) && Directory.EnumerateFileSystemEntries(platformsDir).Any() &&
+                    Directory.Exists(buildToolsDir) && Directory.EnumerateFileSystemEntries(buildToolsDir).Any())
+                {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
 }
+

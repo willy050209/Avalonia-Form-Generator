@@ -107,6 +107,7 @@
 - **單檔代碼一鍵複製**：在底部預覽區各分頁右上角提供「複製 View 程式碼」與「複製 ViewModel 程式碼」按鈕，點選即可將 Roslyn 格式化後的 C# 代碼複製至剪貼簿並彈出成功通知。
 - **專案檔儲存/開啟**：點選「儲存」輸出 `.afg.json`（保留自訂專案名稱與完整畫布狀態）；若載入損毀檔案，系統會顯示行數與欄位的詳細診斷提示。
 - **一鍵匯出跨平台專案**：點選「檔案 > 匯出完整跨平台專案...」或按 `Ctrl+Shift+E`，系統自動產出包含自訂專案名稱的 `.slnx` 方案、`.Shared` 核心（含 `INavigationService` 導航與動態 DI 容器）、`.Desktop` 與可選的 `.Android` 宿主專案！
+  - **Android 專案支援與 APK 編譯**：生成的 `.Android` 專案內建完整的 Android 資源階層（`Resources/values/styles.xml`、`Resources/drawable/icon.xml` 與 `AndroidManifest.xml`），並配置 `<AndroidPackageFormat>apk</AndroidPackageFormat>`。在安裝有 Android SDK 的環境下，可透過 `dotnet build -c Release -t:SignAndroidPackage` 或 `dotnet publish -c Release` 直接編譯產出 Signed APK 安裝包。
 
 ### 2.8 表單與視窗控制屬性系統 (Form & Window Control Properties)
 - **進入表單屬性模式**：點擊畫布空白處、選取樹狀圖根節點或在控制項屬性頂部點擊「表單屬性」按鈕，屬性檢查器將自動切換為「表單與視窗屬性 (Form)」面板。
