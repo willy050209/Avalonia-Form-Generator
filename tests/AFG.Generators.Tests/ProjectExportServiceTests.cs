@@ -2280,17 +2280,96 @@ public sealed class ProjectExportServiceTests
         }
     }
 
+    private static bool? s_isAndroidBuildAvailable;
+    private static readonly object s_androidCheckLock = new();
+
     /// <summary>
-    /// 檢查當前執行環境是否已完整安裝 Android SDK 與 .NET Android Workload。
+    /// 檢查當前執行環境是否已完整安裝 Android SDK 與 .NET Android Workload，且能實際執行 net10.0-android 建置。
     /// </summary>
     private static bool IsAndroidBuildEnvironmentAvailable()
     {
-        if (!IsAndroidSdkInstalled())
+        lock (s_androidCheckLock)
+        {
+            if (s_isAndroidBuildAvailable.HasValue)
+            {
+                return s_isAndroidBuildAvailable.Value;
+            }
+
+            if (!IsAndroidSdkInstalled() || !IsDotNetAndroidWorkloadInstalled())
+            {
+                s_isAndroidBuildAvailable = false;
+                return false;
+            }
+
+            s_isAndroidBuildAvailable = CanBuildAndroidProject();
+            return s_isAndroidBuildAvailable.Value;
+        }
+    }
+
+    /// <summary>
+    /// 透過極小化 Canary 專案探針實際測試 dotnet build net10.0-android 是否能在目前系統（含架構相容性、JDK 與權限）順利執行。
+    /// </summary>
+    private static bool CanBuildAndroidProject()
+    {
+        var tempDir = Path.Combine(Path.GetTempPath(), "AFG_AndroidProbe_" + Guid.NewGuid().ToString("N"));
+        try
+        {
+            Directory.CreateDirectory(tempDir);
+            var csprojPath = Path.Combine(tempDir, "Probe.csproj");
+            var csprojContent = """
+            <Project Sdk="Microsoft.NET.Sdk">
+              <PropertyGroup>
+                <OutputType>Exe</OutputType>
+                <TargetFramework>net10.0-android</TargetFramework>
+                <SupportedOSPlatformVersion>21</SupportedOSPlatformVersion>
+                <Nullable>enable</Nullable>
+                <ApplicationId>com.afg.probe</ApplicationId>
+                <AndroidPackageFormat>apk</AndroidPackageFormat>
+                <NoWarn>$(NoWarn);NU1903;XA4211</NoWarn>
+              </PropertyGroup>
+            </Project>
+            """;
+            File.WriteAllText(csprojPath, csprojContent);
+
+            var activityPath = Path.Combine(tempDir, "MainActivity.cs");
+            var activityContent = """
+            using Android.App;
+            namespace Probe;
+            [Activity(Label = "Probe", MainLauncher = true)]
+            public class MainActivity : Activity { }
+            """;
+            File.WriteAllText(activityPath, activityContent);
+
+            var psi = new ProcessStartInfo
+            {
+                FileName = "dotnet",
+                Arguments = $"build \"{csprojPath}\" -c Release -t:SignAndroidPackage -nodeReuse:false -p:UseSharedCompilation=false",
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            };
+
+            using var process = Process.Start(psi);
+            if (process is null)
+            {
+                return false;
+            }
+
+            process.WaitForExit(30000);
+            return process.ExitCode == 0;
+        }
+        catch
         {
             return false;
         }
-
-        return IsDotNetAndroidWorkloadInstalled();
+        finally
+        {
+            if (Directory.Exists(tempDir))
+            {
+                try { Directory.Delete(tempDir, recursive: true); } catch { }
+            }
+        }
     }
 
     /// <summary>
