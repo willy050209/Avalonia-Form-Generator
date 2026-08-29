@@ -109,13 +109,21 @@
 - **一鍵匯出跨平台專案**：點選「檔案 > 匯出完整跨平台專案...」或按 `Ctrl+Shift+E`，系統自動產出包含自訂專案名稱的 `.slnx` 方案、`.Shared` 核心（含 `INavigationService` 導航與動態 DI 容器）、`.Desktop` 與可選的 `.Android` 宿主專案！
   - **Android 專案支援與 APK 編譯**：生成的 `.Android` 專案內建完整的 Android 資源階層（`Resources/values/styles.xml`、`Resources/drawable/icon.xml` 與 `AndroidManifest.xml`），並配置 `<AndroidPackageFormat>apk</AndroidPackageFormat>`。在安裝有 Android SDK 的環境下，可透過 `dotnet build -c Release -t:SignAndroidPackage` 或 `dotnet publish -c Release` 直接編譯產出 Signed APK 安裝包。
 
+### 2.7 目標語言選擇 (C# / F# / Visual Basic .NET)
+- **多語言程式碼生成切換**：在右側屬性檢查器的「表單屬性 > 外觀 > 專案與類別架構」中，提供「目標語言 (Target Language)」下拉選單：
+  - **`CSharp`** (C# 14 / .NET 10)：產出現代化 C# Declarative UI View、`CommunityToolkit.Mvvm` ViewModel、強型別 Lambda 綁定與完整 `.csproj` 方案。
+  - **`FSharp`** (F# 9 / .NET 10)：產出純 F# Avalonia View (`UserControl`)、`ObservableObject` ViewModel、`App.fs`、`Config.fs` 與依照嚴格編譯相依性排序之 `.fsproj` 方案。
+  - **`VisualBasic`** (Visual Basic .NET 10)：產出標準 VB.NET View (`WithEvents` 控制項欄位、`InitializeComponent`)、`ObservableObject` ViewModel、`Config.vb` 與 `.vbproj` 方案。
+- **即時代碼預覽與語法高亮**：切換目標語言後，底部代碼預覽區立即切換為對應語言之原始碼，並由 `CSharpSyntaxColorizer` 自動套用 VS Dark+ 語法著色高亮。
+- **一鍵多語言專案匯出**：匯出專案時，系統會依據表單所選之目標語言產出對應的 `.csproj` / `.fsproj` / `.vbproj` 跨平台專案，所有專案皆支援 `dotnet build` 與 `dotnet run` 直接編譯執行。
+
 ### 2.8 表單與視窗控制屬性系統 (Form & Window Control Properties)
 - **進入表單屬性模式**：點擊畫布空白處、選取樹狀圖根節點或在控制項屬性頂部點擊「表單屬性」按鈕，屬性檢查器將自動切換為「表單與視窗屬性 (Form)」面板。
 - **「外觀」分頁**：
   - **視窗標題 (Title)**：設定應用程式視窗標題列文字。
   - **表單背景顏色 (BackgroundColor)**：提供自訂 `#RRGGBB` 色碼輸入與色票即時預覽，並附帶常用快捷色票按鈕（純白、淺灰、米色、深灰、夜黑、暗藍），點選後畫布背景即時同步渲染。
   - **視窗圖示 (Icon)**：點選「瀏覽...」按鈕可視覺化選取視窗圖示檔案（`.ico` / `.png`），專案匯出時自動複製至 `.Shared/Assets/`。
-  - **專案與類別架構**：設定 View 類別名稱、ViewModel 類別名稱與命名空間 (RootNamespace)。
+  - **專案與類別架構**：設定 View 類別名稱、ViewModel 類別名稱、目標語言 (CSharp / FSharp / VisualBasic) 與命名空間 (RootNamespace)。
 - **「尺寸」分頁**：
   - **預設畫布寬高**：設定表單預設尺寸 (CanvasWidth / CanvasHeight)。
   - **快速切換解析度**：提供 800x600, 1024x768, 1280x720, 1920x1080 快捷切換按鈕。

@@ -411,6 +411,30 @@ public sealed class AfgSerializerTests
     }
 
     [Fact]
+    public void Roundtrip_TargetLanguage_ShouldPreserveLanguageAndDefaultToCSharp()
+    {
+        // Arrange
+        var docFSharp = new FormDocument { Title = "F# App", TargetLanguage = TargetLanguage.FSharp };
+        var docVB = new FormDocument { Title = "VB App", TargetLanguage = TargetLanguage.VisualBasic };
+        var docDefault = new FormDocument { Title = "C# App" };
+
+        // Act
+        var jsonFSharp = AfgSerializer.SerializeDocument(docFSharp);
+        var resFSharp = AfgSerializer.DeserializeDocument(jsonFSharp);
+
+        var jsonVB = AfgSerializer.SerializeDocument(docVB);
+        var resVB = AfgSerializer.DeserializeDocument(jsonVB);
+
+        var jsonDefault = AfgSerializer.SerializeDocument(docDefault);
+        var resDefault = AfgSerializer.DeserializeDocument(jsonDefault);
+
+        // Assert
+        resFSharp.TargetLanguage.Should().Be(TargetLanguage.FSharp);
+        resVB.TargetLanguage.Should().Be(TargetLanguage.VisualBasic);
+        resDefault.TargetLanguage.Should().Be(TargetLanguage.CSharp);
+    }
+
+    [Fact]
     public void DeserializeDocument_ShouldThrowArgumentNullException_WhenInputIsNull()
     {
         var act = () => AfgSerializer.DeserializeDocument(null!);

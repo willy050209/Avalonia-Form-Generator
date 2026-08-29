@@ -1503,6 +1503,210 @@ public sealed class ProjectExportServiceTests
         }
     }
 
+    [Fact]
+    public void GenerateFullProject_WhenTargetLanguageIsFSharp_ShouldGenerateFSharpProjectFiles()
+    {
+        // Arrange
+        var doc = new FormDocument
+        {
+            ViewClassName = "FSharpOrderView",
+            ViewModelClassName = "FSharpOrderViewModel",
+            TargetLanguage = TargetLanguage.FSharp,
+            RootNode = new AstNode
+            {
+                Type = ControlType.Canvas,
+                Children = [new AstNode { Type = ControlType.Button, Content = "Submit" }]
+            }
+        };
+
+        // Act
+        var files = _exportService.GenerateFullProject(doc, new ProjectExportOptions(CustomProjectName: "FSharpApp"));
+
+        // Assert
+        files.Should().Contain(f => f.FileName == "FSharpApp.slnx");
+        files.Should().Contain(f => f.FileName.EndsWith("FSharpApp.Shared.fsproj"));
+        files.Should().Contain(f => f.FileName.EndsWith("FSharpApp.Desktop.fsproj"));
+        files.Should().Contain(f => f.FileName.EndsWith("App.fs"));
+        files.Should().Contain(f => f.FileName.EndsWith("Config.fs"));
+        files.Should().Contain(f => f.FileName.EndsWith("FSharpOrderView.fs"));
+        files.Should().Contain(f => f.FileName.EndsWith("FSharpOrderViewModel.fs"));
+        files.Should().Contain(f => f.FileName.EndsWith("Program.fs"));
+    }
+
+    [Fact]
+    public void GenerateFullProject_WhenTargetLanguageIsVisualBasic_ShouldGenerateVisualBasicProjectFiles()
+    {
+        // Arrange
+        var doc = new FormDocument
+        {
+            ViewClassName = "VBOrderView",
+            ViewModelClassName = "VBOrderViewModel",
+            TargetLanguage = TargetLanguage.VisualBasic,
+            RootNode = new AstNode
+            {
+                Type = ControlType.Canvas,
+                Children = [new AstNode { Type = ControlType.Button, Content = "Submit" }]
+            }
+        };
+
+        // Act
+        var files = _exportService.GenerateFullProject(doc, new ProjectExportOptions(CustomProjectName: "VBApp"));
+
+        // Assert
+        files.Should().Contain(f => f.FileName == "VBApp.slnx");
+        files.Should().Contain(f => f.FileName.EndsWith("VBApp.Shared.vbproj"));
+        files.Should().Contain(f => f.FileName.EndsWith("VBApp.Desktop.vbproj"));
+        files.Should().Contain(f => f.FileName.EndsWith("App.vb"));
+        files.Should().Contain(f => f.FileName.EndsWith("Config.vb"));
+        files.Should().Contain(f => f.FileName.EndsWith("VBOrderView.vb"));
+        files.Should().Contain(f => f.FileName.EndsWith("VBOrderViewModel.vb"));
+        files.Should().Contain(f => f.FileName.EndsWith("Program.vb"));
+    }
+
+    [Fact]
+    public async Task ExportedProject_FSharp_ShouldCompileDirectlyWithDotnetCli()
+    {
+        var tempFolder = Path.Combine(Path.GetTempPath(), "AFG_FSBuildTest_" + Guid.NewGuid().ToString("N"));
+        var doc = new FormDocument
+        {
+            ViewClassName = "FSCustomerView",
+            ViewModelClassName = "FSCustomerViewModel",
+            TargetLanguage = TargetLanguage.FSharp,
+            Title = "F# Customer System",
+            RootNode = new AstNode
+            {
+                Type = ControlType.Canvas,
+                Children = [
+                    new AstNode
+                    {
+                        Name = "btnSubmit",
+                        Type = ControlType.Button,
+                        Content = "Submit",
+                        CanvasLeft = 20,
+                        CanvasTop = 30,
+                        Width = 100,
+                        Height = 40,
+                        Bindings = [new BindingDefinition { TargetProperty = "Content", ViewModelProperty = "ButtonText" }],
+                        Events = [new EventMappingDefinition { EventName = "Click", CommandProperty = "SubmitCommand" }]
+                    }
+                ]
+            }
+        };
+
+        try
+        {
+            await _exportService.ExportToFolderAsync(doc, tempFolder, new ProjectExportOptions(IncludeMobileProject: false, CustomProjectName: "FSCustomerApp"));
+
+            var desktopFsprojPath = Path.Combine(tempFolder, "src", "FSCustomerApp.Desktop", "FSCustomerApp.Desktop.fsproj");
+            File.Exists(desktopFsprojPath).Should().BeTrue("F# Desktop 專案檔應存在於匯出目錄");
+
+            var psi = new ProcessStartInfo
+            {
+                FileName = "dotnet",
+                Arguments = $"build \"{desktopFsprojPath}\" -c Release -nodeReuse:false -p:UseSharedCompilation=false",
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            };
+
+            using var process = Process.Start(psi);
+            process.Should().NotBeNull();
+
+            var stdoutTask = process!.StandardOutput.ReadToEndAsync();
+            var stderrTask = process.StandardError.ReadToEndAsync();
+
+            await process.WaitForExitAsync();
+            var stdout = await stdoutTask;
+            var stderr = await stderrTask;
+
+            process.ExitCode.Should().Be(0, $"F# 專案 build 應成功 (ExitCode 0)。\n標準輸出:\n{stdout}\n錯誤輸出:\n{stderr}");
+        }
+        finally
+        {
+            if (Directory.Exists(tempFolder))
+            {
+                try
+                {
+                    Directory.Delete(tempFolder, recursive: true);
+                }
+                catch { }
+            }
+        }
+    }
+
+    [Fact]
+    public async Task ExportedProject_VisualBasic_ShouldCompileDirectlyWithDotnetCli()
+    {
+        var tempFolder = Path.Combine(Path.GetTempPath(), "AFG_VBBuildTest_" + Guid.NewGuid().ToString("N"));
+        var doc = new FormDocument
+        {
+            ViewClassName = "VBCustomerView",
+            ViewModelClassName = "VBCustomerViewModel",
+            TargetLanguage = TargetLanguage.VisualBasic,
+            Title = "VB Customer System",
+            RootNode = new AstNode
+            {
+                Type = ControlType.Canvas,
+                Children = [
+                    new AstNode
+                    {
+                        Name = "btnSubmit",
+                        Type = ControlType.Button,
+                        Content = "Submit",
+                        CanvasLeft = 20,
+                        CanvasTop = 30,
+                        Width = 100,
+                        Height = 40,
+                        Bindings = [new BindingDefinition { TargetProperty = "Content", ViewModelProperty = "ButtonText" }],
+                        Events = [new EventMappingDefinition { EventName = "Click", CommandProperty = "SubmitCommand" }]
+                    }
+                ]
+            }
+        };
+
+        try
+        {
+            await _exportService.ExportToFolderAsync(doc, tempFolder, new ProjectExportOptions(IncludeMobileProject: false, CustomProjectName: "VBCustomerApp"));
+
+            var desktopVbprojPath = Path.Combine(tempFolder, "src", "VBCustomerApp.Desktop", "VBCustomerApp.Desktop.vbproj");
+            File.Exists(desktopVbprojPath).Should().BeTrue("VB Desktop 專案檔應存在於匯出目錄");
+
+            var psi = new ProcessStartInfo
+            {
+                FileName = "dotnet",
+                Arguments = $"build \"{desktopVbprojPath}\" -c Release -nodeReuse:false -p:UseSharedCompilation=false",
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            };
+
+            using var process = Process.Start(psi);
+            process.Should().NotBeNull();
+
+            var stdoutTask = process!.StandardOutput.ReadToEndAsync();
+            var stderrTask = process.StandardError.ReadToEndAsync();
+
+            await process.WaitForExitAsync();
+            var stdout = await stdoutTask;
+            var stderr = await stderrTask;
+
+            process.ExitCode.Should().Be(0, $"VB 專案 build 應成功 (ExitCode 0)。\n標準輸出:\n{stdout}\n錯誤輸出:\n{stderr}");
+        }
+        finally
+        {
+            if (Directory.Exists(tempFolder))
+            {
+                try
+                {
+                    Directory.Delete(tempFolder, recursive: true);
+                }
+                catch { }
+            }
+        }
+    }
+
     /// <summary>
     /// 檢查當前執行環境是否已安裝 Android SDK。
     /// </summary>

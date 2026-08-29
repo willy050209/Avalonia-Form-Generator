@@ -97,6 +97,12 @@
                                         <TextBox Text="{Binding FormViewModelClassName, Mode=TwoWay}" FontSize="11" />
                                     </StackPanel>
                                     <StackPanel Spacing="2">
+                                        <TextBlock Text="目標語言 (Target Language)" FontSize="10" Foreground="#71717A" />
+                                        <ComboBox ItemsSource="{Binding TargetLanguageOptions}"
+                                                  SelectedItem="{Binding FormTargetLanguage, Mode=TwoWay}"
+                                                  HorizontalAlignment="Stretch" />
+                                    </StackPanel>
+                                    <StackPanel Spacing="2">
                                         <TextBlock Text="命名空間 (RootNamespace)" FontSize="10" Foreground="#71717A" />
                                         <TextBox Text="{Binding FormRootNamespace, Mode=TwoWay}" FontSize="11" />
                                     </StackPanel>

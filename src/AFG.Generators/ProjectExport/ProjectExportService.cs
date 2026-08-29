@@ -2,9 +2,13 @@
 using System.Collections.Immutable;
 using System.Globalization;
 using System.Text;
+using AFG.Core.Enums;
 using AFG.Core.Models.Ast;
 using AFG.Generators.Constants;
 using AFG.Generators.CSharpMarkup;
+using AFG.Generators.FSharp;
+using AFG.Generators.Mvvm;
+using AFG.Generators.VisualBasic;
 
 namespace AFG.Generators.ProjectExport;
 
@@ -22,6 +26,10 @@ public sealed record ProjectExportOptions(
 public sealed class ProjectExportService(FormCodeGenerator? codeGenerator = null)
 {
     private readonly FormCodeGenerator _codeGenerator = codeGenerator ?? new FormCodeGenerator();
+    private readonly FSharpViewGenerator _fsharpViewGenerator = new();
+    private readonly FSharpViewModelGenerator _fsharpViewModelGenerator = new();
+    private readonly VisualBasicViewGenerator _vbViewGenerator = new();
+    private readonly VisualBasicViewModelGenerator _vbViewModelGenerator = new();
 
     /// <summary>
     /// 生成包含 Visual Studio 現代化方案檔 (.slnx)、.Shared 共用核心、.Desktop 桌面宿主及可選 .Android 行動端專案的單一表單檔案集合。
@@ -43,6 +51,16 @@ public sealed class ProjectExportService(FormCodeGenerator? codeGenerator = null
         if (project.Documents.Count == 0)
         {
             throw new ArgumentException("專案必須至少包含一個表單文檔。", nameof(project));
+        }
+
+        if (project.TargetLanguage == TargetLanguage.FSharp)
+        {
+            return GenerateFSharpProject(project, options);
+        }
+
+        if (project.TargetLanguage == TargetLanguage.VisualBasic)
+        {
+            return GenerateVisualBasicProject(project, options);
         }
 
         var files = new List<GeneratedSourceFile>();
@@ -1432,6 +1450,540 @@ public sealed class ProjectExportService(FormCodeGenerator? codeGenerator = null
                 }
             }
         }
+    }
+
+    /// <summary>
+    /// 生成包含 F# 專案檔 (.fsproj)、.Shared 核心與 .Desktop 桌面宿主之完整 F# 方案檔案集合。
+    /// </summary>
+    public IReadOnlyList<GeneratedSourceFile> GenerateFSharpProject(FormProjectDefinition project, ProjectExportOptions options)
+    {
+        var files = new List<GeneratedSourceFile>();
+        var rawProjectName = string.IsNullOrWhiteSpace(options.CustomProjectName) ? project.ProjectName : options.CustomProjectName;
+        var baseProjectName = SanitizeProjectName(rawProjectName);
+
+        var sharedProjectName = $"{baseProjectName}.Shared";
+        var desktopProjectName = $"{baseProjectName}.Desktop";
+
+        var sharedDir = Path.Combine("src", sharedProjectName);
+        var desktopDir = Path.Combine("src", desktopProjectName);
+
+        // 1. 方案檔 (.slnx)
+        var slnxBuilder = new StringBuilder();
+        slnxBuilder.AppendLine("<Solution>");
+        slnxBuilder.AppendLine($"  <Project Path=\"src/{sharedProjectName}/{sharedProjectName}.fsproj\" />");
+        slnxBuilder.AppendLine($"  <Project Path=\"src/{desktopProjectName}/{desktopProjectName}.fsproj\" />");
+        slnxBuilder.AppendLine("</Solution>");
+        files.Add(new GeneratedSourceFile($"{baseProjectName}.slnx", slnxBuilder.ToString().TrimEnd(), SourceFileType.SolutionFile));
+
+        // .gitignore
+        var gitignoreContent = """
+        ## Visual Studio & .NET
+        .vs/
+        [Bb]in/
+        [Oo]bj/
+        *.user
+        *.suo
+        """;
+        files.Add(new GeneratedSourceFile(".gitignore", gitignoreContent, SourceFileType.ProjectFile));
+
+        var initialDoc = project.Documents.FirstOrDefault(d => d.ViewClassName == project.InitialFormName) ?? project.Documents[0];
+
+        // 2. .Shared 專案 (.fsproj)
+        var fsprojCompileItems = new StringBuilder();
+        fsprojCompileItems.AppendLine("    <Compile Include=\"Config.fs\" />");
+        fsprojCompileItems.AppendLine("    <Compile Include=\"Services/INavigationService.fs\" />");
+
+        foreach (var doc in project.Documents)
+        {
+            if (doc.ArchitectureMode != ArchitectureMode.CodeBehind)
+            {
+                fsprojCompileItems.AppendLine($"    <Compile Include=\"ViewModels/{doc.ViewModelClassName}.fs\" />");
+            }
+            fsprojCompileItems.AppendLine($"    <Compile Include=\"Views/{doc.ViewClassName}.fs\" />");
+        }
+        fsprojCompileItems.AppendLine("    <Compile Include=\"App.fs\" />");
+
+        var sharedFsprojContent = $"""
+        <Project Sdk="Microsoft.NET.Sdk">
+          <PropertyGroup>
+            <TargetFramework>net10.0</TargetFramework>
+            <Nullable>enable</Nullable>
+          </PropertyGroup>
+
+          <ItemGroup>
+            <PackageReference Include="Avalonia" Version="{PackageVersions.Avalonia}" />
+            <PackageReference Include="Avalonia.Themes.Fluent" Version="{PackageVersions.Avalonia}" />
+            <PackageReference Include="Avalonia.Fonts.Inter" Version="{PackageVersions.Avalonia}" />
+            <PackageReference Include="CommunityToolkit.Mvvm" Version="{PackageVersions.CommunityToolkitMvvm}" />
+            <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="{PackageVersions.MicrosoftExtensionsDependencyInjection}" />
+            <PackageReference Include="Microsoft.Extensions.Logging" Version="{PackageVersions.MicrosoftExtensionsLogging}" />
+          </ItemGroup>
+
+          <ItemGroup>
+            <AvaloniaResource Include="Assets\**" />
+            <None Update="Assets\**" CopyToOutputDirectory="PreserveNewest" />
+          </ItemGroup>
+
+          <ItemGroup>
+        {fsprojCompileItems.ToString().TrimEnd()}
+          </ItemGroup>
+        </Project>
+        """;
+        files.Add(new GeneratedSourceFile(Path.Combine(sharedDir, $"{sharedProjectName}.fsproj"), sharedFsprojContent, SourceFileType.ProjectFile));
+
+        // Config.fs
+        var configFs = $"""
+        // <auto-generated />
+        namespace {project.RootNamespace}
+
+        module Config =
+            let [<Literal>] AppTitle = "{project.Title}"
+            let [<Literal>] Version = "1.0.0"
+            let [<Literal>] DefaultWindowWidth = {initialDoc.CanvasWidth.ToString(CultureInfo.InvariantCulture)}
+            let [<Literal>] DefaultWindowHeight = {initialDoc.CanvasHeight.ToString(CultureInfo.InvariantCulture)}
+            let [<Literal>] CanResize = {(initialDoc.CanResize ? "true" : "false")}
+            let [<Literal>] Topmost = {(initialDoc.Topmost ? "true" : "false")}
+            let [<Literal>] ShowInTaskbar = {(initialDoc.ShowInTaskbar ? "true" : "false")}
+        """;
+        files.Add(new GeneratedSourceFile(Path.Combine(sharedDir, "Config.fs"), configFs, SourceFileType.ProjectFile));
+
+        // INavigationService.fs
+        var inavFs = $"""
+        // <auto-generated />
+        namespace {project.RootNamespace}.Services
+
+        open System
+        open Avalonia.Controls
+
+        type INavigationService =
+            abstract member NavigateTo: Type -> unit
+            abstract member NavigateTo<'TView when 'TView :> Control> : unit -> unit
+        """;
+        files.Add(new GeneratedSourceFile(Path.Combine(sharedDir, "Services", "INavigationService.fs"), inavFs, SourceFileType.ProjectFile));
+
+        // ViewModels and Views
+        var fsharpRegistrations = new StringBuilder();
+        foreach (var doc in project.Documents)
+        {
+            var viewRes = _fsharpViewGenerator.Generate(doc);
+            files.Add(new GeneratedSourceFile(Path.Combine(sharedDir, "Views", viewRes.FileName), viewRes.Content, SourceFileType.View));
+
+            if (doc.ArchitectureMode != ArchitectureMode.CodeBehind)
+            {
+                var vmRes = _fsharpViewModelGenerator.Generate(doc);
+                files.Add(new GeneratedSourceFile(Path.Combine(sharedDir, "ViewModels", vmRes.FileName), vmRes.Content, SourceFileType.ViewModel));
+
+                fsharpRegistrations.AppendLine($"        services.AddTransient<{doc.ViewModelClassName}>() |> ignore");
+                fsharpRegistrations.AppendLine($"        services.AddTransient<{doc.ViewClassName}>(fun sp ->");
+                fsharpRegistrations.AppendLine($"            let view = {doc.ViewClassName}()");
+                fsharpRegistrations.AppendLine($"            view.DataContext <- sp.GetRequiredService<{doc.ViewModelClassName}>()");
+                fsharpRegistrations.AppendLine("            view) |> ignore");
+            }
+            else
+            {
+                fsharpRegistrations.AppendLine($"        services.AddTransient<{doc.ViewClassName}>() |> ignore");
+            }
+        }
+
+        // App.fs (包含 NavigationService 實作以滿足 F# 編譯相依性順序)
+        var appFs = $"""
+        // <auto-generated />
+        namespace {project.RootNamespace}
+
+        open System
+        open Avalonia
+        open Avalonia.Controls
+        open Avalonia.Controls.ApplicationLifetimes
+        open Avalonia.Themes.Fluent
+        open Microsoft.Extensions.DependencyInjection
+        open {project.RootNamespace}.Services
+
+        type App() =
+            inherit Application()
+
+            static let mutable _services: IServiceProvider = null
+            static let mutable _mainWindow: Window = null
+            static let mutable _singleViewLifetime: ISingleViewApplicationLifetime = null
+
+            static member Services with get() = _services and private set(v) = _services <- v
+            static member MainWindow with get() = _mainWindow and private set(v) = _mainWindow <- v
+
+            static member SetActiveView(view: Control) =
+                if not (isNull _mainWindow) then
+                    _mainWindow.Content <- view
+                elif not (isNull _singleViewLifetime) then
+                    _singleViewLifetime.MainView <- view
+
+            override this.Initialize() =
+                this.Styles.Add(FluentTheme())
+
+            override this.OnFrameworkInitializationCompleted() =
+                let services = ServiceCollection()
+                App.ConfigureServices(services)
+                _services <- services.BuildServiceProvider()
+
+                match this.ApplicationLifetime with
+                | :? IClassicDesktopStyleApplicationLifetime as desktop ->
+                    let initialView = _services.GetRequiredService<{initialDoc.ViewClassName}>()
+                    let window = Window()
+                    window.Title <- Config.AppTitle
+                    window.Width <- Config.DefaultWindowWidth
+                    window.Height <- Config.DefaultWindowHeight
+                    window.Content <- initialView
+                    _mainWindow <- window
+                    desktop.MainWindow <- window
+                | :? ISingleViewApplicationLifetime as singleView ->
+                    _singleViewLifetime <- singleView
+                    singleView.MainView <- _services.GetRequiredService<{initialDoc.ViewClassName}>()
+                | _ -> ()
+
+                base.OnFrameworkInitializationCompleted()
+
+            static member private ConfigureServices(services: IServiceCollection) =
+                services.AddSingleton<INavigationService, NavigationService>() |> ignore
+        {fsharpRegistrations.ToString().TrimEnd()}
+
+        and NavigationService(serviceProvider: IServiceProvider) =
+            interface INavigationService with
+                member this.NavigateTo(viewType: Type) =
+                    ArgumentNullException.ThrowIfNull(viewType)
+                    let view = serviceProvider.GetRequiredService(viewType) :?> Control
+                    App.SetActiveView(view)
+
+                member this.NavigateTo<'TView when 'TView :> Control>() =
+                    (this :> INavigationService).NavigateTo(typeof<'TView>)
+        """;
+        files.Add(new GeneratedSourceFile(Path.Combine(sharedDir, "App.fs"), appFs, SourceFileType.ProjectFile));
+
+        // 3. .Desktop 專案 (.fsproj)
+        var desktopFsprojContent = $"""
+        <Project Sdk="Microsoft.NET.Sdk">
+          <PropertyGroup>
+            <OutputType>WinExe</OutputType>
+            <TargetFramework>net10.0</TargetFramework>
+            <Nullable>enable</Nullable>
+          </PropertyGroup>
+
+          <ItemGroup>
+            <ProjectReference Include="..\..\src\{sharedProjectName}\{sharedProjectName}.fsproj" />
+          </ItemGroup>
+
+          <ItemGroup>
+            <PackageReference Include="Avalonia.Desktop" Version="{PackageVersions.Avalonia}" />
+            <PackageReference Include="Avalonia.Diagnostics" Version="{PackageVersions.Avalonia}" />
+          </ItemGroup>
+
+          <ItemGroup>
+            <Compile Include="Program.fs" />
+          </ItemGroup>
+        </Project>
+        """;
+        files.Add(new GeneratedSourceFile(Path.Combine(desktopDir, $"{desktopProjectName}.fsproj"), desktopFsprojContent, SourceFileType.ProjectFile));
+
+        // Program.fs
+        var programFs = $"""
+        // <auto-generated />
+        namespace {project.RootNamespace}.Desktop
+
+        open System
+        open Avalonia
+        open {project.RootNamespace}
+
+        module Program =
+            [<CompiledName "BuildAvaloniaApp">]
+            let buildAvaloniaApp () =
+                AppBuilder.Configure<App>()
+                    .UsePlatformDetect()
+                    .WithInterFont()
+                    .LogToTrace()
+
+            [<EntryPoint; STAThread>]
+            let main args =
+                buildAvaloniaApp().StartWithClassicDesktopLifetime(args)
+        """;
+        files.Add(new GeneratedSourceFile(Path.Combine(desktopDir, "Program.fs"), programFs, SourceFileType.ProjectFile));
+
+        return files;
+    }
+
+    /// <summary>
+    /// 生成包含 Visual Basic 專案檔 (.vbproj)、.Shared 核心與 .Desktop 桌面宿主之完整 VB.NET 方案檔案集合。
+    /// </summary>
+    public IReadOnlyList<GeneratedSourceFile> GenerateVisualBasicProject(FormProjectDefinition project, ProjectExportOptions options)
+    {
+        var files = new List<GeneratedSourceFile>();
+        var rawProjectName = string.IsNullOrWhiteSpace(options.CustomProjectName) ? project.ProjectName : options.CustomProjectName;
+        var baseProjectName = SanitizeProjectName(rawProjectName);
+
+        var sharedProjectName = $"{baseProjectName}.Shared";
+        var desktopProjectName = $"{baseProjectName}.Desktop";
+
+        var sharedDir = Path.Combine("src", sharedProjectName);
+        var desktopDir = Path.Combine("src", desktopProjectName);
+
+        // 1. 方案檔 (.slnx)
+        var slnxBuilder = new StringBuilder();
+        slnxBuilder.AppendLine("<Solution>");
+        slnxBuilder.AppendLine($"  <Project Path=\"src/{sharedProjectName}/{sharedProjectName}.vbproj\" />");
+        slnxBuilder.AppendLine($"  <Project Path=\"src/{desktopProjectName}/{desktopProjectName}.vbproj\" />");
+        slnxBuilder.AppendLine("</Solution>");
+        files.Add(new GeneratedSourceFile($"{baseProjectName}.slnx", slnxBuilder.ToString().TrimEnd(), SourceFileType.SolutionFile));
+
+        // .gitignore
+        var gitignoreContent = """
+        ## Visual Studio & .NET
+        .vs/
+        [Bb]in/
+        [Oo]bj/
+        *.user
+        *.suo
+        """;
+        files.Add(new GeneratedSourceFile(".gitignore", gitignoreContent, SourceFileType.ProjectFile));
+
+        var initialDoc = project.Documents.FirstOrDefault(d => d.ViewClassName == project.InitialFormName) ?? project.Documents[0];
+
+        // 2. .Shared 專案 (.vbproj)
+        var sharedVbprojContent = $"""
+        <Project Sdk="Microsoft.NET.Sdk">
+          <PropertyGroup>
+            <TargetFramework>net10.0</TargetFramework>
+            <OptionExplicit>On</OptionExplicit>
+            <OptionStrict>On</OptionStrict>
+            <RootNamespace></RootNamespace>
+          </PropertyGroup>
+
+          <ItemGroup>
+            <PackageReference Include="Avalonia" Version="{PackageVersions.Avalonia}" />
+            <PackageReference Include="Avalonia.Themes.Fluent" Version="{PackageVersions.Avalonia}" />
+            <PackageReference Include="Avalonia.Fonts.Inter" Version="{PackageVersions.Avalonia}" />
+            <PackageReference Include="CommunityToolkit.Mvvm" Version="{PackageVersions.CommunityToolkitMvvm}" />
+            <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="{PackageVersions.MicrosoftExtensionsDependencyInjection}" />
+            <PackageReference Include="Microsoft.Extensions.Logging" Version="{PackageVersions.MicrosoftExtensionsLogging}" />
+          </ItemGroup>
+
+          <ItemGroup>
+            <AvaloniaResource Include="Assets\**" />
+            <None Update="Assets\**" CopyToOutputDirectory="PreserveNewest" />
+          </ItemGroup>
+        </Project>
+        """;
+        files.Add(new GeneratedSourceFile(Path.Combine(sharedDir, $"{sharedProjectName}.vbproj"), sharedVbprojContent, SourceFileType.ProjectFile));
+
+        // Config.vb
+        var configVb = $"""
+        ' <auto-generated />
+        Namespace {project.RootNamespace}
+            Public Module Config
+                Public Const AppTitle As String = "{project.Title}"
+                Public Const Version As String = "1.0.0"
+                Public Const DefaultWindowWidth As Double = {initialDoc.CanvasWidth.ToString(CultureInfo.InvariantCulture)}
+                Public Const DefaultWindowHeight As Double = {initialDoc.CanvasHeight.ToString(CultureInfo.InvariantCulture)}
+                Public Const CanResize As Boolean = {(initialDoc.CanResize ? "True" : "False")}
+                Public Const Topmost As Boolean = {(initialDoc.Topmost ? "True" : "False")}
+                Public Const ShowInTaskbar As Boolean = {(initialDoc.ShowInTaskbar ? "True" : "False")}
+            End Module
+        End Namespace
+        """;
+        files.Add(new GeneratedSourceFile(Path.Combine(sharedDir, "Config.vb"), configVb, SourceFileType.ProjectFile));
+
+        // INavigationService.vb
+        var inavVb = $"""
+        ' <auto-generated />
+        Imports System
+        Imports Avalonia.Controls
+
+        Namespace {project.RootNamespace}.Services
+            Public Interface INavigationService
+                Sub NavigateTo(Of TView As Control)()
+                Sub NavigateTo(viewType As Type)
+            End Interface
+        End Namespace
+        """;
+        files.Add(new GeneratedSourceFile(Path.Combine(sharedDir, "Services", "INavigationService.vb"), inavVb, SourceFileType.ProjectFile));
+
+        // NavigationService.vb
+        var navVb = $"""
+        ' <auto-generated />
+        Imports System
+        Imports Avalonia.Controls
+        Imports Microsoft.Extensions.DependencyInjection
+        Imports {project.RootNamespace}
+
+        Namespace {project.RootNamespace}.Services
+            Public Class NavigationService
+                Implements INavigationService
+
+                Private ReadOnly _serviceProvider As IServiceProvider
+
+                Public Sub New(serviceProvider As IServiceProvider)
+                    _serviceProvider = serviceProvider
+                End Sub
+
+                Public Sub NavigateTo(Of TView As Control)() Implements INavigationService.NavigateTo
+                    NavigateTo(GetType(TView))
+                End Sub
+
+                Public Sub NavigateTo(viewType As Type) Implements INavigationService.NavigateTo
+                    ArgumentNullException.ThrowIfNull(viewType)
+                    Dim view = DirectCast(_serviceProvider.GetRequiredService(viewType), Control)
+                    App.SetActiveView(view)
+                End Sub
+            End Class
+        End Namespace
+        """;
+        files.Add(new GeneratedSourceFile(Path.Combine(sharedDir, "Services", "NavigationService.vb"), navVb, SourceFileType.ProjectFile));
+
+        // ViewModels and Views
+        var vbRegistrations = new StringBuilder();
+        foreach (var doc in project.Documents)
+        {
+            var viewRes = _vbViewGenerator.Generate(doc);
+            files.Add(new GeneratedSourceFile(Path.Combine(sharedDir, "Views", viewRes.FileName), viewRes.Content, SourceFileType.View));
+
+            if (doc.ArchitectureMode != ArchitectureMode.CodeBehind)
+            {
+                var vmRes = _vbViewModelGenerator.Generate(doc);
+                files.Add(new GeneratedSourceFile(Path.Combine(sharedDir, "ViewModels", vmRes.FileName), vmRes.Content, SourceFileType.ViewModel));
+
+                vbRegistrations.AppendLine($"            services.AddTransient(Of {doc.ViewModelClassName})()");
+                vbRegistrations.AppendLine($"            services.AddTransient(Of {doc.ViewClassName})(Function(sp) New {doc.ViewClassName}() With {{ .DataContext = sp.GetRequiredService(Of {doc.ViewModelClassName})() }})");
+            }
+            else
+            {
+                vbRegistrations.AppendLine($"            services.AddTransient(Of {doc.ViewClassName})()");
+            }
+        }
+
+        // App.vb
+        var appVb = $"""
+        ' <auto-generated />
+        Imports System
+        Imports Avalonia
+        Imports Avalonia.Controls
+        Imports Avalonia.Controls.ApplicationLifetimes
+        Imports Avalonia.Themes.Fluent
+        Imports Microsoft.Extensions.DependencyInjection
+        Imports {project.RootNamespace}.Services
+
+        Namespace {project.RootNamespace}
+            Public Class App
+                Inherits Application
+
+                Private Shared _services As IServiceProvider
+                Private Shared _mainWindow As Window
+                Private Shared _singleViewLifetime As ISingleViewApplicationLifetime
+
+                Public Shared Property Services As IServiceProvider
+                    Get
+                        Return _services
+                    End Get
+                    Private Set(value As IServiceProvider)
+                        _services = value
+                    End Set
+                End Property
+
+                Public Shared Property MainWindow As Window
+                    Get
+                        Return _mainWindow
+                    End Get
+                    Private Set(value As Window)
+                        _mainWindow = value
+                    End Set
+                End Property
+
+                Public Shared Sub SetActiveView(view As Control)
+                    If _mainWindow IsNot Nothing Then
+                        _mainWindow.Content = view
+                    ElseIf _singleViewLifetime IsNot Nothing Then
+                        _singleViewLifetime.MainView = view
+                    End If
+                End Sub
+
+                Public Overrides Sub Initialize()
+                    Me.Styles.Add(New FluentTheme())
+                End Sub
+
+                Public Overrides Sub OnFrameworkInitializationCompleted()
+                    Dim services As New ServiceCollection()
+                    ConfigureServices(services)
+                    _services = services.BuildServiceProvider()
+
+                    If TypeOf ApplicationLifetime Is IClassicDesktopStyleApplicationLifetime Then
+                        Dim desktop = DirectCast(ApplicationLifetime, IClassicDesktopStyleApplicationLifetime)
+                        Dim initialView = _services.GetRequiredService(Of {initialDoc.ViewClassName})()
+                        Dim window As New Window()
+                        window.Title = Config.AppTitle
+                        window.Width = Config.DefaultWindowWidth
+                        window.Height = Config.DefaultWindowHeight
+                        window.Content = initialView
+                        _mainWindow = window
+                        desktop.MainWindow = window
+                    ElseIf TypeOf ApplicationLifetime Is ISingleViewApplicationLifetime Then
+                        Dim singleView = DirectCast(ApplicationLifetime, ISingleViewApplicationLifetime)
+                        _singleViewLifetime = singleView
+                        singleView.MainView = _services.GetRequiredService(Of {initialDoc.ViewClassName})()
+                    End If
+
+                    MyBase.OnFrameworkInitializationCompleted()
+                End Sub
+
+                Private Shared Sub ConfigureServices(services As IServiceCollection)
+                    services.AddSingleton(Of INavigationService, NavigationService)()
+        {vbRegistrations.ToString().TrimEnd()}
+                End Sub
+            End Class
+        End Namespace
+        """;
+        files.Add(new GeneratedSourceFile(Path.Combine(sharedDir, "App.vb"), appVb, SourceFileType.ProjectFile));
+
+        // 3. .Desktop 專案 (.vbproj)
+        var desktopVbprojContent = $"""
+        <Project Sdk="Microsoft.NET.Sdk">
+          <PropertyGroup>
+            <OutputType>WinExe</OutputType>
+            <TargetFramework>net10.0</TargetFramework>
+            <RootNamespace></RootNamespace>
+            <StartupObject>Sub Main</StartupObject>
+          </PropertyGroup>
+
+          <ItemGroup>
+            <ProjectReference Include="..\..\src\{sharedProjectName}\{sharedProjectName}.vbproj" />
+          </ItemGroup>
+
+          <ItemGroup>
+            <PackageReference Include="Avalonia.Desktop" Version="{PackageVersions.Avalonia}" />
+            <PackageReference Include="Avalonia.Diagnostics" Version="{PackageVersions.Avalonia}" />
+          </ItemGroup>
+        </Project>
+        """;
+        files.Add(new GeneratedSourceFile(Path.Combine(desktopDir, $"{desktopProjectName}.vbproj"), desktopVbprojContent, SourceFileType.ProjectFile));
+
+        // Program.vb
+        var programVb = $"""
+        ' <auto-generated />
+        Imports System
+        Imports Avalonia
+        Imports {project.RootNamespace}
+
+        Namespace {project.RootNamespace}.Desktop
+            Public Module Program
+                Public Function BuildAvaloniaApp() As AppBuilder
+                    Return AppBuilder.Configure(Of App)() _
+                        .UsePlatformDetect() _
+                        .WithInterFont() _
+                        .LogToTrace()
+                End Function
+
+                <STAThread>
+                Public Sub Main(args As String())
+                    BuildAvaloniaApp().StartWithClassicDesktopLifetime(args)
+                End Sub
+            End Module
+        End Namespace
+        """;
+        files.Add(new GeneratedSourceFile(Path.Combine(desktopDir, "Program.vb"), programVb, SourceFileType.ProjectFile));
+
+        return files;
     }
 
     /// <summary>

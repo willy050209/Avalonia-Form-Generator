@@ -310,4 +310,78 @@ public sealed class FormCodeGeneratorTests
 
         RoslynCompilerService.CheckSyntaxDiagnostics(viewFile.Content).Should().BeEmpty();
     }
+
+    [Fact]
+    public void GenerateAll_WhenTargetLanguageIsFSharp_ShouldProduceFSharpFiles()
+    {
+        // Arrange
+        var doc = new FormDocument
+        {
+            ViewClassName = "FSharpFormView",
+            ViewModelClassName = "FSharpFormViewModel",
+            TargetLanguage = TargetLanguage.FSharp,
+            RootNode = new AstNode
+            {
+                Type = ControlType.Canvas,
+                Children = [
+                    new AstNode { Type = ControlType.Button, Content = "F# Button" }
+                ]
+            }
+        };
+
+        // Act
+        var result = _generator.GenerateAll(doc);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        result.Files.Should().HaveCount(2);
+
+        var viewFile = result.Files.FirstOrDefault(f => f.FileType == SourceFileType.View);
+        var vmFile = result.Files.FirstOrDefault(f => f.FileType == SourceFileType.ViewModel);
+
+        viewFile.Should().NotBeNull();
+        viewFile!.FileName.Should().Be("FSharpFormView.fs");
+        viewFile.Content.Should().Contain("type FSharpFormView() as this =");
+
+        vmFile.Should().NotBeNull();
+        vmFile!.FileName.Should().Be("FSharpFormViewModel.fs");
+        vmFile.Content.Should().Contain("type FSharpFormViewModel() as this =");
+    }
+
+    [Fact]
+    public void GenerateAll_WhenTargetLanguageIsVisualBasic_ShouldProduceVisualBasicFiles()
+    {
+        // Arrange
+        var doc = new FormDocument
+        {
+            ViewClassName = "VBFormView",
+            ViewModelClassName = "VBFormViewModel",
+            TargetLanguage = TargetLanguage.VisualBasic,
+            RootNode = new AstNode
+            {
+                Type = ControlType.Canvas,
+                Children = [
+                    new AstNode { Type = ControlType.Button, Content = "VB Button" }
+                ]
+            }
+        };
+
+        // Act
+        var result = _generator.GenerateAll(doc);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        result.Files.Should().HaveCount(2);
+
+        var viewFile = result.Files.FirstOrDefault(f => f.FileType == SourceFileType.View);
+        var vmFile = result.Files.FirstOrDefault(f => f.FileType == SourceFileType.ViewModel);
+
+        viewFile.Should().NotBeNull();
+        viewFile!.FileName.Should().Be("VBFormView.vb");
+        viewFile.Content.Should().Contain("Public Class VBFormView");
+
+        vmFile.Should().NotBeNull();
+        vmFile!.FileName.Should().Be("VBFormViewModel.vb");
+        vmFile.Content.Should().Contain("Public Class VBFormViewModel");
+    }
 }

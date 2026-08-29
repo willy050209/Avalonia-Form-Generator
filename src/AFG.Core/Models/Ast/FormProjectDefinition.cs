@@ -34,6 +34,11 @@ public sealed record FormProjectDefinition
     public ImmutableList<FormDocument> Documents { get; init; } = [];
 
     /// <summary>
+    /// 目標程式語言（預設為 CSharp）。
+    /// </summary>
+    public TargetLanguage TargetLanguage { get; init; } = TargetLanguage.CSharp;
+
+    /// <summary>
     /// 從單一表單文檔建立預設多表單專案定義。
     /// </summary>
     public static FormProjectDefinition FromSingleDocument(FormDocument doc) => new()
@@ -45,6 +50,7 @@ public sealed record FormProjectDefinition
                 : doc.ViewClassName + "App"),
         RootNamespace = doc.RootNamespace,
         Title = doc.Title,
+        TargetLanguage = doc.TargetLanguage,
         InitialFormName = doc.ViewClassName,
         Documents = [doc]
     };

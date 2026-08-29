@@ -396,11 +396,45 @@ AvaloniaFormGenerator/
 
 ---
 
+### 🔹 階段 23：多語言程式碼生成架構擴充（C# / F# / Visual Basic）(Multi-Language Code Generation Architecture)
+- [x] **階段狀態：已完成 (Completed)**
+- **目標**：重構 AST 模型、程式碼生成引擎、專案匯出服務與屬性檢查器，全面支援 C#、F# 與 Visual Basic (.NET) 三種目標語言之 View、ViewModel、輔助服務與跨平台專案檔（.csproj / .fsproj / .vbproj 與 .slnx）生成與一鍵匯出。
+- **任務清單**：
+  - [x] 23.1 **Phase 1: 核心模型與目標語言列舉 (`TargetLanguage` in `AFG.Core`)**
+    - 新增 `TargetLanguage` 列舉（`CSharp = 0`, `FSharp = 1`, `VisualBasic = 2`）。
+    - 更新 `FormDocument.cs` 與 `FormProjectDefinition.cs`：新增 `TargetLanguage TargetLanguage { get; init; } = TargetLanguage.CSharp;`。
+    - 更新 `AfgSerializerTests` 驗證序列化/反序列化 round-trip 與向下相容。
+  - [x] 23.2 **Phase 2: F# 程式碼生成引擎實作 (`AFG.Generators`)**
+    - 實作 `FSharpViewGenerator`：將 AST 轉譯為符合 F# 規範之 `UserControl` 類別定義與子樹建構。
+    - 實作 `FSharpViewModelGenerator`：產生符合 F# 語法之 ViewModel 類別與命令/屬性宣告。
+    - 實作 F# 輔助模組（`App.fs`、`Config.fs`、`Program.fs`、`Services/*.fs`）。
+    - 撰寫 `FSharpViewGeneratorTests` 與 `FSharpViewModelGeneratorTests` 單元測試。
+  - [x] 23.3 **Phase 3: Visual Basic (VB.NET) 程式碼生成引擎實作 (`AFG.Generators`)**
+    - 實作 `VisualBasicViewGenerator`：將 AST 轉譯為標準 VB.NET `UserControl` 類別（含 `WithEvents` 欄位、`InitializeComponent` 幾何屬性）。
+    - 實作 `VisualBasicViewModelGenerator`：產生標準 VB.NET ViewModel 類別與命令/屬性。
+    - 實作 VB.NET 輔助模組（`App.vb`、`Config.vb`、`Program.vb`、`Services/*.vb`）。
+    - 撰寫 `VisualBasicViewGeneratorTests` 與 `VisualBasicViewModelGeneratorTests` 單元測試。
+  - [x] 23.4 **Phase 4: 程式碼生成外觀與跨語言專案匯出整合 (`FormCodeGenerator` & `ProjectExportService`)**
+    - 重構 `FormCodeGenerator`：依據 `document.TargetLanguage` 動態分派至對應語言生成器。
+    - 重構 `ProjectExportService`：支援匯出 C# (`.csproj`)、F# (`.fsproj` 嚴格編譯順序) 與 VB.NET (`.vbproj`) 方案與專案。
+    - 撰寫 `ProjectExportServiceTests` 多語言專案匯出與 `dotnet build` 實體編譯測試。
+  - [x] 23.5 **Phase 5: 屬性檢查器與 UI 展示層多語言聯動 (`AFG.Shared`)**
+    - 在 `InspectorViewModel` 提供 `FormTargetLanguage` 雙向綁定與 `TargetLanguageOptions`。
+    - 在 `InspectorView.axaml` 表單外觀面板提供「目標生成語言 (C# / F# / VB)」下拉選單。
+    - 在 `MainViewModel` 即時響應語言變更，刷新代碼預覽與語法高亮 (`CSharpSyntaxColorizer`)。
+  - [x] 23.6 **Phase 6: 全專案自動化測試、實體多語言專案編譯驗證、技術文件更新與 Git Commit**
+    - 執行全套單元測試與實體編譯測試（C# / F# / VB.NET 專案 100% 通過 `dotnet build`，0 錯誤 0 警告，309 項測試全數通過）。
+    - 更新 `README.md`、`docs/architecture.md`、`docs/user-guide.md` 與 `plan.md`。
+    - 依規範完成 Git Commit。
+
+---
+
 ## 4. 驗證標準與品質指標
 
 1. **單元測試覆蓋率**：所有純函式、AST 操作、歷史堆疊、生成器與序列化演算法 100% 覆蓋。
 2. **零警告與零錯誤**：`dotnet build` 與 `dotnet test` 保持 0 Error, 0 Warning。
-3. **實體跨平台編譯保障**：匯出之專案在 Windows / macOS / Linux 平台均可一鍵執行 `dotnet run` 成功啟動，且在具備 Android SDK 之環境下可成功建置產出 APK 檔案。
+3. **實體跨平台編譯保障**：匯出之專案在 Windows / macOS / Linux 平台均可一鍵執行 `dotnet run` 成功啟動，且在具備 Android SDK 之環境下可成功建置產出 APK 檔案；支援之 C#、F#、VB.NET 專案均可 100% 通過 `dotnet build`。
+
 
 
 

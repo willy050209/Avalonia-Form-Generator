@@ -124,6 +124,11 @@ public sealed record FormDocument
     public ArchitectureMode ArchitectureMode { get; init; } = ArchitectureMode.Hybrid;
 
     /// <summary>
+    /// 目標程式語言（預設為 CSharp）。
+    /// </summary>
+    public TargetLanguage TargetLanguage { get; init; } = TargetLanguage.CSharp;
+
+    /// <summary>
     /// 是否在 View 生成 Code-Behind 強型別欄位與 NameScope 註冊（由 ArchitectureMode 驅動）。
     /// </summary>
     [System.Text.Json.Serialization.JsonIgnore]

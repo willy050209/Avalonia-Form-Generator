@@ -8,7 +8,7 @@ using Avalonia.Media;
 namespace AFG.Shared.Services;
 
 /// <summary>
-/// 提供高效、純 C# 的 Declarative UI 與 MVVM 語法著色器，將程式碼轉譯為具備 VS Dark+ 現代配色之 Inlines。
+/// 提供高效、支援 C#、F# 與 Visual Basic 之語法著色器，將程式碼轉譯為具備 VS Dark+ 現代配色之 Inlines。
 /// </summary>
 public static class CSharpSyntaxColorizer
 {
@@ -21,28 +21,42 @@ public static class CSharpSyntaxColorizer
     private static readonly IBrush MethodBrush = new SolidColorBrush(Color.Parse("#DCDCAA"));
     private static readonly IBrush DefaultBrush = new SolidColorBrush(Color.Parse("#D4D4D4"));
 
-    private static readonly HashSet<string> Keywords =
-    [
+    private static readonly HashSet<string> Keywords = new(StringComparer.OrdinalIgnoreCase)
+    {
+        // C#
         "using", "namespace", "public", "partial", "class", "void", "async", "await",
         "nameof", "new", "private", "get", "set", "return", "true", "false", "null",
-        "sealed", "static", "readonly", "override", "if", "else", "switch", "case", "default"
-    ];
+        "sealed", "static", "readonly", "override", "if", "else", "switch", "case", "default",
+        
+        // F#
+        "open", "type", "let", "mutable", "inherit", "member", "do", "match", "with",
+        "fun", "abstract", "interface", "module", "and", "as", "this", "base", "ignore",
+        "unit", "rec", "val", "of",
+        
+        // VB
+        "Imports", "Namespace", "Public", "Private", "Class", "Inherits", "Implements",
+        "Interface", "Dim", "As", "New", "Sub", "Function", "End", "Module", "Shared",
+        "Property", "Get", "Set", "Overrides", "Overridable", "Option", "Explicit",
+        "Strict", "On", "Off", "WithEvents", "AddressOf", "DirectCast", "TypeOf", "Is",
+        "IsNot", "True", "False", "Nothing", "Me", "MyBase"
+    };
 
-    private static readonly HashSet<string> BuiltInTypes =
-    [
+    private static readonly HashSet<string> BuiltInTypes = new(StringComparer.OrdinalIgnoreCase)
+    {
         "string", "int", "double", "bool", "float", "decimal", "object", "long", "short", "byte",
         "UserControl", "ObservableObject", "BindingMode", "Thickness", "Brush",
         "HorizontalAlignment", "VerticalAlignment", "Dock", "Orientation", "Task",
         "Button", "TextBox", "TextBlock", "Grid", "StackPanel", "Canvas", "Border",
-        "DockPanel", "ScrollViewer", "CheckBox", "RadioButton", "ComboBox", "ProgressBar", "Slider"
-    ];
+        "DockPanel", "ScrollViewer", "CheckBox", "RadioButton", "ComboBox", "ProgressBar", "Slider",
+        "IRelayCommand", "IAsyncRelayCommand", "RelayCommand", "AsyncRelayCommand", "IServiceProvider"
+    };
 
     private static readonly Regex TokenRegex = new(
-        @"(//.*?$)|(""(?:\\.|[^""\\])*"")|(\b[0-9]+(?:\.[0-9]+)?\b)|(\b[a-zA-Z_][a-zA-Z0-9_]*\b)|(\.)|([^""\s0-9a-zA-Z_\./]+)|(\s+)",
+        @"(//.*?$|'.*?$|\(\*.*?\*\))|(""(?:\\.|""""|[^""\\])*"")|(\b[0-9]+(?:\.[0-9]+)?\b)|(\b[a-zA-Z_][a-zA-Z0-9_]*\b)|(\.)|([^""\s0-9a-zA-Z_\./]+)|(\s+)",
         RegexOptions.Multiline | RegexOptions.Compiled);
 
     /// <summary>
-    /// 將 C# 程式碼解析並加入至 InlineCollection 中。
+    /// 將程式碼解析並加入至 InlineCollection 中。
     /// </summary>
     public static void PopulateInlines(InlineCollection inlines, string? code)
     {
@@ -61,7 +75,7 @@ public static class CSharpSyntaxColorizer
         {
             var text = match.Value;
 
-            if (match.Groups[1].Success) // 註解
+            if (match.Groups[1].Success) // 註解 (C# //, VB ', F# (* *))
             {
                 inlines.Add(new Run(text) { Foreground = CommentBrush });
                 isAfterDot = false;
@@ -76,7 +90,7 @@ public static class CSharpSyntaxColorizer
                 inlines.Add(new Run(text) { Foreground = NumberBrush });
                 isAfterDot = false;
             }
-            else if (match.Groups[4].Success) // 識別碼
+            else if (match.Groups[4].Success) // 識別碼 / 關鍵字
             {
                 if (isAfterDot)
                 {

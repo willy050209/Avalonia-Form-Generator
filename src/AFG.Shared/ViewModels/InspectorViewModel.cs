@@ -90,10 +90,16 @@ public sealed partial class InspectorViewModel : ObservableObject
     private string _formRootNamespace = "GeneratedApp.Views";
 
     [ObservableProperty]
+    private TargetLanguage _formTargetLanguage = TargetLanguage.CSharp;
+
+    [ObservableProperty]
     private ArchitectureMode _formArchitectureMode = ArchitectureMode.Hybrid;
 
     [ObservableProperty]
     private bool _formGenerateCodeBehindFields = true;
+
+    public IReadOnlyList<TargetLanguage> TargetLanguageOptions { get; } =
+        Enum.GetValues<TargetLanguage>();
 
     public IReadOnlyList<ArchitectureMode> ArchitectureModeOptions { get; } =
         Enum.GetValues<ArchitectureMode>();
@@ -668,6 +674,7 @@ public sealed partial class InspectorViewModel : ObservableObject
         FormViewClassName = doc.ViewClassName;
         FormViewModelClassName = doc.ViewModelClassName;
         FormRootNamespace = doc.RootNamespace;
+        FormTargetLanguage = doc.TargetLanguage;
         FormArchitectureMode = doc.ArchitectureMode;
         FormGenerateCodeBehindFields = doc.GenerateCodeBehindFields;
 
@@ -757,6 +764,7 @@ public sealed partial class InspectorViewModel : ObservableObject
                 ViewClassName = string.IsNullOrWhiteSpace(FormViewClassName) ? "MainFormView" : FormViewClassName.Trim(),
                 ViewModelClassName = string.IsNullOrWhiteSpace(FormViewModelClassName) ? "MainFormViewModel" : FormViewModelClassName.Trim(),
                 RootNamespace = string.IsNullOrWhiteSpace(FormRootNamespace) ? "GeneratedApp.Views" : FormRootNamespace.Trim(),
+                TargetLanguage = FormTargetLanguage,
                 ArchitectureMode = FormArchitectureMode,
                 Events = FormEvents.Select(e => e.ToDefinition()).ToImmutableList()
             };
@@ -1031,6 +1039,7 @@ public sealed partial class InspectorViewModel : ObservableObject
     partial void OnFormViewClassNameChanged(string value) => ApplyFormChanges();
     partial void OnFormViewModelClassNameChanged(string value) => ApplyFormChanges();
     partial void OnFormRootNamespaceChanged(string value) => ApplyFormChanges();
+    partial void OnFormTargetLanguageChanged(TargetLanguage value) => ApplyFormChanges();
     partial void OnFormArchitectureModeChanged(ArchitectureMode value)
     {
         _formGenerateCodeBehindFields = value is ArchitectureMode.Hybrid or ArchitectureMode.CodeBehind;
