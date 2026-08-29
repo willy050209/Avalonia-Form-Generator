@@ -37,6 +37,10 @@ public sealed class FSharpViewGenerator : ICodeGenerator
         sb.AppendLine("open Avalonia.Data");
         sb.AppendLine("open CommunityToolkit.Mvvm.ComponentModel");
         sb.AppendLine("open CommunityToolkit.Mvvm.Input");
+        sb.AppendLine("open System.IO");
+        sb.AppendLine("open Avalonia.Media.Imaging");
+        sb.AppendLine($"open {document.RootNamespace}.Helpers");
+        sb.AppendLine($"open {document.RootNamespace}.Controls");
         sb.AppendLine();
 
         sb.AppendLine($"type {document.ViewClassName}() as this =");

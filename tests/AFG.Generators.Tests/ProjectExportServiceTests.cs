@@ -1642,6 +1642,29 @@ public sealed class ProjectExportServiceTests
                         Height = 40,
                         Bindings = [new BindingDefinition { TargetProperty = "Content", ViewModelProperty = "ButtonText" }],
                         Events = [new EventMappingDefinition { EventName = "Click", CommandProperty = "SubmitCommand" }]
+                    },
+                    new AstNode
+                    {
+                        Name = "picAvatar",
+                        Type = ControlType.PictureBox,
+                        CanvasLeft = 140,
+                        CanvasTop = 30,
+                        Width = 80,
+                        Height = 80,
+                        InitBitmap = true,
+                        BitmapBackgroundColor = "#38BDF8"
+                    },
+                    new AstNode
+                    {
+                        Name = "mediaPlayer1",
+                        Type = ControlType.MediaPlayer,
+                        CanvasLeft = 20,
+                        CanvasTop = 120,
+                        Width = 300,
+                        Height = 200,
+                        Source = "https://example.com/demo.mp4",
+                        AutoPlay = true,
+                        IsLooping = true
                     }
                 ]
             }
@@ -1714,6 +1737,29 @@ public sealed class ProjectExportServiceTests
                         Height = 40,
                         Bindings = [new BindingDefinition { TargetProperty = "Content", ViewModelProperty = "ButtonText" }],
                         Events = [new EventMappingDefinition { EventName = "Click", CommandProperty = "SubmitCommand" }]
+                    },
+                    new AstNode
+                    {
+                        Name = "picAvatar",
+                        Type = ControlType.PictureBox,
+                        CanvasLeft = 140,
+                        CanvasTop = 30,
+                        Width = 80,
+                        Height = 80,
+                        InitBitmap = true,
+                        BitmapBackgroundColor = "#38BDF8"
+                    },
+                    new AstNode
+                    {
+                        Name = "mediaPlayer1",
+                        Type = ControlType.MediaPlayer,
+                        CanvasLeft = 20,
+                        CanvasTop = 120,
+                        Width = 300,
+                        Height = 200,
+                        Source = "https://example.com/demo.mp4",
+                        AutoPlay = true,
+                        IsLooping = true
                     }
                 ]
             }

@@ -1298,9 +1298,21 @@ public static class AvaloniaMarkupExtensionsSource
         public event EventHandler<Bitmap?>? FrameCaptured;
 
         private readonly Image _frameImage;
-        private readonly TextBlock _statusOverlay;
+        private readonly StackPanel _hudPanel;
+        private readonly Border _playStateBadge;
+        private readonly TextBlock _playStateBadgeText;
+        private readonly TextBlock _titleTextBlock;
+        private readonly StackPanel _equalizerPanel;
+        private readonly Border[] _equalizerBars;
+        private readonly Border _controlsBar;
+        private readonly Button _btnPlayPause;
+        private readonly Button _btnStop;
+        private readonly Slider _seekSlider;
+        private readonly TextBlock _timeTextBlock;
         private readonly DispatcherTimer _playbackTimer;
         private static readonly System.Net.Http.HttpClient s_httpClient = new();
+        private int _tickCount;
+        private bool _isUserSeeking;
 
         public MediaPlayerControl()
         {
@@ -1315,26 +1327,205 @@ public static class AvaloniaMarkupExtensionsSource
             _frameImage.Bind(Image.SourceProperty, this.GetObservable(CurrentFrameProperty));
             _frameImage.Bind(Image.StretchProperty, this.GetObservable(StretchProperty));
 
-            _statusOverlay = new TextBlock
+            // 1. 中央播放狀態 HUD
+            _playStateBadgeText = new TextBlock
             {
-                Text = "▶ Media Player",
-                Foreground = Brush.Parse("#71717A"),
-                FontSize = 13,
-                HorizontalAlignment = HorizontalAlignment.Center,
-                VerticalAlignment = VerticalAlignment.Center,
-                IsVisible = true
+                Text = "⏹ 已停止",
+                FontSize = 10,
+                FontWeight = FontWeight.SemiBold,
+                Foreground = Brush.Parse("#A1A1AA")
+            };
+            _playStateBadge = new Border
+            {
+                Background = Brush.Parse("#2071717A"),
+                CornerRadius = new CornerRadius(4),
+                Padding = new Thickness(6, 2),
+                HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center,
+                Child = _playStateBadgeText
             };
 
-            var grid = new Grid();
-            grid.Children.Add(_frameImage);
-            grid.Children.Add(_statusOverlay);
-            Content = grid;
+            _titleTextBlock = new TextBlock
+            {
+                Text = "▶ Media Player",
+                Foreground = Brush.Parse("#F4F4F5"),
+                FontSize = 13,
+                FontWeight = FontWeight.SemiBold,
+                HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center,
+                Margin = new Thickness(0, 4, 0, 0)
+            };
+
+            _equalizerPanel = new StackPanel
+            {
+                Orientation = Avalonia.Layout.Orientation.Horizontal,
+                Spacing = 3,
+                HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center,
+                Margin = new Thickness(0, 8, 0, 0)
+            };
+            _equalizerBars = new Border[5];
+            for (int i = 0; i < 5; i++)
+            {
+                _equalizerBars[i] = new Border
+                {
+                    Width = 4,
+                    Height = 6,
+                    Background = Brush.Parse("#38BDF8"),
+                    CornerRadius = new CornerRadius(2)
+                };
+                _equalizerPanel.Children.Add(_equalizerBars[i]);
+            }
+
+            _hudPanel = new StackPanel
+            {
+                HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center,
+                VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center,
+                Children = { _playStateBadge, _titleTextBlock, _equalizerPanel }
+            };
+
+            // 2. 底部控制列 (Transport Bar)
+            _btnPlayPause = new Button
+            {
+                Content = "▶",
+                FontSize = 11,
+                Padding = new Thickness(6, 2),
+                Margin = new Thickness(0, 0, 4, 0)
+            };
+            _btnPlayPause.Click += (_, _) =>
+            {
+                if (State == MediaState.Playing) Pause();
+                else Play();
+            };
+
+            _btnStop = new Button
+            {
+                Content = "⏹",
+                FontSize = 11,
+                Padding = new Thickness(6, 2),
+                Margin = new Thickness(0, 0, 6, 0)
+            };
+            _btnStop.Click += (_, _) => Stop();
+
+            _seekSlider = new Slider
+            {
+                Minimum = 0,
+                Maximum = 100,
+                Value = 0,
+                VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center
+            };
+            _seekSlider.PointerPressed += (_, _) => _isUserSeeking = true;
+            _seekSlider.PointerReleased += (_, _) =>
+            {
+                _isUserSeeking = false;
+                if (Duration > TimeSpan.Zero)
+                {
+                    Seek(TimeSpan.FromSeconds((_seekSlider.Value / 100.0) * Duration.TotalSeconds));
+                }
+            };
+
+            _timeTextBlock = new TextBlock
+            {
+                Text = "00:00 / 00:10",
+                FontSize = 10,
+                Foreground = Brush.Parse("#A1A1AA"),
+                VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center,
+                Margin = new Thickness(6, 0, 6, 0)
+            };
+
+            var volIcon = new TextBlock
+            {
+                Text = "🔊",
+                FontSize = 11,
+                VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center
+            };
+
+            var controlsGrid = new Grid
+            {
+                ColumnDefinitions = new ColumnDefinitions("Auto,Auto,*,Auto,Auto")
+            };
+            Grid.SetColumn(_btnPlayPause, 0);
+            Grid.SetColumn(_btnStop, 1);
+            Grid.SetColumn(_seekSlider, 2);
+            Grid.SetColumn(_timeTextBlock, 3);
+            Grid.SetColumn(volIcon, 4);
+            controlsGrid.Children.Add(_btnPlayPause);
+            controlsGrid.Children.Add(_btnStop);
+            controlsGrid.Children.Add(_seekSlider);
+            controlsGrid.Children.Add(_timeTextBlock);
+            controlsGrid.Children.Add(volIcon);
+
+            _controlsBar = new Border
+            {
+                VerticalAlignment = Avalonia.Layout.VerticalAlignment.Bottom,
+                Background = Brush.Parse("#D918181B"),
+                BorderBrush = Brush.Parse("#27272A"),
+                BorderThickness = new Thickness(0, 1, 0, 0),
+                Padding = new Thickness(8, 4),
+                Child = controlsGrid
+            };
+
+            var mainGrid = new Grid();
+            mainGrid.Children.Add(_frameImage);
+            mainGrid.Children.Add(_hudPanel);
+            mainGrid.Children.Add(_controlsBar);
+            Content = mainGrid;
 
             _playbackTimer = new DispatcherTimer
             {
                 Interval = TimeSpan.FromMilliseconds(50)
             };
             _playbackTimer.Tick += OnPlaybackTick;
+        }
+
+        private static string FormatTime(TimeSpan ts) => $"{(int)ts.TotalMinutes:D2}:{ts.Seconds:D2}";
+
+        private void UpdatePlaybackUi()
+        {
+            _timeTextBlock.Text = $"{FormatTime(Position)} / {FormatTime(Duration)}";
+            if (!_isUserSeeking && Duration > TimeSpan.Zero)
+            {
+                _seekSlider.Value = (Position.TotalSeconds / Duration.TotalSeconds) * 100.0;
+            }
+
+            switch (State)
+            {
+                case MediaState.Playing:
+                    _btnPlayPause.Content = "⏸";
+                    _playStateBadgeText.Text = "▶ 播放中";
+                    _playStateBadge.Background = Brush.Parse("#2038BDF8");
+                    _playStateBadgeText.Foreground = Brush.Parse("#38BDF8");
+                    _equalizerPanel.IsVisible = true;
+                    _hudPanel.IsVisible = CurrentFrame is null;
+                    break;
+                case MediaState.Paused:
+                    _btnPlayPause.Content = "▶";
+                    _playStateBadgeText.Text = "⏸ 已暫停";
+                    _playStateBadge.Background = Brush.Parse("#20F59E0B");
+                    _playStateBadgeText.Foreground = Brush.Parse("#F59E0B");
+                    _equalizerPanel.IsVisible = false;
+                    _hudPanel.IsVisible = true;
+                    break;
+                case MediaState.Stopped:
+                    _btnPlayPause.Content = "▶";
+                    _playStateBadgeText.Text = "⏹ 已停止";
+                    _playStateBadge.Background = Brush.Parse("#2071717A");
+                    _playStateBadgeText.Foreground = Brush.Parse("#A1A1AA");
+                    _equalizerPanel.IsVisible = false;
+                    _hudPanel.IsVisible = true;
+                    break;
+                case MediaState.Buffering:
+                    _btnPlayPause.Content = "⏳";
+                    _playStateBadgeText.Text = "⏳ 載入中...";
+                    _playStateBadge.Background = Brush.Parse("#20A78BFA");
+                    _playStateBadgeText.Foreground = Brush.Parse("#A78BFA");
+                    _hudPanel.IsVisible = true;
+                    break;
+                case MediaState.Error:
+                    _btnPlayPause.Content = "⚠";
+                    _playStateBadgeText.Text = "⚠ 錯誤";
+                    _playStateBadge.Background = Brush.Parse("#20EF4444");
+                    _playStateBadgeText.Foreground = Brush.Parse("#EF4444");
+                    _hudPanel.IsVisible = true;
+                    break;
+            }
         }
 
         protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
@@ -1349,15 +1540,23 @@ public static class AvaloniaMarkupExtensionsSource
             {
                 VolumeChanged?.Invoke(this, change.GetNewValue<double>());
             }
+            else if (change.Property == PositionProperty)
+            {
+                UpdatePlaybackUi();
+            }
+            else if (change.Property == DurationProperty)
+            {
+                UpdatePlaybackUi();
+            }
             else if (change.Property == StateProperty)
             {
                 var s = change.GetNewValue<MediaState>();
                 StateChanged?.Invoke(this, s);
-                _statusOverlay.IsVisible = CurrentFrame is null && s != MediaState.Playing;
+                UpdatePlaybackUi();
             }
             else if (change.Property == CurrentFrameProperty)
             {
-                _statusOverlay.IsVisible = change.NewValue is null && State != MediaState.Playing;
+                UpdatePlaybackUi();
             }
         }
 
@@ -1365,7 +1564,16 @@ public static class AvaloniaMarkupExtensionsSource
         {
             if (State != MediaState.Playing) return;
 
+            _tickCount++;
             var newPos = Position + TimeSpan.FromMilliseconds(50 * SpeedRatio);
+
+            // 動畫音波等化器
+            for (int i = 0; i < _equalizerBars.Length; i++)
+            {
+                var wave = Math.Abs(Math.Sin(_tickCount * 0.35 + i * 1.2));
+                _equalizerBars[i].Height = Math.Max(4, 4 + wave * 16 * Volume);
+            }
+
             if (Duration > TimeSpan.Zero && newPos >= Duration)
             {
                 if (IsLooping)
@@ -1385,6 +1593,8 @@ public static class AvaloniaMarkupExtensionsSource
                 Position = newPos;
                 PositionChanged?.Invoke(this, Position);
             }
+
+            UpdatePlaybackUi();
         }
 
         private async void OnSourceChanged(string? newSource)
@@ -1397,14 +1607,20 @@ public static class AvaloniaMarkupExtensionsSource
             {
                 Stop();
                 CurrentFrame = null;
+                _titleTextBlock.Text = "▶ Media Player";
+                UpdatePlaybackUi();
             }
         }
 
         public void Play()
         {
-            if (string.IsNullOrWhiteSpace(Source) && CurrentFrame is null) return;
+            if (Duration <= TimeSpan.Zero)
+            {
+                Duration = TimeSpan.FromSeconds(30);
+            }
             State = MediaState.Playing;
             _playbackTimer.Start();
+            UpdatePlaybackUi();
         }
 
         public void Pause()
@@ -1413,6 +1629,7 @@ public static class AvaloniaMarkupExtensionsSource
             {
                 State = MediaState.Paused;
                 _playbackTimer.Stop();
+                UpdatePlaybackUi();
             }
         }
 
@@ -1421,12 +1638,14 @@ public static class AvaloniaMarkupExtensionsSource
             State = MediaState.Stopped;
             _playbackTimer.Stop();
             Position = TimeSpan.Zero;
+            UpdatePlaybackUi();
         }
 
         public void Seek(TimeSpan position)
         {
             Position = position < TimeSpan.Zero ? TimeSpan.Zero : (Duration > TimeSpan.Zero && position > Duration ? Duration : position);
             PositionChanged?.Invoke(this, Position);
+            UpdatePlaybackUi();
         }
 
         public void Seek(double seconds) => Seek(TimeSpan.FromSeconds(seconds));
@@ -1446,6 +1665,8 @@ public static class AvaloniaMarkupExtensionsSource
             {
                 Stop();
                 CurrentFrame = null;
+                _titleTextBlock.Text = "▶ Media Player";
+                UpdatePlaybackUi();
                 return;
             }
 
@@ -1494,7 +1715,8 @@ public static class AvaloniaMarkupExtensionsSource
                     CurrentFrame = loadedBitmap;
                     Duration = TimeSpan.FromSeconds(10);
                     State = MediaState.Stopped;
-                    _statusOverlay.Text = $"▶ {displayName}";
+                    _titleTextBlock.Text = $"▶ {displayName}";
+                    UpdatePlaybackUi();
                     MediaOpened?.Invoke(this, EventArgs.Empty);
 
                     if (AutoPlay)
@@ -1508,7 +1730,8 @@ public static class AvaloniaMarkupExtensionsSource
                     CurrentFrame = null;
                     Duration = TimeSpan.FromSeconds(30);
                     State = MediaState.Stopped;
-                    _statusOverlay.Text = $"▶ {displayName}";
+                    _titleTextBlock.Text = $"▶ {displayName}";
+                    UpdatePlaybackUi();
                     MediaOpened?.Invoke(this, EventArgs.Empty);
 
                     if (AutoPlay)
@@ -1520,7 +1743,8 @@ public static class AvaloniaMarkupExtensionsSource
             catch (Exception ex)
             {
                 State = MediaState.Error;
-                _statusOverlay.Text = $"⚠ 載入失敗: {ex.Message}";
+                _titleTextBlock.Text = $"⚠ 載入失敗: {ex.Message}";
+                UpdatePlaybackUi();
                 MediaFailed?.Invoke(this, ex.Message);
             }
         }

@@ -190,7 +190,7 @@ public sealed class MediaPlayerControlTests
     }
 
     [Fact]
-    public void AutoPlay_WhenSet_ShouldAutomaticallyPlayOnLoad()
+    public async Task AutoPlay_WhenSet_ShouldAutomaticallyPlayOnLoad()
     {
         // Arrange
         var player = new MediaPlayerControl
@@ -199,9 +199,47 @@ public sealed class MediaPlayerControlTests
         };
 
         // Act: Loading a mock resource
-        player.Load("mock_media.mp4");
+        await player.LoadAsync("mock_media.mp4");
 
         // Assert
+        player.State.Should().Be(MediaState.Playing);
+    }
+
+    [Fact]
+    public void Play_WithoutCurrentFrame_ShouldEnterPlayingStateAndAllowPauseAndStop()
+    {
+        // Arrange
+        var player = new MediaPlayerControl();
+        player.CurrentFrame.Should().BeNull();
+
+        // Act 1: Play
+        player.Play();
+        player.State.Should().Be(MediaState.Playing);
+
+        // Act 2: Pause
+        player.Pause();
+        player.State.Should().Be(MediaState.Paused);
+
+        // Act 3: Stop
+        player.Stop();
+        player.State.Should().Be(MediaState.Stopped);
+        player.Position.Should().Be(TimeSpan.Zero);
+    }
+
+    [Fact]
+    public async Task LoadAsync_WithVideoFile_ShouldSetDurationAndAllowPlayback()
+    {
+        // Arrange
+        var player = new MediaPlayerControl();
+
+        // Act
+        await player.LoadAsync("mock_video.mp4");
+
+        // Assert
+        player.State.Should().Be(MediaState.Stopped);
+        player.Duration.Should().BeGreaterThan(TimeSpan.Zero);
+
+        player.Play();
         player.State.Should().Be(MediaState.Playing);
     }
 }

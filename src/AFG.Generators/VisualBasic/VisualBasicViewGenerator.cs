@@ -38,6 +38,10 @@ public sealed class VisualBasicViewGenerator : ICodeGenerator
         sb.AppendLine("Imports Avalonia.Data");
         sb.AppendLine("Imports CommunityToolkit.Mvvm.ComponentModel");
         sb.AppendLine("Imports CommunityToolkit.Mvvm.Input");
+        sb.AppendLine("Imports System.IO");
+        sb.AppendLine("Imports Avalonia.Media.Imaging");
+        sb.AppendLine($"Imports {document.RootNamespace}.Helpers");
+        sb.AppendLine($"Imports {document.RootNamespace}.Controls");
         sb.AppendLine();
 
         sb.AppendLine($"Namespace {document.RootNamespace}");
