@@ -1670,6 +1670,7 @@ public sealed class ProjectExportService(FormCodeGenerator? codeGenerator = null
 
           <ItemGroup>
             <PackageReference Include="Avalonia.Desktop" Version="{PackageVersions.Avalonia}" />
+            <PackageReference Include="Avalonia.Fonts.Inter" Version="{PackageVersions.Avalonia}" />
             <PackageReference Include="Avalonia.Diagnostics" Version="{PackageVersions.Avalonia}" />
           </ItemGroup>
 
@@ -1687,6 +1688,7 @@ public sealed class ProjectExportService(FormCodeGenerator? codeGenerator = null
 
         open System
         open Avalonia
+        open Avalonia.Fonts.Inter
         open {project.RootNamespace}
 
         module Program =

@@ -446,6 +446,20 @@ AvaloniaFormGenerator/
 
 ---
 
+### 🔹 階段 25：修復 macOS / Linux CI 環境下 F# 專案編譯問題 (Fix macOS / Linux F# InterFont Namespace & Package Issues)
+- [x] **階段狀態：已完成 (Completed)**
+- **目標**：修復 macOS 與 Linux 平台 F# 編譯器無法解析 `WithInterFont()` 擴充方法之問題，於 `desktopFsprojContent` 補齊 `Avalonia.Fonts.Inter` 套件引用，並在 `Program.fs` 加入 `open Avalonia.Fonts.Inter`。
+- **任務清單**：
+  - [x] 25.1 **Phase 1: 修復 F# 專案範本之 InterFont 依賴與命名空間 (`ProjectExportService.cs`)**
+    - 在 `desktopFsprojContent` 加入 `<PackageReference Include="Avalonia.Fonts.Inter" Version="{PackageVersions.Avalonia}" />`。
+    - 在 `Program.fs` 加入 `open Avalonia.Fonts.Inter`。
+    - 執行 `ExportedProject_FSharp_ShouldCompileDirectlyWithDotnetCli` 驗證編譯通過。
+  - [x] 25.2 **Phase 2: 全方案跨平台自動化測試與 Git Commit**
+    - 執行全套單元測試與實體編譯測試（309 項測試 100% 通過，0 錯誤 0 警告）。
+    - 依規範完成 Git Commit。
+
+---
+
 ## 4. 驗證標準與品質指標
 
 1. **單元測試覆蓋率**：所有純函式、AST 操作、歷史堆疊、生成器與序列化演算法 100% 覆蓋。
