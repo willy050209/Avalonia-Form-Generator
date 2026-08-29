@@ -1,5 +1,6 @@
 // filepath: tests/AFG.Generators.Tests/ProjectExportServiceTests.cs
 using System.Diagnostics;
+using AFG.Core.Models.Logic;
 using AFG.Core.Serialization;
 using AFG.Generators.ProjectExport;
 
@@ -2015,6 +2016,266 @@ public sealed class ProjectExportServiceTests
                     Directory.Delete(tempFolder, recursive: true);
                 }
                 catch { }
+            }
+        }
+    }
+
+    [Fact]
+    public async Task ExportProject_CSharp_WithCrossLanguageLogicServices_ShouldGenerateDedicatedProjectsAndBuildSuccessfully()
+    {
+        var tempFolder = Path.Combine(Path.GetTempPath(), "AFG_CSMultiLogicTest_" + Guid.NewGuid().ToString("N"));
+        var doc = new FormDocument
+        {
+            ViewClassName = "MultiLogicView",
+            ViewModelClassName = "MultiLogicViewModel",
+            TargetLanguage = TargetLanguage.CSharp,
+            Title = "C# Multi-Logic System",
+            RootNode = new AstNode
+            {
+                Type = ControlType.Canvas,
+                Children = [new AstNode { Type = ControlType.Button, Content = "Submit" }]
+            },
+            LogicServices =
+            [
+                new LogicServiceDefinition
+                {
+                    ServiceName = "OrderCalculator",
+                    Namespace = "App.Services",
+                    Language = TargetLanguage.CSharp,
+                    Functions =
+                    [
+                        new LogicFunctionDefinition { Name = "Calc", ReturnType = "int", Parameters = [new FunctionParameter { Name = "x", Type = "int" }], CustomImplementation = "return x * 2;" }
+                    ]
+                },
+                new LogicServiceDefinition
+                {
+                    ServiceName = "TaxEngine",
+                    Namespace = "Tax.Logic",
+                    Language = TargetLanguage.FSharp,
+                    Functions =
+                    [
+                        new LogicFunctionDefinition { Name = "ComputeTax", ReturnType = "int", Parameters = [new FunctionParameter { Name = "amount", Type = "int" }], CustomImplementation = "amount / 10" }
+                    ]
+                },
+                new LogicServiceDefinition
+                {
+                    ServiceName = "AccountingModule",
+                    Namespace = "Accounting.VB",
+                    Language = TargetLanguage.VisualBasic,
+                    Functions =
+                    [
+                        new LogicFunctionDefinition { Name = "Audit", ReturnType = "bool", Parameters = [new FunctionParameter { Name = "id", Type = "int" }], CustomImplementation = "Return True" }
+                    ]
+                },
+                new LogicServiceDefinition
+                {
+                    ServiceName = "NativeMath",
+                    Namespace = "Native.Core",
+                    Language = TargetLanguage.Cpp,
+                    Functions =
+                    [
+                        new LogicFunctionDefinition { Name = "FastPow", ReturnType = "int", Parameters = [new FunctionParameter { Name = "baseVal", Type = "int" }] }
+                    ]
+                }
+            ]
+        };
+
+        try
+        {
+            await _exportService.ExportToFolderAsync(doc, tempFolder, new ProjectExportOptions(IncludeMobileProject: false, CustomProjectName: "MultiLogicApp"));
+
+            var slnxPath = Path.Combine(tempFolder, "MultiLogicApp.slnx");
+            File.Exists(slnxPath).Should().BeTrue();
+            var slnxContent = await File.ReadAllTextAsync(slnxPath);
+            slnxContent.Should().Contain("MultiLogicApp.Logic.FSharp.fsproj");
+            slnxContent.Should().Contain("MultiLogicApp.Logic.VB.vbproj");
+
+            var desktopCsprojPath = Path.Combine(tempFolder, "src", "MultiLogicApp.Desktop", "MultiLogicApp.Desktop.csproj");
+            File.Exists(desktopCsprojPath).Should().BeTrue();
+
+            var psi = new ProcessStartInfo
+            {
+                FileName = "dotnet",
+                Arguments = $"build \"{desktopCsprojPath}\" -c Release -nodeReuse:false -p:UseSharedCompilation=false",
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            };
+
+            using var process = Process.Start(psi);
+            process.Should().NotBeNull();
+
+            var stdoutTask = process!.StandardOutput.ReadToEndAsync();
+            var stderrTask = process.StandardError.ReadToEndAsync();
+
+            await process.WaitForExitAsync();
+            var stdout = await stdoutTask;
+            var stderr = await stderrTask;
+
+            process.ExitCode.Should().Be(0, $"C# 跨語言多邏輯專案 build 應成功 (ExitCode 0)。\n標準輸出:\n{stdout}\n錯誤輸出:\n{stderr}");
+        }
+        finally
+        {
+            if (Directory.Exists(tempFolder))
+            {
+                try { Directory.Delete(tempFolder, recursive: true); } catch { }
+            }
+        }
+    }
+
+    [Fact]
+    public async Task ExportProject_FSharp_WithCrossLanguageLogicServices_ShouldGenerateDedicatedProjectsAndBuildSuccessfully()
+    {
+        var tempFolder = Path.Combine(Path.GetTempPath(), "AFG_FSMultiLogicTest_" + Guid.NewGuid().ToString("N"));
+        var doc = new FormDocument
+        {
+            ViewClassName = "FSMultiLogicView",
+            ViewModelClassName = "FSMultiLogicViewModel",
+            TargetLanguage = TargetLanguage.FSharp,
+            Title = "F# Multi-Logic System",
+            RootNode = new AstNode
+            {
+                Type = ControlType.Canvas,
+                Children = [new AstNode { Type = ControlType.Button, Content = "Submit" }]
+            },
+            LogicServices =
+            [
+                new LogicServiceDefinition
+                {
+                    ServiceName = "FSharpCoreMath",
+                    Namespace = "App.Services",
+                    Language = TargetLanguage.FSharp,
+                    Functions =
+                    [
+                        new LogicFunctionDefinition { Name = "Add", ReturnType = "int", Parameters = [new FunctionParameter { Name = "a", Type = "int" }], CustomImplementation = "a + 10" }
+                    ]
+                },
+                new LogicServiceDefinition
+                {
+                    ServiceName = "CSharpPaymentEngine",
+                    Namespace = "Payment.Logic",
+                    Language = TargetLanguage.CSharp,
+                    Functions =
+                    [
+                        new LogicFunctionDefinition { Name = "Pay", ReturnType = "bool", Parameters = [new FunctionParameter { Name = "amount", Type = "int" }], CustomImplementation = "return amount > 0;" }
+                    ]
+                }
+            ]
+        };
+
+        try
+        {
+            await _exportService.ExportToFolderAsync(doc, tempFolder, new ProjectExportOptions(IncludeMobileProject: false, CustomProjectName: "FSMultiLogicApp"));
+
+            var desktopFsprojPath = Path.Combine(tempFolder, "src", "FSMultiLogicApp.Desktop", "FSMultiLogicApp.Desktop.fsproj");
+            File.Exists(desktopFsprojPath).Should().BeTrue();
+
+            var psi = new ProcessStartInfo
+            {
+                FileName = "dotnet",
+                Arguments = $"build \"{desktopFsprojPath}\" -c Release -nodeReuse:false -p:UseSharedCompilation=false",
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            };
+
+            using var process = Process.Start(psi);
+            process.Should().NotBeNull();
+
+            var stdoutTask = process!.StandardOutput.ReadToEndAsync();
+            var stderrTask = process.StandardError.ReadToEndAsync();
+
+            await process.WaitForExitAsync();
+            var stdout = await stdoutTask;
+            var stderr = await stderrTask;
+
+            process.ExitCode.Should().Be(0, $"F# 跨語言多邏輯專案 build 應成功 (ExitCode 0)。\n標準輸出:\n{stdout}\n錯誤輸出:\n{stderr}");
+        }
+        finally
+        {
+            if (Directory.Exists(tempFolder))
+            {
+                try { Directory.Delete(tempFolder, recursive: true); } catch { }
+            }
+        }
+    }
+
+    [Fact]
+    public async Task ExportProject_VisualBasic_WithCrossLanguageLogicServices_ShouldGenerateDedicatedProjectsAndBuildSuccessfully()
+    {
+        var tempFolder = Path.Combine(Path.GetTempPath(), "AFG_VBMultiLogicTest_" + Guid.NewGuid().ToString("N"));
+        var doc = new FormDocument
+        {
+            ViewClassName = "VBMultiLogicView",
+            ViewModelClassName = "VBMultiLogicViewModel",
+            TargetLanguage = TargetLanguage.VisualBasic,
+            Title = "VB Multi-Logic System",
+            RootNode = new AstNode
+            {
+                Type = ControlType.Canvas,
+                Children = [new AstNode { Type = ControlType.Button, Content = "Submit" }]
+            },
+            LogicServices =
+            [
+                new LogicServiceDefinition
+                {
+                    ServiceName = "VBDataService",
+                    Namespace = "App.Services",
+                    Language = TargetLanguage.VisualBasic,
+                    Functions =
+                    [
+                        new LogicFunctionDefinition { Name = "GetData", ReturnType = "int", Parameters = [new FunctionParameter { Name = "key", Type = "int" }], CustomImplementation = "Return key * 100" }
+                    ]
+                },
+                new LogicServiceDefinition
+                {
+                    ServiceName = "CSharpSecurityService",
+                    Namespace = "Sec.Logic",
+                    Language = TargetLanguage.CSharp,
+                    Functions =
+                    [
+                        new LogicFunctionDefinition { Name = "CheckToken", ReturnType = "bool", Parameters = [new FunctionParameter { Name = "token", Type = "string" }], CustomImplementation = "return !string.IsNullOrEmpty(token);" }
+                    ]
+                }
+            ]
+        };
+
+        try
+        {
+            await _exportService.ExportToFolderAsync(doc, tempFolder, new ProjectExportOptions(IncludeMobileProject: false, CustomProjectName: "VBMultiLogicApp"));
+
+            var desktopVbprojPath = Path.Combine(tempFolder, "src", "VBMultiLogicApp.Desktop", "VBMultiLogicApp.Desktop.vbproj");
+            File.Exists(desktopVbprojPath).Should().BeTrue();
+
+            var psi = new ProcessStartInfo
+            {
+                FileName = "dotnet",
+                Arguments = $"build \"{desktopVbprojPath}\" -c Release -nodeReuse:false -p:UseSharedCompilation=false",
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            };
+
+            using var process = Process.Start(psi);
+            process.Should().NotBeNull();
+
+            var stdoutTask = process!.StandardOutput.ReadToEndAsync();
+            var stderrTask = process.StandardError.ReadToEndAsync();
+
+            await process.WaitForExitAsync();
+            var stdout = await stdoutTask;
+            var stderr = await stderrTask;
+
+            process.ExitCode.Should().Be(0, $"VB 跨語言多邏輯專案 build 應成功 (ExitCode 0)。\n標準輸出:\n{stdout}\n錯誤輸出:\n{stderr}");
+        }
+        finally
+        {
+            if (Directory.Exists(tempFolder))
+            {
+                try { Directory.Delete(tempFolder, recursive: true); } catch { }
             }
         }
     }

@@ -7,6 +7,7 @@ using AFG.Core.Models.Ast;
 using AFG.Generators.Constants;
 using AFG.Generators.CSharpMarkup;
 using AFG.Generators.FSharp;
+using AFG.Generators.Logic;
 using AFG.Generators.Mvvm;
 using AFG.Generators.VisualBasic;
 
@@ -86,8 +87,12 @@ public sealed class ProjectExportService(FormCodeGenerator? codeGenerator = null
         {
             slnxBuilder.AppendLine($"  <Project Path=\"src/{androidProjectName}/{androidProjectName}.csproj\" />");
         }
-        slnxBuilder.AppendLine("</Solution>");
 
+        var sharedProjectReferences = new StringBuilder();
+        var logicDiRegistrations = new StringBuilder();
+        ProcessLogicServicesCSharp(project, baseProjectName, sharedProjectName, sharedDir, slnxBuilder, sharedProjectReferences, logicDiRegistrations, files);
+
+        slnxBuilder.AppendLine("</Solution>");
         files.Add(new GeneratedSourceFile($"{baseProjectName}.slnx", slnxBuilder.ToString().TrimEnd(), SourceFileType.SolutionFile));
 
         // 方案根目錄：LICENSE (可選), .gitignore 與 .editorconfig
@@ -155,6 +160,10 @@ public sealed class ProjectExportService(FormCodeGenerator? codeGenerator = null
         // ==========================================
         // 2. 共用核心專案：src/{ProjectName}.Shared/
         // ==========================================
+        var sharedCsprojProjectRefsXml = sharedProjectReferences.Length > 0
+            ? $"\n          <ItemGroup>\n{sharedProjectReferences.ToString().TrimEnd()}\n          </ItemGroup>"
+            : string.Empty;
+
         var sharedCsprojContent = $"""
         <Project Sdk="Microsoft.NET.Sdk">
           <PropertyGroup>
@@ -179,7 +188,7 @@ public sealed class ProjectExportService(FormCodeGenerator? codeGenerator = null
           <ItemGroup>
             <AvaloniaResource Include="Assets\**" />
             <None Update="Assets\**" CopyToOutputDirectory="PreserveNewest" />
-          </ItemGroup>
+          </ItemGroup>{sharedCsprojProjectRefsXml}
         </Project>
         """;
         files.Add(new GeneratedSourceFile(Path.Combine(sharedDir, $"{sharedProjectName}.csproj"), sharedCsprojContent, SourceFileType.ProjectFile));
@@ -209,6 +218,11 @@ public sealed class ProjectExportService(FormCodeGenerator? codeGenerator = null
         var serviceRegistrations = allServices.Count > 0
             ? string.Join("\n", allServices.Select(s => $"        services.AddSingleton<{s.InterfaceName}, {(!string.IsNullOrEmpty(s.ImplementationName) ? s.ImplementationName : (s.InterfaceName.StartsWith('I') ? s.InterfaceName[1..] : $"{s.InterfaceName}Impl"))}>();")) + "\n"
             : string.Empty;
+
+        if (logicDiRegistrations.Length > 0)
+        {
+            serviceRegistrations += logicDiRegistrations.ToString();
+        }
 
         // 彙整所有 View 與 ViewModel 註冊
         var viewRegistrations = new StringBuilder();
@@ -1478,6 +1492,12 @@ public sealed class ProjectExportService(FormCodeGenerator? codeGenerator = null
         {
             slnxBuilder.AppendLine($"  <Project Path=\"src/{androidProjectName}/{androidProjectName}.csproj\" />");
         }
+
+        var fsprojProjectReferences = new StringBuilder();
+        var fsharpLogicRegistrations = new StringBuilder();
+        var fsharpLogicCompileItems = new StringBuilder();
+        ProcessLogicServicesFSharp(project, baseProjectName, sharedProjectName, sharedDir, slnxBuilder, fsharpLogicCompileItems, fsprojProjectReferences, fsharpLogicRegistrations, files);
+
         slnxBuilder.AppendLine("</Solution>");
         files.Add(new GeneratedSourceFile($"{baseProjectName}.slnx", slnxBuilder.ToString().TrimEnd(), SourceFileType.SolutionFile));
 
@@ -1500,6 +1520,10 @@ public sealed class ProjectExportService(FormCodeGenerator? codeGenerator = null
         fsprojCompileItems.AppendLine("    <Compile Include=\"Helpers/BitmapHelper.fs\" />");
         fsprojCompileItems.AppendLine("    <Compile Include=\"Controls/MediaPlayerControl.fs\" />");
         fsprojCompileItems.AppendLine("    <Compile Include=\"Services/INavigationService.fs\" />");
+        if (fsharpLogicCompileItems.Length > 0)
+        {
+            fsprojCompileItems.Append(fsharpLogicCompileItems);
+        }
 
         foreach (var doc in project.Documents)
         {
@@ -1510,6 +1534,10 @@ public sealed class ProjectExportService(FormCodeGenerator? codeGenerator = null
             fsprojCompileItems.AppendLine($"    <Compile Include=\"Views/{doc.ViewClassName}.fs\" />");
         }
         fsprojCompileItems.AppendLine("    <Compile Include=\"App.fs\" />");
+
+        var sharedFsprojProjRefsXml = fsprojProjectReferences.Length > 0
+            ? $"\n          <ItemGroup>\n{fsprojProjectReferences.ToString().TrimEnd()}\n          </ItemGroup>"
+            : string.Empty;
 
         var sharedFsprojContent = $"""
         <Project Sdk="Microsoft.NET.Sdk">
@@ -1531,7 +1559,7 @@ public sealed class ProjectExportService(FormCodeGenerator? codeGenerator = null
           <ItemGroup>
             <AvaloniaResource Include="Assets\**" />
             <None Update="Assets\**" CopyToOutputDirectory="PreserveNewest" />
-          </ItemGroup>
+          </ItemGroup>{sharedFsprojProjRefsXml}
 
           <ItemGroup>
         {fsprojCompileItems.ToString().TrimEnd()}
@@ -1919,6 +1947,7 @@ public sealed class ProjectExportService(FormCodeGenerator? codeGenerator = null
 
             static member private ConfigureServices(services: IServiceCollection) =
                 services.AddSingleton<INavigationService, NavigationService>() |> ignore
+        {fsharpLogicRegistrations.ToString().TrimEnd()}
         {fsharpRegistrations.ToString().TrimEnd()}
 
         and NavigationService(serviceProvider: IServiceProvider) =
@@ -2118,6 +2147,11 @@ public sealed class ProjectExportService(FormCodeGenerator? codeGenerator = null
         {
             slnxBuilder.AppendLine($"  <Project Path=\"src/{androidProjectName}/{androidProjectName}.csproj\" />");
         }
+
+        var vbprojProjectReferences = new StringBuilder();
+        var vbLogicRegistrations = new StringBuilder();
+        ProcessLogicServicesVisualBasic(project, baseProjectName, sharedProjectName, sharedDir, slnxBuilder, vbprojProjectReferences, vbLogicRegistrations, files);
+
         slnxBuilder.AppendLine("</Solution>");
         files.Add(new GeneratedSourceFile($"{baseProjectName}.slnx", slnxBuilder.ToString().TrimEnd(), SourceFileType.SolutionFile));
 
@@ -2135,6 +2169,10 @@ public sealed class ProjectExportService(FormCodeGenerator? codeGenerator = null
         var initialDoc = project.Documents.FirstOrDefault(d => d.ViewClassName == project.InitialFormName) ?? project.Documents[0];
 
         // 2. .Shared 專案 (.vbproj)
+        var sharedVbprojProjRefsXml = vbprojProjectReferences.Length > 0
+            ? $"\n          <ItemGroup>\n{vbprojProjectReferences.ToString().TrimEnd()}\n          </ItemGroup>"
+            : string.Empty;
+
         var sharedVbprojContent = $"""
         <Project Sdk="Microsoft.NET.Sdk">
           <PropertyGroup>
@@ -2156,7 +2194,7 @@ public sealed class ProjectExportService(FormCodeGenerator? codeGenerator = null
           <ItemGroup>
             <AvaloniaResource Include="Assets\**" />
             <None Update="Assets\**" CopyToOutputDirectory="PreserveNewest" />
-          </ItemGroup>
+          </ItemGroup>{sharedVbprojProjRefsXml}
         </Project>
         """;
         files.Add(new GeneratedSourceFile(Path.Combine(sharedDir, $"{sharedProjectName}.vbproj"), sharedVbprojContent, SourceFileType.ProjectFile));
@@ -2692,6 +2730,7 @@ public sealed class ProjectExportService(FormCodeGenerator? codeGenerator = null
 
                 Private Shared Sub ConfigureServices(services As IServiceCollection)
                     services.AddSingleton(Of INavigationService, NavigationService)()
+        {vbLogicRegistrations.ToString().TrimEnd()}
         {vbRegistrations.ToString().TrimEnd()}
                 End Sub
             End Class
@@ -2853,6 +2892,351 @@ public sealed class ProjectExportService(FormCodeGenerator? codeGenerator = null
         }
 
         return files;
+    }
+
+    private static void ProcessLogicServicesCSharp(
+        FormProjectDefinition project,
+        string baseProjectName,
+        string sharedProjectName,
+        string sharedDir,
+        StringBuilder slnxBuilder,
+        StringBuilder projectReferencesBuilder,
+        StringBuilder diRegistrationsBuilder,
+        List<GeneratedSourceFile> files)
+    {
+        var allLogicServices = project.LogicServices
+            .Concat(project.Documents.SelectMany(d => d.LogicServices))
+            .DistinctBy(s => s.ServiceName)
+            .ToList();
+
+        if (allLogicServices.Count == 0) return;
+
+        var csServices = allLogicServices.Where(s => s.Language == TargetLanguage.CSharp).ToList();
+        var fsServices = allLogicServices.Where(s => s.Language == TargetLanguage.FSharp).ToList();
+        var vbServices = allLogicServices.Where(s => s.Language == TargetLanguage.VisualBasic).ToList();
+        var cppServices = allLogicServices.Where(s => s.Language == TargetLanguage.Cpp).ToList();
+
+        // 1. C# 邏輯服務（同語言）：輸出至 src/{sharedProjectName}/Services/
+        foreach (var s in csServices)
+        {
+            var (iface, impl) = CSharpLogicGenerator.Generate(s);
+            files.Add(new GeneratedSourceFile(Path.Combine(sharedDir, "Services", iface.FileName), iface.Content, SourceFileType.Service));
+            files.Add(new GeneratedSourceFile(Path.Combine(sharedDir, "Services", impl.FileName), impl.Content, SourceFileType.Service));
+            diRegistrationsBuilder.AppendLine($"        services.AddSingleton<global::{s.Namespace}.{s.InterfaceName}, global::{s.Namespace}.{s.ServiceName}>();");
+        }
+
+        // 2. F# 跨語言獨立專案：src/{baseProjectName}.Logic.FSharp/
+        if (fsServices.Count > 0)
+        {
+            var fsProjName = $"{baseProjectName}.Logic.FSharp";
+            var fsDir = Path.Combine("src", fsProjName);
+            slnxBuilder.AppendLine($"  <Project Path=\"src/{fsProjName}/{fsProjName}.fsproj\" />");
+            projectReferencesBuilder.AppendLine($"    <ProjectReference Include=\"..\\{fsProjName}\\{fsProjName}.fsproj\" />");
+
+            var fsCompileItems = new StringBuilder();
+            foreach (var s in fsServices)
+            {
+                var fsFile = FSharpLogicGenerator.Generate(s);
+                files.Add(new GeneratedSourceFile(Path.Combine(fsDir, fsFile.FileName), fsFile.Content, SourceFileType.Service));
+                fsCompileItems.AppendLine($"    <Compile Include=\"{fsFile.FileName}\" />");
+                diRegistrationsBuilder.AppendLine($"        services.AddSingleton<global::{s.Namespace}.{s.InterfaceName}, global::{s.Namespace}.{s.ServiceName}>();");
+            }
+
+            var fsprojContent = $"""
+            <Project Sdk="Microsoft.NET.Sdk">
+              <PropertyGroup>
+                <TargetFramework>net10.0</TargetFramework>
+                <Nullable>enable</Nullable>
+                <NoWarn>$(NoWarn);FS3261;FS3262;FS3263;FS1183;FS0020;3261;3262;3263;1183;0020</NoWarn>
+              </PropertyGroup>
+
+              <ItemGroup>
+            {fsCompileItems.ToString().TrimEnd()}
+              </ItemGroup>
+            </Project>
+            """;
+            files.Add(new GeneratedSourceFile(Path.Combine(fsDir, $"{fsProjName}.fsproj"), fsprojContent, SourceFileType.ProjectFile));
+        }
+
+        // 3. VB 跨語言獨立專案：src/{baseProjectName}.Logic.VB/
+        if (vbServices.Count > 0)
+        {
+            var vbProjName = $"{baseProjectName}.Logic.VB";
+            var vbDir = Path.Combine("src", vbProjName);
+            slnxBuilder.AppendLine($"  <Project Path=\"src/{vbProjName}/{vbProjName}.vbproj\" />");
+            projectReferencesBuilder.AppendLine($"    <ProjectReference Include=\"..\\{vbProjName}\\{vbProjName}.vbproj\" />");
+
+            foreach (var s in vbServices)
+            {
+                var (iface, impl) = VisualBasicLogicGenerator.Generate(s);
+                files.Add(new GeneratedSourceFile(Path.Combine(vbDir, iface.FileName), iface.Content, SourceFileType.Service));
+                files.Add(new GeneratedSourceFile(Path.Combine(vbDir, impl.FileName), impl.Content, SourceFileType.Service));
+                diRegistrationsBuilder.AppendLine($"        services.AddSingleton<global::{s.Namespace}.{s.InterfaceName}, global::{s.Namespace}.{s.ServiceName}>();");
+            }
+
+            var vbprojContent = $"""
+            <Project Sdk="Microsoft.NET.Sdk">
+              <PropertyGroup>
+                <TargetFramework>net10.0</TargetFramework>
+                <Nullable>enable</Nullable>
+                <RootNamespace></RootNamespace>
+              </PropertyGroup>
+            </Project>
+            """;
+            files.Add(new GeneratedSourceFile(Path.Combine(vbDir, $"{vbProjName}.vbproj"), vbprojContent, SourceFileType.ProjectFile));
+        }
+
+        // 4. C++ 原生專案：src/{baseProjectName}.Logic.Cpp/ 與 C# Interop Bridge
+        if (cppServices.Count > 0)
+        {
+            var cppProjName = $"{baseProjectName}.Logic.Cpp";
+            var cppDir = Path.Combine("src", cppProjName);
+
+            foreach (var s in cppServices)
+            {
+                var (h, cpp, cmake) = CppLogicGenerator.GenerateNative(s, cppProjName);
+                files.Add(new GeneratedSourceFile(Path.Combine(cppDir, h.FileName), h.Content, SourceFileType.Service));
+                files.Add(new GeneratedSourceFile(Path.Combine(cppDir, cpp.FileName), cpp.Content, SourceFileType.Service));
+                files.Add(new GeneratedSourceFile(Path.Combine(cppDir, cmake.FileName), cmake.Content, SourceFileType.ProjectFile));
+
+                var (iface, _) = CSharpLogicGenerator.Generate(s);
+                var bridge = CppLogicGenerator.GenerateCSharpBridge(s, cppProjName);
+                files.Add(new GeneratedSourceFile(Path.Combine(sharedDir, "Services", iface.FileName), iface.Content, SourceFileType.Service));
+                files.Add(new GeneratedSourceFile(Path.Combine(sharedDir, "Services", bridge.FileName), bridge.Content, SourceFileType.Service));
+
+                diRegistrationsBuilder.AppendLine($"        services.AddSingleton<global::{s.Namespace}.{s.InterfaceName}, global::{s.Namespace}.{s.ServiceName}NativeBridge>();");
+            }
+        }
+    }
+
+    private static void ProcessLogicServicesFSharp(
+        FormProjectDefinition project,
+        string baseProjectName,
+        string sharedProjectName,
+        string sharedDir,
+        StringBuilder slnxBuilder,
+        StringBuilder fsprojCompileItems,
+        StringBuilder fsprojProjectReferences,
+        StringBuilder diRegistrationsBuilder,
+        List<GeneratedSourceFile> files)
+    {
+        var allLogicServices = project.LogicServices
+            .Concat(project.Documents.SelectMany(d => d.LogicServices))
+            .DistinctBy(s => s.ServiceName)
+            .ToList();
+
+        if (allLogicServices.Count == 0) return;
+
+        var fsServices = allLogicServices.Where(s => s.Language == TargetLanguage.FSharp).ToList();
+        var csServices = allLogicServices.Where(s => s.Language == TargetLanguage.CSharp).ToList();
+        var vbServices = allLogicServices.Where(s => s.Language == TargetLanguage.VisualBasic).ToList();
+        var cppServices = allLogicServices.Where(s => s.Language == TargetLanguage.Cpp).ToList();
+
+        // 1. F# 邏輯服務（同語言）：輸出至 src/{sharedProjectName}/Services/
+        foreach (var s in fsServices)
+        {
+            var fsFile = FSharpLogicGenerator.Generate(s);
+            files.Add(new GeneratedSourceFile(Path.Combine(sharedDir, "Services", fsFile.FileName), fsFile.Content, SourceFileType.Service));
+            fsprojCompileItems.AppendLine($"    <Compile Include=\"Services/{fsFile.FileName}\" />");
+            diRegistrationsBuilder.AppendLine($"        services.AddSingleton<{s.Namespace}.{s.InterfaceName}, {s.Namespace}.{s.ServiceName}>() |> ignore");
+        }
+
+        // 2. C# 跨語言獨立專案：src/{baseProjectName}.Logic.CSharp/
+        if (csServices.Count > 0)
+        {
+            var csProjName = $"{baseProjectName}.Logic.CSharp";
+            var csDir = Path.Combine("src", csProjName);
+            slnxBuilder.AppendLine($"  <Project Path=\"src/{csProjName}/{csProjName}.csproj\" />");
+            fsprojProjectReferences.AppendLine($"    <ProjectReference Include=\"..\\{csProjName}\\{csProjName}.csproj\" />");
+
+            foreach (var s in csServices)
+            {
+                var (iface, impl) = CSharpLogicGenerator.Generate(s);
+                files.Add(new GeneratedSourceFile(Path.Combine(csDir, iface.FileName), iface.Content, SourceFileType.Service));
+                files.Add(new GeneratedSourceFile(Path.Combine(csDir, impl.FileName), impl.Content, SourceFileType.Service));
+                diRegistrationsBuilder.AppendLine($"        services.AddSingleton<{s.Namespace}.{s.InterfaceName}, {s.Namespace}.{s.ServiceName}>() |> ignore");
+            }
+
+            var csprojContent = $"""
+            <Project Sdk="Microsoft.NET.Sdk">
+              <PropertyGroup>
+                <TargetFramework>net10.0</TargetFramework>
+                <Nullable>enable</Nullable>
+                <ImplicitUsings>enable</ImplicitUsings>
+                <LangVersion>latest</LangVersion>
+              </PropertyGroup>
+            </Project>
+            """;
+            files.Add(new GeneratedSourceFile(Path.Combine(csDir, $"{csProjName}.csproj"), csprojContent, SourceFileType.ProjectFile));
+        }
+
+        // 3. VB 跨語言獨立專案：src/{baseProjectName}.Logic.VB/
+        if (vbServices.Count > 0)
+        {
+            var vbProjName = $"{baseProjectName}.Logic.VB";
+            var vbDir = Path.Combine("src", vbProjName);
+            slnxBuilder.AppendLine($"  <Project Path=\"src/{vbProjName}/{vbProjName}.vbproj\" />");
+            fsprojProjectReferences.AppendLine($"    <ProjectReference Include=\"..\\{vbProjName}\\{vbProjName}.vbproj\" />");
+
+            foreach (var s in vbServices)
+            {
+                var (iface, impl) = VisualBasicLogicGenerator.Generate(s);
+                files.Add(new GeneratedSourceFile(Path.Combine(vbDir, iface.FileName), iface.Content, SourceFileType.Service));
+                files.Add(new GeneratedSourceFile(Path.Combine(vbDir, impl.FileName), impl.Content, SourceFileType.Service));
+                diRegistrationsBuilder.AppendLine($"        services.AddSingleton<{s.Namespace}.{s.InterfaceName}, {s.Namespace}.{s.ServiceName}>() |> ignore");
+            }
+
+            var vbprojContent = $"""
+            <Project Sdk="Microsoft.NET.Sdk">
+              <PropertyGroup>
+                <TargetFramework>net10.0</TargetFramework>
+                <Nullable>enable</Nullable>
+                <RootNamespace></RootNamespace>
+              </PropertyGroup>
+            </Project>
+            """;
+            files.Add(new GeneratedSourceFile(Path.Combine(vbDir, $"{vbProjName}.vbproj"), vbprojContent, SourceFileType.ProjectFile));
+        }
+
+        // 4. C++ 原生專案：src/{baseProjectName}.Logic.Cpp/ 與 F# Interop Bridge
+        if (cppServices.Count > 0)
+        {
+            var cppProjName = $"{baseProjectName}.Logic.Cpp";
+            var cppDir = Path.Combine("src", cppProjName);
+
+            foreach (var s in cppServices)
+            {
+                var (h, cpp, cmake) = CppLogicGenerator.GenerateNative(s, cppProjName);
+                files.Add(new GeneratedSourceFile(Path.Combine(cppDir, h.FileName), h.Content, SourceFileType.Service));
+                files.Add(new GeneratedSourceFile(Path.Combine(cppDir, cpp.FileName), cpp.Content, SourceFileType.Service));
+                files.Add(new GeneratedSourceFile(Path.Combine(cppDir, cmake.FileName), cmake.Content, SourceFileType.ProjectFile));
+
+                var fsIface = FSharpLogicGenerator.Generate(s);
+                var bridge = CppLogicGenerator.GenerateFSharpBridge(s, cppProjName);
+                files.Add(new GeneratedSourceFile(Path.Combine(sharedDir, "Services", fsIface.FileName), fsIface.Content, SourceFileType.Service));
+                files.Add(new GeneratedSourceFile(Path.Combine(sharedDir, "Services", bridge.FileName), bridge.Content, SourceFileType.Service));
+                fsprojCompileItems.AppendLine($"    <Compile Include=\"Services/{fsIface.FileName}\" />");
+                fsprojCompileItems.AppendLine($"    <Compile Include=\"Services/{bridge.FileName}\" />");
+
+                diRegistrationsBuilder.AppendLine($"        services.AddSingleton<{s.Namespace}.{s.InterfaceName}, {s.Namespace}.{s.ServiceName}NativeBridge>() |> ignore");
+            }
+        }
+    }
+
+    private static void ProcessLogicServicesVisualBasic(
+        FormProjectDefinition project,
+        string baseProjectName,
+        string sharedProjectName,
+        string sharedDir,
+        StringBuilder slnxBuilder,
+        StringBuilder vbprojProjectReferences,
+        StringBuilder diRegistrationsBuilder,
+        List<GeneratedSourceFile> files)
+    {
+        var allLogicServices = project.LogicServices
+            .Concat(project.Documents.SelectMany(d => d.LogicServices))
+            .DistinctBy(s => s.ServiceName)
+            .ToList();
+
+        if (allLogicServices.Count == 0) return;
+
+        var vbServices = allLogicServices.Where(s => s.Language == TargetLanguage.VisualBasic).ToList();
+        var csServices = allLogicServices.Where(s => s.Language == TargetLanguage.CSharp).ToList();
+        var fsServices = allLogicServices.Where(s => s.Language == TargetLanguage.FSharp).ToList();
+        var cppServices = allLogicServices.Where(s => s.Language == TargetLanguage.Cpp).ToList();
+
+        // 1. VB 邏輯服務（同語言）：輸出至 src/{sharedProjectName}/Services/
+        foreach (var s in vbServices)
+        {
+            var (iface, impl) = VisualBasicLogicGenerator.Generate(s);
+            files.Add(new GeneratedSourceFile(Path.Combine(sharedDir, "Services", iface.FileName), iface.Content, SourceFileType.Service));
+            files.Add(new GeneratedSourceFile(Path.Combine(sharedDir, "Services", impl.FileName), impl.Content, SourceFileType.Service));
+            diRegistrationsBuilder.AppendLine($"        services.AddSingleton(Of Global.{s.Namespace}.{s.InterfaceName}, Global.{s.Namespace}.{s.ServiceName})()");
+        }
+
+        // 2. C# 跨語言獨立專案：src/{baseProjectName}.Logic.CSharp/
+        if (csServices.Count > 0)
+        {
+            var csProjName = $"{baseProjectName}.Logic.CSharp";
+            var csDir = Path.Combine("src", csProjName);
+            slnxBuilder.AppendLine($"  <Project Path=\"src/{csProjName}/{csProjName}.csproj\" />");
+            vbprojProjectReferences.AppendLine($"    <ProjectReference Include=\"..\\{csProjName}\\{csProjName}.csproj\" />");
+
+            foreach (var s in csServices)
+            {
+                var (iface, impl) = CSharpLogicGenerator.Generate(s);
+                files.Add(new GeneratedSourceFile(Path.Combine(csDir, iface.FileName), iface.Content, SourceFileType.Service));
+                files.Add(new GeneratedSourceFile(Path.Combine(csDir, impl.FileName), impl.Content, SourceFileType.Service));
+                diRegistrationsBuilder.AppendLine($"        services.AddSingleton(Of Global.{s.Namespace}.{s.InterfaceName}, Global.{s.Namespace}.{s.ServiceName})()");
+            }
+
+            var csprojContent = $"""
+            <Project Sdk="Microsoft.NET.Sdk">
+              <PropertyGroup>
+                <TargetFramework>net10.0</TargetFramework>
+                <Nullable>enable</Nullable>
+                <ImplicitUsings>enable</ImplicitUsings>
+                <LangVersion>latest</LangVersion>
+              </PropertyGroup>
+            </Project>
+            """;
+            files.Add(new GeneratedSourceFile(Path.Combine(csDir, $"{csProjName}.csproj"), csprojContent, SourceFileType.ProjectFile));
+        }
+
+        // 3. F# 跨語言獨立專案：src/{baseProjectName}.Logic.FSharp/
+        if (fsServices.Count > 0)
+        {
+            var fsProjName = $"{baseProjectName}.Logic.FSharp";
+            var fsDir = Path.Combine("src", fsProjName);
+            slnxBuilder.AppendLine($"  <Project Path=\"src/{fsProjName}/{fsProjName}.fsproj\" />");
+            vbprojProjectReferences.AppendLine($"    <ProjectReference Include=\"..\\{fsProjName}\\{fsProjName}.fsproj\" />");
+
+            var fsCompileItems = new StringBuilder();
+            foreach (var s in fsServices)
+            {
+                var fsFile = FSharpLogicGenerator.Generate(s);
+                files.Add(new GeneratedSourceFile(Path.Combine(fsDir, fsFile.FileName), fsFile.Content, SourceFileType.Service));
+                fsCompileItems.AppendLine($"    <Compile Include=\"{fsFile.FileName}\" />");
+                diRegistrationsBuilder.AppendLine($"        services.AddSingleton(Of Global.{s.Namespace}.{s.InterfaceName}, Global.{s.Namespace}.{s.ServiceName})()");
+            }
+
+            var fsprojContent = $"""
+            <Project Sdk="Microsoft.NET.Sdk">
+              <PropertyGroup>
+                <TargetFramework>net10.0</TargetFramework>
+                <Nullable>enable</Nullable>
+                <NoWarn>$(NoWarn);FS3261;FS3262;FS3263;FS1183;FS0020;3261;3262;3263;1183;0020</NoWarn>
+              </PropertyGroup>
+
+              <ItemGroup>
+            {fsCompileItems.ToString().TrimEnd()}
+              </ItemGroup>
+            </Project>
+            """;
+            files.Add(new GeneratedSourceFile(Path.Combine(fsDir, $"{fsProjName}.fsproj"), fsprojContent, SourceFileType.ProjectFile));
+        }
+
+        // 4. C++ 原生專案：src/{baseProjectName}.Logic.Cpp/ 與 VB Interop Bridge
+        if (cppServices.Count > 0)
+        {
+            var cppProjName = $"{baseProjectName}.Logic.Cpp";
+            var cppDir = Path.Combine("src", cppProjName);
+
+            foreach (var s in cppServices)
+            {
+                var (h, cpp, cmake) = CppLogicGenerator.GenerateNative(s, cppProjName);
+                files.Add(new GeneratedSourceFile(Path.Combine(cppDir, h.FileName), h.Content, SourceFileType.Service));
+                files.Add(new GeneratedSourceFile(Path.Combine(cppDir, cpp.FileName), cpp.Content, SourceFileType.Service));
+                files.Add(new GeneratedSourceFile(Path.Combine(cppDir, cmake.FileName), cmake.Content, SourceFileType.ProjectFile));
+
+                var (iface, _) = VisualBasicLogicGenerator.Generate(s);
+                var bridge = CppLogicGenerator.GenerateVisualBasicBridge(s, cppProjName);
+                files.Add(new GeneratedSourceFile(Path.Combine(sharedDir, "Services", iface.FileName), iface.Content, SourceFileType.Service));
+                files.Add(new GeneratedSourceFile(Path.Combine(sharedDir, "Services", bridge.FileName), bridge.Content, SourceFileType.Service));
+
+                diRegistrationsBuilder.AppendLine($"        services.AddSingleton(Of Global.{s.Namespace}.{s.InterfaceName}, Global.{s.Namespace}.{s.ServiceName}NativeBridge)()");
+            }
+        }
     }
 
     /// <summary>

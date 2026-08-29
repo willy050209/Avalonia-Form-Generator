@@ -34,6 +34,11 @@ public sealed record FormProjectDefinition
     public ImmutableList<FormDocument> Documents { get; init; } = [];
 
     /// <summary>
+    /// 包含於此專案的全域/跨表單獨立業務邏輯服務清單。
+    /// </summary>
+    public ImmutableList<AFG.Core.Models.Logic.LogicServiceDefinition> LogicServices { get; init; } = [];
+
+    /// <summary>
     /// 目標程式語言（預設為 CSharp）。
     /// </summary>
     public TargetLanguage TargetLanguage { get; init; } = TargetLanguage.CSharp;
@@ -52,6 +57,7 @@ public sealed record FormProjectDefinition
         Title = doc.Title,
         TargetLanguage = doc.TargetLanguage,
         InitialFormName = doc.ViewClassName,
-        Documents = [doc]
+        Documents = [doc],
+        LogicServices = doc.LogicServices
     };
 }

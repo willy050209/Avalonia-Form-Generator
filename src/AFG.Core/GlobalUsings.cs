@@ -8,5 +8,6 @@ global using System.Text.Json.Serialization;
 global using AFG.Core.Enums;
 global using AFG.Core.Models.Ast;
 global using AFG.Core.Models.Common;
+global using AFG.Core.Models.Logic;
 global using AFG.Core.Serialization;
 global using AFG.Core.Validation;

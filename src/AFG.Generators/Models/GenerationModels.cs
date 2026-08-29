@@ -8,6 +8,7 @@ public enum SourceFileType
 {
     View,
     ViewModel,
+    Service,
     ProjectFile,
     SolutionFile
 }

@@ -140,6 +140,11 @@ public sealed record FormDocument
     public ImmutableList<ServiceDependencyDefinition> InjectedServices { get; init; } = [];
 
     /// <summary>
+    /// 關聯於此表單或專案的獨立業務邏輯服務清單。
+    /// </summary>
+    public ImmutableList<AFG.Core.Models.Logic.LogicServiceDefinition> LogicServices { get; init; } = [];
+
+    /// <summary>
     /// 表單與視窗生命週期事件映射清單（例如 Loaded, Unloaded, PointerPressed, SizeChanged, KeyDown, KeyUp 等）。
     /// </summary>
     public ImmutableList<EventMappingDefinition> Events { get; init; } = [];

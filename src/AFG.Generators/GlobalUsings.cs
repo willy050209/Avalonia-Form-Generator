@@ -10,6 +10,7 @@ global using System.Threading.Tasks;
 global using AFG.Core.Enums;
 global using AFG.Core.Models.Ast;
 global using AFG.Core.Models.Common;
+global using AFG.Core.Models.Logic;
 global using AFG.Generators.Abstractions;
 global using AFG.Generators.Models;
 global using Microsoft.CodeAnalysis;

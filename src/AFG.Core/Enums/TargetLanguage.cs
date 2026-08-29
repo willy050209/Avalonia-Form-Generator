@@ -19,5 +19,10 @@ public enum TargetLanguage
     /// <summary>
     /// Visual Basic (.vb, .vbproj)
     /// </summary>
-    VisualBasic = 2
+    VisualBasic = 2,
+
+    /// <summary>
+    /// C++ (.h, .cpp, CMake)
+    /// </summary>
+    Cpp = 3
 }
