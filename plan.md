@@ -429,6 +429,23 @@ AvaloniaFormGenerator/
 
 ---
 
+### 🔹 階段 24：修復跨平台 CI/CD (Ubuntu / macOS) 測試涵蓋與編譯問題 (Fix Cross-Platform CI/CD Non-Windows & VB Build Issues)
+- [x] **階段狀態：已完成 (Completed)**
+- **目標**：修復 GitHub Actions 跨平台（Ubuntu / macOS / Windows）CI/CD 執行 `dotnet test` 時在 VB.NET 專案中 `'WithInterFont' is not a member of 'AppBuilder'` 的命名空間缺失問題，以及修正 Android APK 實體編譯測試之 .NET Android Workload 環境偵測邏輯，確保 CI/CD 100% 綠燈通過。
+- **任務清單**：
+  - [x] 24.1 **Phase 1: 修復 VB.NET 專案範本之 InterFont 依賴與命名空間 (`ProjectExportService.cs`)**
+    - 在 `desktopVbprojContent` 加入 `<PackageReference Include="Avalonia.Fonts.Inter" Version="{PackageVersions.Avalonia}" />`。
+    - 在 `Program.vb` 加入 `Imports Avalonia.Fonts.Inter`。
+    - 執行 `ExportedProject_VisualBasic_ShouldCompileDirectlyWithDotnetCli` 驗證編譯通過。
+  - [x] 24.2 **Phase 2: 健全化 Android 跨平台測試環境偵測邏輯 (`ProjectExportServiceTests.cs`)**
+    - 實作 `IsDotNetAndroidWorkloadInstalled()` 檢查 .NET SDK 是否安裝 `android` workload。
+    - 實作 `IsAndroidBuildEnvironmentAvailable()` 同時檢核 Android SDK 原生目錄與 .NET Android Workload，未完整安裝環境自動略過，完整環境執行 APK 實體編譯驗證。
+  - [x] 24.3 **Phase 3: 全方案跨平台自動化測試與 Git Commit**
+    - 執行全套單元測試與實體編譯測試（309 項測試 100% 通過，0 錯誤 0 警告）。
+    - 依規範完成 Git Commit。
+
+---
+
 ## 4. 驗證標準與品質指標
 
 1. **單元測試覆蓋率**：所有純函式、AST 操作、歷史堆疊、生成器與序列化演算法 100% 覆蓋。

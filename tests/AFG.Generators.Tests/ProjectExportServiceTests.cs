@@ -1412,9 +1412,9 @@ public sealed class ProjectExportServiceTests
     [Fact]
     public async Task ExportedProject_Android_ShouldCompileAndGenerateApk_WhenAndroidSdkAvailable()
     {
-        if (!IsAndroidSdkInstalled())
+        if (!IsAndroidBuildEnvironmentAvailable())
         {
-            // 未安裝 Android SDK 之環境自動略過測試
+            // 未完整安裝 Android SDK 或 .NET Android Workload 之環境自動略過測試
             return;
         }
 
@@ -1704,6 +1704,53 @@ public sealed class ProjectExportServiceTests
                 }
                 catch { }
             }
+        }
+    }
+
+    /// <summary>
+    /// 檢查當前執行環境是否已完整安裝 Android SDK 與 .NET Android Workload。
+    /// </summary>
+    private static bool IsAndroidBuildEnvironmentAvailable()
+    {
+        if (!IsAndroidSdkInstalled())
+        {
+            return false;
+        }
+
+        return IsDotNetAndroidWorkloadInstalled();
+    }
+
+    /// <summary>
+    /// 檢查 .NET SDK 是否已安裝 android workload。
+    /// </summary>
+    private static bool IsDotNetAndroidWorkloadInstalled()
+    {
+        try
+        {
+            var psi = new ProcessStartInfo
+            {
+                FileName = "dotnet",
+                Arguments = "workload list",
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            };
+
+            using var process = Process.Start(psi);
+            if (process is null)
+            {
+                return false;
+            }
+
+            var stdout = process.StandardOutput.ReadToEnd();
+            process.WaitForExit(5000);
+
+            return stdout.Contains("android", StringComparison.OrdinalIgnoreCase);
+        }
+        catch
+        {
+            return false;
         }
     }
 
