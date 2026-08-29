@@ -109,11 +109,12 @@
 - **一鍵匯出跨平台專案**：點選「檔案 > 匯出完整跨平台專案...」或按 `Ctrl+Shift+E`，系統自動產出包含自訂專案名稱的 `.slnx` 方案、`.Shared` 核心（含 `INavigationService` 導航與動態 DI 容器）、`.Desktop` 與可選的 `.Android` 宿主專案！
   - **Android 專案支援與 APK 編譯**：生成的 `.Android` 專案內建完整的 Android 資源階層（`Resources/values/styles.xml`、`Resources/drawable/icon.xml` 與 `AndroidManifest.xml`），並配置 `<AndroidPackageFormat>apk</AndroidPackageFormat>`。在安裝有 Android SDK 的環境下，可透過 `dotnet build -c Release -t:SignAndroidPackage` 或 `dotnet publish -c Release` 直接編譯產出 Signed APK 安裝包。
 
-### 2.7 目標語言選擇 (C# / F# / Visual Basic .NET)
+### 2.7 目標語言選擇 (C# / F# / Visual Basic .NET / C++)
 - **多語言程式碼生成切換**：在右側屬性檢查器的「表單屬性 > 外觀 > 專案與類別架構」中，提供「目標語言 (Target Language)」下拉選單：
   - **`CSharp`** (C# 14 / .NET 10)：產出現代化 C# Declarative UI View、`CommunityToolkit.Mvvm` ViewModel、強型別 Lambda 綁定與完整 `.csproj` 方案。
   - **`FSharp`** (F# 9 / .NET 10)：產出純 F# Avalonia View (`UserControl`)、`ObservableObject` ViewModel、`App.fs`、`Config.fs` 與依照嚴格編譯相依性排序之 `.fsproj` 方案。
   - **`VisualBasic`** (Visual Basic .NET 10)：產出標準 VB.NET View (`WithEvents` 控制項欄位、`InitializeComponent`)、`ObservableObject` ViewModel、`Config.vb` 與 `.vbproj` 方案。
+  - **`Cpp`** (C++ 20 / CMake / P/Invoke)：產出原生 C++ 標頭檔、實作檔、`CMakeLists.txt` 與 C#/F#/VB 之 P/Invoke Bridge 互通類別。
 - **即時代碼預覽與語法高亮**：切換目標語言後，底部代碼預覽區立即切換為對應語言之原始碼，並由 `CSharpSyntaxColorizer` 自動套用 VS Dark+ 語法著色高亮。
 - **一鍵多語言專案匯出**：匯出專案時，系統會依據表單所選之目標語言產出對應的 `.csproj` / `.fsproj` / `.vbproj` 跨平台專案，所有專案皆支援 `dotnet build` 與 `dotnet run` 直接編譯執行。
 
@@ -135,10 +136,19 @@
   - **視窗行為開關**：設定「允許調整大小 (CanResize)」、「視窗永遠置頂 (Topmost)」與「在工作列顯示 (ShowInTaskbar)」。
 - **即時連動與復原支援**：所有表單屬性變更皆會即時反映至畫布與底部 View / MainWindow 程式碼預覽，並自動推入 `Ctrl+Z` 歷史復原堆疊。
 
-### 2.9 跨平台二進位版本發布 (v1.0.0 Release Matrix)
+### 2.9 多語言業務邏輯函數生成與跨語言專案配置 (Multi-Language Logic Functions)
+- **View / ViewModel 徹底解耦**：業務邏輯獨立生成於服務層，ViewModel 透過依賴注入取得服務實例，保持關注點分離。
+- **靈活配置函數與參數**：支援為邏輯服務指定獨立命名空間 (Namespace)、函數名稱、回傳型態、非同步 (`IsAsync`) 標記與強型別參數清單（含型態與預設值）。
+- **跨語言獨立專案自動配置**：
+  - 當邏輯語言與主專案相同時，直接生成至 `.Shared/Services/`。
+  - 當邏輯語言不同時（如 C# 專案搭配 F#/VB.NET 邏輯），自動生成獨立類別庫專案（如 `src/{ProjectName}.Logic.FSharp/`、`src/{ProjectName}.Logic.VB/`），自動加入方案檔 `.slnx` 與主專案 `<ProjectReference>`。
+  - 若選擇 C++ 語言，自動產出原生模組（含 `CMakeLists.txt`、`.h`、`.cpp`）與主專案 P/Invoke Interop Bridge 類別。
+  - 在 `App` 入口點自動註冊依賴注入 (`services.AddSingleton`)。
+
+### 2.10 跨平台二進位版本發布 (v1.0.0 Release Matrix)
 - **主流 4 大架構發布產物**：
   - `AFG-win-x64.zip` (Windows 64 位元)
   - `AFG-linux-x64.tar.gz` (Linux x64)
   - `AFG-osx-x64.tar.gz` (macOS Intel x64)
   - `AFG-osx-arm64.tar.gz` (macOS Apple Silicon M 系列)
-- **CI/CD 自動化安全驗證**：GitHub Actions 在所有平台單元與整合測試 100% 通過後自動產出 Single-File 自包含執行檔並發布至 GitHub Releases。
+- **CI/CD 自動化安全驗證**：GitHub Actions 在 Windows、Linux、macOS 全平台單元與整合測試（325 項測試）100% 通過後自動產出 Single-File 自包含執行檔並發布至 GitHub Releases。

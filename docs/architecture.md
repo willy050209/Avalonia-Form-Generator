@@ -47,13 +47,17 @@ graph TD
         FormCodeGen["FormCodeGenerator (Facade)"]
         MarkupGen["CSharpMarkupViewGenerator (nameof & Lambda Bindings)"]
         MvvmGen["MvvmViewModelGenerator (Dynamic DI & Custom Types)"]
+        FSharpGen["FSharpViewGenerator & FSharpViewModelGenerator"]
+        VBGen["VisualBasicViewGenerator & VisualBasicViewModelGenerator"]
+        LogicGen["CSharp / FSharp / VB / Cpp LogicGenerators"]
         RoslynComp["RoslynCompilerService (In-Memory Emit)"]
-        ExportSvc["ProjectExportService (Multi-Form .slnx, .Shared, .Desktop, .Android)"]
+        ExportSvc["ProjectExportService (Multi-Form .slnx, .Shared, .Desktop, .Android, .Logic)"]
         PkgConst["PackageVersions (Centralized Package Constants)"]
     end
 
     subgraph Core AST Layer
         AstModel["AstNode / FormDocument / FormProjectDefinition"]
+        LogicModel["LogicServiceDefinition / LogicFunctionDefinition / FunctionParameter"]
         AstOps["AstTreeOperations (Clone, Align, Distribute, Clamp)"]
         AstValid["AstValidator (Semantic & Naming Validation)"]
         Serializer["AfgSerializer (System.Text.Json)"]
@@ -71,13 +75,18 @@ graph TD
     MainView --> FormCodeGen
     FormCodeGen --> MarkupGen
     FormCodeGen --> MvvmGen
+    FormCodeGen --> FSharpGen
+    FormCodeGen --> VBGen
+    FormCodeGen --> LogicGen
     FormCodeGen --> RoslynComp
     FormCodeGen --> ExportSvc
     ExportSvc --> PkgConst
     
     MarkupGen --> AstModel
     MvvmGen --> AstModel
+    LogicGen --> LogicModel
     ExportSvc --> AstModel
+    ExportSvc --> LogicModel
     DesignCanvas --> AstOps
     Inspector --> AstValid
 ```
@@ -86,20 +95,20 @@ graph TD
 
 ## 3. 相依性注入 (DI) 與多表單導航架構設計
 
-在產生的專案中，透過 `Microsoft.Extensions.DependencyInjection` 建立跨平台服務容器，並提供統一的 `INavigationService` 支援多表單視圖切換：
+在產生的專案中，透過 `Microsoft.Extensions.DependencyInjection` 建立跨平台服務容器，並提供統一的 `INavigationService` 支援多表單視圖切換與獨立業務邏輯服務注入：
 
 ```mermaid
 graph TD
-    App["App.cs (ServiceCollection, ServiceProvider, SetActiveView)"]
+    App["App.cs/fs/vb (ServiceCollection, ServiceProvider, SetActiveView)"]
     
     subgraph Navigation Layer
         INav["INavigationService"]
         Nav["NavigationService (IServiceProvider)"]
     end
 
-    subgraph Custom Services Layer
-        IService["IOrderService / IAuthService (User Configured)"]
-        ServiceImpl["OrderService / AuthService"]
+    subgraph Business Logic Services Layer
+        ILogic["IOrderService / ITaxEngine / INativeCrypto"]
+        LogicImpl["OrderService (C#) / TaxEngine (F#) / NativeCrypto (C++ Bridge)"]
     end
 
     subgraph ViewModel Layer
@@ -114,14 +123,14 @@ graph TD
 
     App -->|Register Singleton| INav
     INav -.-> Nav
-    App -->|Register Singleton| IService
-    IService -.-> ServiceImpl
+    App -->|Register Singleton| ILogic
+    ILogic -.-> LogicImpl
     App -->|Register Transient| VM1
     App -->|Register Transient| VM2
     App -->|Register Transient| View1
     App -->|Register Transient| View2
     
-    VM2 -->|Constructor Injection| IService
+    VM2 -->|Constructor Injection| ILogic
     Nav -->|NavigateTo<TView>| App
 ```
 
@@ -146,14 +155,14 @@ sequenceDiagram
     Canvas->>AST: 更新 AstNode 幾何座標與階層
     AST-->>Inspector: 同步反映選取節點屬性數值
     AST->>Generator: 觸發即時程式碼生成
-    Generator->>Preview: 格式化 View.cs 與 ViewModel.cs
+    Generator->>Preview: 格式化 View 與 ViewModel
 
     User->>Inspector: 修改文字 / 設定色碼 / 選擇自訂型別 / 設定命令
     Inspector->>History: 紀錄快照 (Push Memento)
     Inspector->>AST: 發布 NodeUpdated 事件更新 AST
     AST-->>Canvas: 遞迴重新渲染畫布控制項與選取框
     AST->>Generator: 觸發即時程式碼生成
-    Generator->>Preview: 即時刷新 C# 程式碼
+    Generator->>Preview: 即時刷新代碼預覽
 ```
 
 ---
@@ -162,7 +171,7 @@ sequenceDiagram
 
 | 專案模組 | 職責劃分 | 關鍵類別 |
 | :--- | :--- | :--- |
-| **`AFG.Core`** | UI AST 節點定義、多語言列舉 (`TargetLanguage`)、多表單專案定義、表單與視窗控制屬性系統 (`WindowStartupLocation`, `WindowState`, `SystemDecorations`)、多參數事件規格 (`EventParameterDefinition`)、控制項與對話方塊專屬事件目錄 (`ControlEventCatalog`)、純函數樹操作（遞迴複製、對齊、均分、限制邊界、容器子節點重排）、驗證與 JSON 序列化 | `AstNode`, `FormDocument`, `FormProjectDefinition`, `TargetLanguage`, `EventMappingDefinition`, `EventParameterDefinition`, `ControlEventCatalog`, `AstTreeOperations`, `AstValidator`, `AfgSerializer` |
-| **`AFG.Generators`** | 多語言程式碼生成分派器 (`FormCodeGenerator`)、C# Declarative UI 程式碼生成、F# 程式碼生成 (`FSharpViewGenerator`, `FSharpViewModelGenerator`)、Visual Basic (.NET) 程式碼生成 (`VisualBasicViewGenerator`, `VisualBasicViewModelGenerator`)、PictureBox Bitmap 初始化與相對資源路徑 (`avares://`) 生成、CommunityToolkit.Mvvm 多參數 ValueTuple 安全生成、對話方塊跨平台服務 (`IDialogService`, `DialogService`, `MessageBoxWindow`)、視窗啟動與全域組態 (`App.cs/fs/vb`, `Config.cs/fs/vb`) 生成、動態 DI 生成、版本常數管理、Roslyn 格式化、多表單專案匯出 (.csproj / .fsproj / .vbproj 與 .slnx) 與實體 Assets 自動複製 | `FormCodeGenerator`, `CSharpMarkupViewGenerator`, `MvvmViewModelGenerator`, `FSharpViewGenerator`, `FSharpViewModelGenerator`, `VisualBasicViewGenerator`, `VisualBasicViewModelGenerator`, `AvaloniaMarkupExtensionsSource`, `PackageVersions`, `RoslynCompilerService`, `ProjectExportService` |
+| **`AFG.Core`** | UI AST 節點定義、多語言列舉 (`TargetLanguage` 含 C#, F#, VB, C++)、業務邏輯模型 (`LogicServiceDefinition`, `LogicFunctionDefinition`, `FunctionParameter`)、多表單專案定義、表單與視窗控制屬性系統 (`WindowStartupLocation`, `WindowState`, `SystemDecorations`)、多參數事件規格 (`EventParameterDefinition`)、控制項與對話方塊專屬事件目錄 (`ControlEventCatalog`)、純函數樹操作（遞迴複製、對齊、均分、限制邊界、容器子節點重排）、驗證與 JSON 序列化 | `AstNode`, `FormDocument`, `FormProjectDefinition`, `TargetLanguage`, `LogicServiceDefinition`, `LogicFunctionDefinition`, `FunctionParameter`, `EventMappingDefinition`, `EventParameterDefinition`, `ControlEventCatalog`, `AstTreeOperations`, `AstValidator`, `AfgSerializer` |
+| **`AFG.Generators`** | 多語言程式碼生成分派器 (`FormCodeGenerator`)、C# Declarative UI 程式碼生成、F# 程式碼生成 (`FSharpViewGenerator`, `FSharpViewModelGenerator`)、Visual Basic (.NET) 程式碼生成 (`VisualBasicViewGenerator`, `VisualBasicViewModelGenerator`)、多語言業務邏輯生成 (`CSharpLogicGenerator`, `FSharpLogicGenerator`, `VisualBasicLogicGenerator`, `CppLogicGenerator`)、PictureBox Bitmap 初始化與相對資源路徑 (`avares://`) 生成、CommunityToolkit.Mvvm 多參數 ValueTuple 安全生成、對話方塊跨平台服務 (`IDialogService`, `DialogService`, `MessageBoxWindow`)、視窗啟動與全域組態 (`App.cs/fs/vb`, `Config.cs/fs/vb`) 生成、動態 DI 生成、版本常數管理、Roslyn 格式化、多表單多專案跨語言匯出 (.csproj / .fsproj / .vbproj / CMake 與 .slnx) 與實體 Assets 自動複製 | `FormCodeGenerator`, `CSharpMarkupViewGenerator`, `MvvmViewModelGenerator`, `FSharpViewGenerator`, `FSharpViewModelGenerator`, `VisualBasicViewGenerator`, `VisualBasicViewModelGenerator`, `CSharpLogicGenerator`, `FSharpLogicGenerator`, `VisualBasicLogicGenerator`, `CppLogicGenerator`, `AvaloniaMarkupExtensionsSource`, `PackageVersions`, `RoslynCompilerService`, `ProjectExportService` |
 | **`AFG.Shared`** | 視覺畫布（遞迴容器、橡皮筋框選、容器拖曳重排指示線、不可視與對話方塊元件徽章卡片、PictureBox 實體圖片預覽與 Bitmap 初始化視覺、畫布背景色即時渲染、差量更新演算法 `TryPatchElements`）、8 點縮放裝飾器、對齊吸附計算、裝置解析度模型、可摺疊面板排版、歷史堆疊、屬性檢查器（表單/控制項模式切換、目標語言選擇、視窗外觀/尺寸/行為屬性編輯面板、色碼輸入與色票快捷列、視窗圖示選擇、焦點保護、專屬事件與型別過濾、參數去重、圖片檔案對話框瀏覽）、`BitmapHelper` / `BitmapExtensions`、`CSharpSyntaxColorizer` (VS Code Dark+ 多語言 C#/F#/VB 語法高亮)、`SelectableTextBlock` | `DesignCanvas`, `HistoryManager`, `SnappingEngine`, `CanvasPreset`, `MainViewModel`, `InspectorViewModel`, `CanvasViewModel`, `BitmapHelper`, `BitmapExtensions`, `CSharpSyntaxColorizer` |
 | **`AFG.Desktop`** | Windows/macOS/Linux 桌面應用程式進入點、最大化視窗啟動與本機平台服務 | `Program`, `MainWindow`, `DesktopFileDialogService`, `DesktopClipboardService` |

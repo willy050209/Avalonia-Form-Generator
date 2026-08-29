@@ -30,12 +30,36 @@
   "showInTaskbar": true,
   "icon": "Assets/app_icon.ico",
   "systemDecorations": "Full",
+  "targetLanguage": "CSharp",
+  "architectureMode": "Hybrid",
   "enableDependencyInjection": true,
   "useCompiledBindings": false,
   "injectedServices": [
     {
       "interfaceName": "IUserService",
       "implementationName": "UserService"
+    }
+  ],
+  "logicServices": [
+    {
+      "serviceName": "OrderCalculator",
+      "namespace": "App.Services",
+      "language": "CSharp",
+      "description": "訂單金額與折扣計算服務",
+      "functions": [
+        {
+          "name": "CalculateTotal",
+          "returnType": "decimal",
+          "isAsync": false,
+          "description": "計算訂單總金額",
+          "parameters": [
+            { "name": "unitPrice", "type": "decimal", "description": "單價" },
+            { "name": "quantity", "type": "int", "description": "數量" },
+            { "name": "discountRate", "type": "decimal", "defaultValue": "0m", "description": "折扣率" }
+          ],
+          "customImplementation": "return (unitPrice * quantity) * (1m - discountRate);"
+        }
+      ]
     }
   ],
   "rootNode": { ... }
@@ -48,9 +72,11 @@
 | :--- | :--- | :--- | :--- |
 | `schemaVersion` | `string` | `"1.0"` | AFG Schema 版本號 |
 | `projectName` | `string?` | `null` | 匯出方案與專案名稱（若未指定則自動由 `viewClassName` 推斷，例如 `MainFormApp`） |
-| `rootNamespace` | `string` | `"GeneratedApp.Views"` | 生成 C# 類別的命名空間 |
+| `rootNamespace` | `string` | `"GeneratedApp.Views"` | 生成程式碼類別的命名空間 |
 | `viewClassName` | `string` | `"MainFormView"` | 生成的 View 類別名稱 |
 | `viewModelClassName` | `string` | `"MainFormViewModel"` | 生成的 ViewModel 類別名稱 |
+| `targetLanguage` | `TargetLanguage` | `CSharp` | 目標語言選項 (`CSharp`, `FSharp`, `VisualBasic`, `Cpp`) |
+| `architectureMode` | `ArchitectureMode` | `Hybrid` | 代碼架構模式 (`Hybrid`, `CodeBehind`, `PureMvvm`) |
 | `title` | `string` | `"Avalonia Form"` | 視窗/表單標題 |
 | `backgroundColor` | `string?` | `null` | 表單與視窗背景色彩代碼（例如 `#FFFFFF`, `#1E1E2E`） |
 | `canvasWidth` | `double` | `800.0` | 設計畫布寬度 (px) |
@@ -69,6 +95,7 @@
 | `enableDependencyInjection` | `bool` | `true` | 是否在此表單啟用相依性注入架構配置 |
 | `useCompiledBindings` | `bool` | `true` | 是否生成強型別編譯綁定 (Compiled / Lambda Bindings) 語法（預設為 true） |
 | `injectedServices` | `Array<ServiceDependencyDefinition>` | `[]` | 注入至此 ViewModel 的自訂服務相依性清單 |
+| `logicServices` | `Array<LogicServiceDefinition>` | `[]` | 關聯至此表單之獨立業務邏輯服務清單（支援多語言、獨立命名空間與函數定義） |
 | `events` | `Array<EventMappingDefinition>` | `[]` | 表單與視窗層級全域生命週期與互動事件掛載清單（例如 `Loaded`, `PointerPressed`, `SizeChanged`） |
 | `rootNode` | `AstNode` | *(Canvas 根節點)* | 頂層容器節點 |
 
@@ -76,7 +103,7 @@
 
 ## 2. 多表單專案綱要 (FormProjectDefinition Schema)
 
-多表單專案聚合多個 `FormDocument`，並在匯出時建立 `INavigationService` 支援跨表單導航：
+多表單專案聚合多個 `FormDocument` 與全域 `LogicServices`，並在匯出時建立 `INavigationService` 支援跨表單導航：
 
 ```csharp
 public sealed record FormProjectDefinition
@@ -85,7 +112,51 @@ public sealed record FormProjectDefinition
     public string RootNamespace { get; init; } = "MainFormApp";
     public string Title { get; init; } = "Avalonia Application";
     public string InitialFormName { get; init; } = "MainFormView";
+    public TargetLanguage TargetLanguage { get; init; } = TargetLanguage.CSharp;
     public ImmutableList<FormDocument> Documents { get; init; } = [];
+    public ImmutableList<LogicServiceDefinition> LogicServices { get; init; } = [];
+}
+```
+
+---
+
+## 3. 業務邏輯服務與函數綱要 (Logic Services & Functions Schema)
+
+### 3.1 `LogicServiceDefinition`
+```csharp
+public sealed record LogicServiceDefinition
+{
+    public string ServiceName { get; init; } = "AppLogicService";
+    public string Namespace { get; init; } = "App.Services";
+    public TargetLanguage Language { get; init; } = TargetLanguage.CSharp;
+    public string? Description { get; init; }
+    public ImmutableList<LogicFunctionDefinition> Functions { get; init; } = [];
+
+    public string InterfaceName => ServiceName.StartsWith('I') ? ServiceName : $"I{ServiceName}";
+}
+```
+
+### 3.2 `LogicFunctionDefinition`
+```csharp
+public sealed record LogicFunctionDefinition
+{
+    public string Name { get; init; } = "ExecuteLogic";
+    public string ReturnType { get; init; } = "void";
+    public bool IsAsync { get; init; }
+    public string? Description { get; init; }
+    public string? CustomImplementation { get; init; }
+    public ImmutableList<FunctionParameter> Parameters { get; init; } = [];
+}
+```
+
+### 3.3 `FunctionParameter`
+```csharp
+public sealed record FunctionParameter
+{
+    public string Name { get; init; } = "param";
+    public string Type { get; init; } = "string";
+    public string? DefaultValue { get; init; }
+    public string? Description { get; init; }
 }
 ```
 

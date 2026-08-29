@@ -31,6 +31,7 @@ graph LR
 | :--- | :--- | :--- |
 | **基礎控制項** | `Button`, `TextBox`, `TextBlock`, `CheckBox`, `RadioButton`, `ComboBox`, `DatePicker`, `Slider`, `ProgressBar`, `PictureBox` | 支援完整幾何、外觀、雙向/單向資料綁定、影像來源 (Source/ImageLocation) 與縮放模式 (Stretch/SizeMode) 與命令事件轉換 |
 | **多媒體元件** | `MediaPlayer` (`MediaPlayerControl`) | 跨平台現代化多媒體播放元件，支援本地與雲端 URL 串流資源載入 (`Load`/`Source`)、播放 (`Play`)、暫停 (`Pause`)、停止 (`Stop`)、音量 (`Volume`)、位置搜尋 (`Position`)、循環 (`IsLooping`)、自動播放 (`AutoPlay`) 與**當前影格截圖轉點陣圖 (`CaptureFrame`/`CaptureFrameAsync` -> `Bitmap`)** |
+| **業務邏輯函數生成** | `LogicService`, `LogicFunction`, `FunctionParameter` | 支援多語言（C#、F#、VB.NET、C++）獨立業務邏輯函數與服務生成，支援自訂命名空間、同步/非同步、參數強型別與預設值、跨語言獨立專案自動配置與 DI 容器自動註冊 |
 | **版面配置容器** | `Canvas`, `StackPanel`, `Grid`, `Border`, `DockPanel`, `WrapPanel`, `ScrollViewer` | 支援巢狀拖曳放入、自動流式排版、列/欄定義與視覺樹精準選取 |
 | **對話方塊元件** | `OpenFileDialog`, `SaveFileDialog`, `MessageBox` | 支援開檔、存檔與訊息對話方塊，在畫布上具備獨立徽章預覽卡片，支援回呼事件（`FileOk`, `Confirmed`）與跨平台 `IDialogService` 服務注入呼叫 |
 | **除錯與日誌工具** | `DebugConsole` | 內嵌 Debug/Log 主控台元件，支援 `Microsoft.Extensions.Logging` 攔截、繼承 `System.IO.TextWriter` 支援標準輸出 (`Console.Out`/`Console.Error`) 重定向、即時日誌流過濾與一鍵清除 |
@@ -75,8 +76,18 @@ graph LR
    - **多參數事件轉命令 (`Event-to-Command Mapping`)**：自動將 Click / SelectionChanged / Tick 等事件映射為 RelayCommand，支援事件專屬 EventArgs 型別過濾與多參數配置，並預設傳遞 `(sender, e)`。
    - **ValueTuple 安全性防護**：產生的命令參數宣告為可為空型別 (`(sender, e)? args = null`)，確保 CommunityToolkit.Mvvm 的 `CanExecute(null)` 正確判定，絕不引發按鈕禁用或閃退。
 
-3. **相依性注入與跨平台多專案生成 (`AFG.Generators`)**
-   - **全面整合 `Microsoft.Extensions.DependencyInjection` 與 `Microsoft.Extensions.Logging`**：在 `App.cs` 配置 `ServiceCollection` / `ServiceProvider`，自動註冊 Services、ViewModels、Views 與 Logging 體系，支援 ViewModel 建構子相依性注入與 `ILogger<T>` 注入。
+3. **多語言業務邏輯函數生成與跨語言專案整合 (`AFG.Generators.Logic`)**
+   - **View / ViewModel 徹底解耦**：業務邏輯獨立生成於服務層，透過依賴注入由 ViewModel 使用。
+   - **自訂命名空間與靈活函數元資料**：支援指定獨立 Namespace、函數名稱、回傳型態、參數型態與預設值、同步/非同步 (`IsAsync`) 標記。
+   - **多語言支援**：
+     - **C#** (`CSharpLogicGenerator`)：生成 `I{ServiceName}.cs` 與 `{ServiceName}.cs`（支援 `Task` / `Task<T>` 與 `CancellationToken`）。
+     - **F#** (`FSharpLogicGenerator`)：生成符合 F# 規範之介面與型別實作（使用 `task { ... }` 運算式）。
+     - **VB.NET** (`VisualBasicLogicGenerator`)：生成 `I{ServiceName}.vb` 與 `{ServiceName}.vb`（使用 `Async Function ... As Task(Of T)`）。
+     - **C++** (`CppLogicGenerator`)：生成原生 C++ 標頭檔 (`.h`)、實作檔 (`.cpp`)、`CMakeLists.txt` 以及各語言專屬之 P/Invoke Bridge 封裝類別。
+   - **跨語言獨立專案自動配置**：若邏輯語言與主專案不同（如 C# 專案搭配 F#/VB.NET 邏輯），自動生成獨立 Class Library 專案（如 `src/{ProjectName}.Logic.FSharp/`、`src/{ProjectName}.Logic.VB/`），自動加入 `.slnx` 方案檔與主專案 `<ProjectReference>`，並在 `App` 入口點自動完成 DI 容器註冊。
+
+4. **相依性注入與跨平台多專案生成 (`AFG.Generators`)**
+   - **全面整合 `Microsoft.Extensions.DependencyInjection` 與 `Microsoft.Extensions.Logging`**：在 `App.cs/fs/vb` 配置 `ServiceCollection` / `ServiceProvider`，自動註冊 Services、ViewModels、Views 與 Logging 體系，支援 ViewModel 建構子相依性注入與 `ILogger<T>` 注入。
    - **開箱即用內嵌 Debug Console 與 TextWriter 重定向**：內建 `InMemoryLogService`、`InMemoryLoggerProvider` 與繼承自 `System.IO.TextWriter` 的 `ConsoleRedirectWriter`，無縫攔截 `ILogger` 與 `Console.Out` / `Console.Error`，提供一鍵清除與即時日誌流檢視。
    - **純 C# Markup 宣告式 UI 與物件名稱註解**：無 AXAML 依賴，採用 Fluent Method Chaining 鏈式調用，並在 View 中每個物件的建構子上方自動加入該物件名稱註解（例如 `// LoginButton`、`// MainCanvas`），提升程式碼可讀性。
    - **跨平台對話方塊服務 (`IDialogService` & `MessageBoxWindow`)**：匯出專案內建開檔、存檔與訊息對話方塊支援，整合 Avalonia 原生 `StorageProvider` 與現代化對話視窗。
@@ -84,8 +95,8 @@ graph LR
    - **可配置視窗尺寸與啟動狀態**：依設計器與解析度規格生成標準視窗尺寸 (`Width` / `Height` / `Min` / `Max`)、`Background`、`WindowStartupLocation`、`WindowState`、`CanResize`、`Topmost` 與 `ShowInTaskbar`。
    - **Roslyn 格式化與記憶體編譯診斷**：使用 Roslyn 語法樹標準化縮排，並在記憶體中編譯檢查，即時提供語法警告。
 
-4. **專案檔保存與載入 (`.afg.json`)**
-   - 完整支援將設計中介語意樹（包含視窗控制屬性與畫布狀態）序列化為 JSON 檔，方便團隊協同與二次編輯。
+5. **專案檔保存與載入 (`.afg.json`)**
+   - 完整支援將設計中介語意樹（包含視窗控制屬性、業務邏輯函數與畫布狀態）序列化為 JSON 檔，方便團隊協同與二次編輯。
 
 ---
 
@@ -96,17 +107,19 @@ graph LR
 ```text
 AvaloniaFormGenerator/
 ├── src/
-│   ├── AFG.Core/                         # [核心層] UI AST 中介模型、不可變結構、純函數樹操作、驗證與 JSON 序列化
-│   │   ├── Enums/                        # 控制項類型、佈局模式、綁定模式、視窗屬性等列舉
-│   │   ├── Models/Ast/                   # AstNode, FormDocument, BindingDefinition, EventMapping, ControlEventCatalog
+│   ├── AFG.Core/                         # [核心層] UI AST 中介模型、Logic 模型、不可變結構、純函數樹操作、驗證與 JSON 序列化
+│   │   ├── Enums/                        # 控制項類型、佈局模式、綁定模式、目標語言 (CSharp/FSharp/VB/Cpp)
+│   │   ├── Models/Ast/                   # AstNode, FormDocument, FormProjectDefinition, EventMapping
+│   │   ├── Models/Logic/                 # LogicServiceDefinition, LogicFunctionDefinition, FunctionParameter
 │   │   ├── Models/Common/                # ThicknessModel, CornerRadiusModel, GridLengthModel
 │   │   ├── Serialization/                # AfgSerializer (.afg.json 專案檔讀寫)
 │   │   └── Validation/                   # AstValidator (防禦性與命名規範檢查)
 │   │
-│   ├── AFG.Generators/                   # [程式碼生成引擎] Roslyn 格式化、C# Declarative View 生成、Mvvm 生成與專案匯出
+│   ├── AFG.Generators/                   # [程式碼生成引擎] Roslyn 格式化、多語言 View/ViewModel 生成、Logic 邏輯生成與專案匯出
 │   │   ├── Abstractions/                 # ICodeGenerator, IRoslynCompilerService
 │   │   ├── CSharpMarkup/                 # CSharpMarkupViewGenerator, AvaloniaMarkupExtensionsSource
 │   │   ├── Mvvm/                         # MvvmViewModelGenerator (自動屬性/命令提取與 DI 建構子生成)
+│   │   ├── Logic/                        # CSharpLogicGenerator, FSharpLogicGenerator, VisualBasicLogicGenerator, CppLogicGenerator
 │   │   ├── ProjectExport/                # ProjectExportService (多專案 .slnx, .Shared, .Desktop, .Android 匯出)
 │   │   ├── Roslyn/                       # RoslynCodeFormatter, RoslynCompilerService
 │   │   └── FormCodeGenerator.cs          # 生成器外觀服務
@@ -124,8 +137,8 @@ AvaloniaFormGenerator/
 │       └── Program.cs                    # 應用程式進入點 (ClassicDesktopStyleApplicationLifetime)
 │
 ├── tests/
-│   ├── AFG.Core.Tests/                   # AST 增刪改查、循環防護、驗證器、序列化、吸附、檢查器與 Bitmap 測試 (139 項測試)
-│   └── AFG.Generators.Tests/             # C# Markup 轉譯、ViewModel 生成、Roslyn 格式化、DI 驗證與整包專案建置測試 (63 項測試)
+│   ├── AFG.Core.Tests/                   # AST 增刪改查、循環防護、驗證器、序列化、吸附、檢查器與 Bitmap 測試 (221 項測試)
+│   └── AFG.Generators.Tests/             # 多語言 View/ViewModel/Logic 生成、跨語言獨立專案編譯與整包專案建置測試 (104 項測試)
 │
 ├── docs/                                 # 詳細技術規格與使用者手冊
 └── plan.md                               # 專案執行計劃書 (Phased Milestones)
@@ -148,7 +161,7 @@ dotnet build
 ```bash
 dotnet test
 ```
-> 目前包含 **202 / 202** 項單元與整合編譯測試，100% 全數通過，0 警告，0 錯誤。
+> 目前包含 **325 / 325** 項單元與整合編譯測試，100% 全數通過，0 警告，0 錯誤。
 
 ### 3. 啟動桌面設計器 (Run App)
 ```bash

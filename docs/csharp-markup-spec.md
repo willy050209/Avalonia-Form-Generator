@@ -821,6 +821,151 @@ new Border()
     );
 ```
 
+---
+
+## 13. 多語言業務邏輯函數生成與跨語言專案配置規範 (Multi-Language Logic Services & Functions)
+
+### 13.1 架構解耦原則 (Decoupled Logic Architecture)
+為了使業務計算、演算法、外部 API 串接與硬體處理徹底獨立於 View / ViewModel，AFG 提供專屬之邏輯服務生成系統：
+- **命名空間獨立**：可為每個邏輯服務定義獨立之 Namespace（如 `Company.Accounting.Services`）。
+- **服務介面與實作分離**：自動產出 `I{ServiceName}` 介面與 `{ServiceName}` 實作。
+- **支援非同步與取消 Token**：非同步方法自動補全 `CancellationToken cancellationToken = default` 與 `Task` / `Task<T>`。
+- **依賴注入友善**：在 `App` 容器自動以單例模式 (`AddSingleton`) 註冊，支援 ViewModel 建構子相依性注入。
+
+### 13.2 多語言生成代碼範例
+
+#### 1. C# 邏輯服務 (`CSharpLogicGenerator`)
+```csharp
+// ICalculationService.cs
+namespace App.Services;
+
+public interface ICalculationService
+{
+    decimal CalculateTotal(decimal unitPrice, int quantity, decimal discountRate = 0m);
+    Task<bool> ProcessPaymentAsync(string orderId, decimal amount, CancellationToken cancellationToken = default);
+}
+
+// CalculationService.cs
+namespace App.Services;
+
+public class CalculationService : ICalculationService
+{
+    public decimal CalculateTotal(decimal unitPrice, int quantity, decimal discountRate = 0m)
+    {
+        return (unitPrice * quantity) * (1m - discountRate);
+    }
+
+    public async Task<bool> ProcessPaymentAsync(string orderId, decimal amount, CancellationToken cancellationToken = default)
+    {
+        await Task.CompletedTask;
+        return true;
+    }
+}
+```
+
+#### 2. F# 邏輯服務 (`FSharpLogicGenerator`)
+```fsharp
+// CalculationService.fs
+#nowarn "3261" "3262" "3263" "1183" "0020"
+namespace App.Services
+
+open System
+open System.Threading
+open System.Threading.Tasks
+
+type ICalculationService =
+    abstract member CalculateTotal : unitPrice: decimal * quantity: int * ?discountRate: decimal -> decimal
+    abstract member ProcessPaymentAsync : orderId: string * amount: decimal * ?cancellationToken: CancellationToken -> Task<bool>
+
+type CalculationService() =
+    interface ICalculationService with
+        member this.CalculateTotal(unitPrice: decimal, quantity: int, ?discountRate: decimal) =
+            let discountRate = defaultArg discountRate 0m
+            (unitPrice * decimal quantity) * (1m - discountRate)
+
+        member this.ProcessPaymentAsync(orderId: string, amount: decimal, ?cancellationToken: CancellationToken) =
+            task {
+                do! Task.CompletedTask
+                return true
+            }
+```
+
+#### 3. VB.NET 邏輯服務 (`VisualBasicLogicGenerator`)
+```vb
+' ICalculationService.vb
+Imports System
+Imports System.Threading
+Imports System.Threading.Tasks
+
+Namespace App.Services
+    Public Interface ICalculationService
+        Function CalculateTotal(ByVal unitPrice As Decimal, ByVal quantity As Integer, Optional ByVal discountRate As Decimal = 0m) As Decimal
+        Function ProcessPaymentAsync(ByVal orderId As String, ByVal amount As Decimal, Optional ByVal cancellationToken As CancellationToken = Nothing) As Task(Of Boolean)
+    End Interface
+End Namespace
+
+' CalculationService.vb
+Namespace App.Services
+    Public Class CalculationService
+        Implements ICalculationService
+
+        Public Function CalculateTotal(ByVal unitPrice As Decimal, ByVal quantity As Integer, Optional ByVal discountRate As Decimal = 0m) As Decimal Implements ICalculationService.CalculateTotal
+            Return (unitPrice * quantity) * (1m - discountRate)
+        End Function
+
+        Public Async Function ProcessPaymentAsync(ByVal orderId As String, ByVal amount As Decimal, Optional ByVal cancellationToken As CancellationToken = Nothing) As Task(Of Boolean) Implements ICalculationService.ProcessPaymentAsync
+            Await Task.CompletedTask
+            Return True
+        End Function
+    End Class
+End Namespace
+```
+
+#### 4. C++ 原生模組與各語言 P/Invoke Bridge (`CppLogicGenerator`)
+- **原生標頭檔 (`NativeCrypto.h`)**：
+  ```cpp
+  #pragma once
+  #include <cstdint>
+  #define AFG_API extern "C" __declspec(dllexport)
+
+  AFG_API int32_t NativeCrypto_EncryptData(int32_t key, int32_t data);
+  ```
+- **原生實作檔 (`NativeCrypto.cpp`)**：
+  ```cpp
+  #include "NativeCrypto.h"
+
+  AFG_API int32_t NativeCrypto_EncryptData(int32_t key, int32_t data) {
+      return key ^ data;
+  }
+  ```
+- **C# P/Invoke Bridge (`NativeCryptoNativeBridge.cs`)**：
+  ```csharp
+  namespace Security.Native;
+
+  public class NativeCryptoNativeBridge : INativeCrypto
+  {
+      private const string LibName = "SecurityNativeLib";
+
+      [DllImport(LibName, EntryPoint = "NativeCrypto_EncryptData", CallingConvention = CallingConvention.Cdecl)]
+      private static extern int NativeCrypto_EncryptData(int key, int data);
+
+      public int EncryptData(int key, int data)
+      {
+          return NativeCrypto_EncryptData(key, data);
+      }
+  }
+  ```
+
+### 13.3 跨語言專案配置與方案整合
+當邏輯服務語言與專案主語言不同時（例如 C# 主專案搭配 F# 或 VB 邏輯模組）：
+1. **獨立類別庫專案產出**：
+   - `src/{ProjectName}.Logic.FSharp/{ProjectName}.Logic.FSharp.fsproj`
+   - `src/{ProjectName}.Logic.VB/{ProjectName}.Logic.VB.vbproj`
+   - `src/{ProjectName}.Logic.Cpp/`（內含 `CMakeLists.txt`）
+2. **方案檔 (.slnx) 自動配置**：自動於 `.slnx` 中加入 `<Project Path="..." />`。
+3. **主專案相依性引用**：在主專案（`.Shared.csproj` 或 `.Shared.fsproj`）中自動配置 `<ProjectReference Include="..\..\{ProjectName}.Logic.{Lang}\{ProjectName}.Logic.{Lang}.{proj}" />`。
+4. **DI 容器自動裝配**：於 `App.cs/fs/vb` 的 `ConfigureServices` 中自動注入對應服務實例。
+
 
 
 
