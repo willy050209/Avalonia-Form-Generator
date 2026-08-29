@@ -1618,6 +1618,218 @@ public sealed class ProjectExportServiceTests
     }
 
     [Fact]
+    public void ExportProject_FSharp_WithMobile_ShouldContainAndroidProjectFiles()
+    {
+        // Arrange
+        var doc = new FormDocument
+        {
+            ViewClassName = "FSMobileOrderView",
+            ViewModelClassName = "FSMobileOrderViewModel",
+            TargetLanguage = TargetLanguage.FSharp,
+            RootNode = new AstNode
+            {
+                Type = ControlType.Canvas,
+                Children = [new AstNode { Type = ControlType.Button, Content = "Submit" }]
+            }
+        };
+
+        // Act
+        var files = _exportService.GenerateFullProject(doc, new ProjectExportOptions(IncludeMobileProject: true, CustomProjectName: "FSMobileApp"));
+
+        // Assert
+        var slnx = files.FirstOrDefault(f => f.FileName == "FSMobileApp.slnx");
+        slnx.Should().NotBeNull();
+        slnx!.Content.Should().Contain("<Project Path=\"src/FSMobileApp.Android/FSMobileApp.Android.csproj\" />");
+
+        var androidProj = Path.Combine("src", "FSMobileApp.Android", "FSMobileApp.Android.csproj");
+        var androidGlobalUsings = Path.Combine("src", "FSMobileApp.Android", "GlobalUsings.cs");
+        var mainActivity = Path.Combine("src", "FSMobileApp.Android", "MainActivity.cs");
+        var stylesXml = Path.Combine("src", "FSMobileApp.Android", "Resources", "values", "styles.xml");
+        var iconXml = Path.Combine("src", "FSMobileApp.Android", "Resources", "drawable", "icon.xml");
+        var manifest = Path.Combine("src", "FSMobileApp.Android", "AndroidManifest.xml");
+
+        files.Should().Contain(f => f.FileName == androidProj);
+        files.Should().Contain(f => f.FileName == androidGlobalUsings);
+        files.Should().Contain(f => f.FileName == mainActivity);
+        files.Should().Contain(f => f.FileName == stylesXml);
+        files.Should().Contain(f => f.FileName == iconXml);
+        files.Should().Contain(f => f.FileName == manifest);
+
+        var projFile = files.First(f => f.FileName == androidProj);
+        projFile.Content.Should().Contain("<ProjectReference Include=\"..\\FSMobileApp.Shared\\FSMobileApp.Shared.fsproj\" />");
+    }
+
+    [Fact]
+    public void ExportProject_VisualBasic_WithMobile_ShouldContainAndroidProjectFiles()
+    {
+        // Arrange
+        var doc = new FormDocument
+        {
+            ViewClassName = "VBMobileOrderView",
+            ViewModelClassName = "VBMobileOrderViewModel",
+            TargetLanguage = TargetLanguage.VisualBasic,
+            RootNode = new AstNode
+            {
+                Type = ControlType.Canvas,
+                Children = [new AstNode { Type = ControlType.Button, Content = "Submit" }]
+            }
+        };
+
+        // Act
+        var files = _exportService.GenerateFullProject(doc, new ProjectExportOptions(IncludeMobileProject: true, CustomProjectName: "VBMobileApp"));
+
+        // Assert
+        var slnx = files.FirstOrDefault(f => f.FileName == "VBMobileApp.slnx");
+        slnx.Should().NotBeNull();
+        slnx!.Content.Should().Contain("<Project Path=\"src/VBMobileApp.Android/VBMobileApp.Android.csproj\" />");
+
+        var androidProj = Path.Combine("src", "VBMobileApp.Android", "VBMobileApp.Android.csproj");
+        var androidGlobalUsings = Path.Combine("src", "VBMobileApp.Android", "GlobalUsings.cs");
+        var mainActivity = Path.Combine("src", "VBMobileApp.Android", "MainActivity.cs");
+        var stylesXml = Path.Combine("src", "VBMobileApp.Android", "Resources", "values", "styles.xml");
+        var iconXml = Path.Combine("src", "VBMobileApp.Android", "Resources", "drawable", "icon.xml");
+        var manifest = Path.Combine("src", "VBMobileApp.Android", "AndroidManifest.xml");
+
+        files.Should().Contain(f => f.FileName == androidProj);
+        files.Should().Contain(f => f.FileName == androidGlobalUsings);
+        files.Should().Contain(f => f.FileName == mainActivity);
+        files.Should().Contain(f => f.FileName == stylesXml);
+        files.Should().Contain(f => f.FileName == iconXml);
+        files.Should().Contain(f => f.FileName == manifest);
+
+        var projFile = files.First(f => f.FileName == androidProj);
+        projFile.Content.Should().Contain("<ProjectReference Include=\"..\\VBMobileApp.Shared\\VBMobileApp.Shared.vbproj\" />");
+    }
+
+    [Fact]
+    public async Task ExportedProject_FSharp_Android_ShouldCompileAndGenerateApk_WhenAndroidSdkAvailable()
+    {
+        if (!IsAndroidBuildEnvironmentAvailable())
+        {
+            return;
+        }
+
+        var tempFolder = Path.Combine(Path.GetTempPath(), "AFG_FSAndroidBuildTest_" + Guid.NewGuid().ToString("N"));
+        var doc = new FormDocument
+        {
+            ViewClassName = "FSOrderView",
+            ViewModelClassName = "FSOrderViewModel",
+            TargetLanguage = TargetLanguage.FSharp,
+            Title = "F# 行動訂單系統",
+            RootNode = new AstNode
+            {
+                Type = ControlType.Canvas,
+                Children = [new AstNode { Type = ControlType.Button, Content = "Submit" }]
+            }
+        };
+
+        try
+        {
+            await _exportService.ExportToFolderAsync(doc, tempFolder, new ProjectExportOptions(IncludeMobileProject: true, CustomProjectName: "FSMobileApp"));
+
+            var androidCsprojPath = Path.Combine(tempFolder, "src", "FSMobileApp.Android", "FSMobileApp.Android.csproj");
+            File.Exists(androidCsprojPath).Should().BeTrue();
+
+            var psi = new ProcessStartInfo
+            {
+                FileName = "dotnet",
+                Arguments = $"build \"{androidCsprojPath}\" -c Release -t:SignAndroidPackage -nodeReuse:false -p:UseSharedCompilation=false",
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            };
+
+            using var process = Process.Start(psi);
+            process.Should().NotBeNull();
+
+            var stdoutTask = process!.StandardOutput.ReadToEndAsync();
+            var stderrTask = process.StandardError.ReadToEndAsync();
+
+            await process.WaitForExitAsync();
+            var stdout = await stdoutTask;
+            var stderr = await stderrTask;
+
+            process.ExitCode.Should().Be(0, $"F# Android 專案 build 應成功 (ExitCode 0)。\n標準輸出:\n{stdout}\n錯誤輸出:\n{stderr}");
+
+            var androidDir = Path.Combine(tempFolder, "src", "FSMobileApp.Android");
+            var apkFiles = Directory.GetFiles(androidDir, "*.apk", SearchOption.AllDirectories);
+            apkFiles.Should().NotBeEmpty("編譯後應於 bin / obj 目錄下產出 APK 檔案");
+        }
+        finally
+        {
+            if (Directory.Exists(tempFolder))
+            {
+                try { Directory.Delete(tempFolder, recursive: true); } catch { }
+            }
+        }
+    }
+
+    [Fact]
+    public async Task ExportedProject_VisualBasic_Android_ShouldCompileAndGenerateApk_WhenAndroidSdkAvailable()
+    {
+        if (!IsAndroidBuildEnvironmentAvailable())
+        {
+            return;
+        }
+
+        var tempFolder = Path.Combine(Path.GetTempPath(), "AFG_VBAndroidBuildTest_" + Guid.NewGuid().ToString("N"));
+        var doc = new FormDocument
+        {
+            ViewClassName = "VBOrderView",
+            ViewModelClassName = "VBOrderViewModel",
+            TargetLanguage = TargetLanguage.VisualBasic,
+            Title = "VB 行動訂單系統",
+            RootNode = new AstNode
+            {
+                Type = ControlType.Canvas,
+                Children = [new AstNode { Type = ControlType.Button, Content = "Submit" }]
+            }
+        };
+
+        try
+        {
+            await _exportService.ExportToFolderAsync(doc, tempFolder, new ProjectExportOptions(IncludeMobileProject: true, CustomProjectName: "VBMobileApp"));
+
+            var androidCsprojPath = Path.Combine(tempFolder, "src", "VBMobileApp.Android", "VBMobileApp.Android.csproj");
+            File.Exists(androidCsprojPath).Should().BeTrue();
+
+            var psi = new ProcessStartInfo
+            {
+                FileName = "dotnet",
+                Arguments = $"build \"{androidCsprojPath}\" -c Release -t:SignAndroidPackage -nodeReuse:false -p:UseSharedCompilation=false",
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            };
+
+            using var process = Process.Start(psi);
+            process.Should().NotBeNull();
+
+            var stdoutTask = process!.StandardOutput.ReadToEndAsync();
+            var stderrTask = process.StandardError.ReadToEndAsync();
+
+            await process.WaitForExitAsync();
+            var stdout = await stdoutTask;
+            var stderr = await stderrTask;
+
+            process.ExitCode.Should().Be(0, $"VB Android 專案 build 應成功 (ExitCode 0)。\n標準輸出:\n{stdout}\n錯誤輸出:\n{stderr}");
+
+            var androidDir = Path.Combine(tempFolder, "src", "VBMobileApp.Android");
+            var apkFiles = Directory.GetFiles(androidDir, "*.apk", SearchOption.AllDirectories);
+            apkFiles.Should().NotBeEmpty("編譯後應於 bin / obj 目錄下產出 APK 檔案");
+        }
+        finally
+        {
+            if (Directory.Exists(tempFolder))
+            {
+                try { Directory.Delete(tempFolder, recursive: true); } catch { }
+            }
+        }
+    }
+
+    [Fact]
     public async Task ExportedProject_FSharp_ShouldCompileDirectlyWithDotnetCli()
     {
         var tempFolder = Path.Combine(Path.GetTempPath(), "AFG_FSBuildTest_" + Guid.NewGuid().ToString("N"));
