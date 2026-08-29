@@ -458,6 +458,26 @@ AvaloniaFormGenerator/
     - 執行全套單元測試與實體編譯測試（309 項測試 100% 通過，0 錯誤 0 警告）。
     - 依規範完成 Git Commit。
 
+### 🔹 階段 26：PictureBox 與 MediaPlayer URL 載入、初始化、檔案對話方塊與靜態資源複製修復 (PictureBox & MediaPlayer Robust Loading, File Dialog & Asset Export Fixes)
+- [x] **階段狀態：已完成 (Completed)**
+- **目標**：全面修復 PictureBox 與 MediaPlayer 輸入 URL 無法正常初始化、MediaPlayer 初始化機制、缺少本機媒體檔案選擇對話方塊與專案匯出時自動複製媒體至靜態資源 (`Assets/`) 之功能。
+- **任務清單**：
+  - [x] 26.1 **Phase 1: `BitmapHelper` 與 `MediaPlayerControl` URL 載入與初始化修復**
+    - 在 `BitmapHelper.cs` 與 `AvaloniaMarkupExtensionsSource.cs` 實作 HTTP/HTTPS URL 圖片非同步/同步下載與例外防禦。
+    - 在 `MediaPlayerControl.cs` 與 `AvaloniaMarkupExtensionsSource.cs` 重構 `LoadAsync`，安全處理視訊/音訊/圖片各類格式，杜絕 Bitmap 解析例外導致之錯誤狀態。
+    - 在 `DesignCanvas.cs` 確保 `MediaPlayerControl` 依據 `node.Source` 正確執行載入與視覺初始化。
+  - [x] 26.2 **Phase 2: 多媒體檔案對話方塊與屬性檢查器 UI 整合**
+    - 在 `IFileDialogService` 與 `DesktopFileDialogService` 實作 `OpenMediaFileDialogAsync`（支援視訊、音訊與圖片格式篩選）。
+    - 在 `InspectorViewModel` 實作 `BrowseMediaCommand`、`MediaFileInfo` 與即時檔案大小/網路 URL 資訊顯示。
+    - 在 `InspectorView.axaml` MediaPlayer 設定區塊新增「瀏覽...」按鈕、檔案資訊卡與「使用專案相對路徑」核取方塊。
+  - [x] 26.3 **Phase 3: 專案匯出 Assets 自動複製與多語言程式碼生成**
+    - 在 `ProjectExportService.ExportToFolderAsync` 中將 `ControlType.MediaPlayer` 納入 Assets 自動複製清單。
+    - 在 `CSharpMarkupViewGenerator`、`MvvmViewModelGenerator`、`FSharpViewGenerator`、`VisualBasicViewGenerator` 中將 `MediaPlayer` 的本機相對路徑正確轉換為 `avares://{sharedAsmName}/Assets/{fileName}`。
+  - [x] 26.4 **Phase 4: 全套單元測試驗證、技術文件更新與 Git Commit**
+    - 撰寫 `BitmapHelperTests` URL 容錯測試、`InspectorTests` 媒體選檔測試與 `ProjectExportServiceTests` 媒體 Assets 匯出測試。
+    - 執行全專案 312 項測試 100% 通過，`dotnet build -c Release` 0 Error 0 Warning。
+    - 依規範完成 Git Commit。
+
 ---
 
 ## 4. 驗證標準與品質指標

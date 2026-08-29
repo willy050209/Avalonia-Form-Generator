@@ -82,7 +82,7 @@ public sealed class FSharpViewGenerator : ICodeGenerator
 
         // 產生控制項樹建構
         var rootVarName = "rootControl";
-        RenderNode(sb, document.RootNode, rootVarName, "        ", isRoot: true);
+        RenderNode(sb, document.RootNode, rootVarName, "        ", document.RootNamespace, isRoot: true);
 
         sb.AppendLine($"        this.Content <- {rootVarName}");
         sb.AppendLine();
@@ -117,7 +117,7 @@ public sealed class FSharpViewGenerator : ICodeGenerator
             SourceFileType.View);
     }
 
-    private static void RenderNode(StringBuilder sb, AstNode node, string varName, string indent, bool isRoot = false)
+    private static void RenderNode(StringBuilder sb, AstNode node, string varName, string indent, string rootNamespace, bool isRoot = false)
     {
         var typeName = GetAvaloniaControlTypeName(node.Type);
         if (isRoot)
@@ -230,6 +230,53 @@ public sealed class FSharpViewGenerator : ICodeGenerator
             if (node.Maximum.HasValue)
                 sb.AppendLine($"{indent}{varName}.Maximum <- {node.Maximum.Value.ToString(CultureInfo.InvariantCulture)}");
         }
+        else if (node.Type is ControlType.PictureBox or ControlType.Image)
+        {
+            if (node.InitBitmap)
+            {
+                var w = (node.Width ?? 200).ToString(CultureInfo.InvariantCulture);
+                var h = (node.Height ?? 150).ToString(CultureInfo.InvariantCulture);
+                var bg = string.IsNullOrWhiteSpace(node.BitmapBackgroundColor) ? "#F0F0F0" : node.BitmapBackgroundColor.Trim();
+                sb.AppendLine($"{indent}{varName}.Source <- BitmapHelper.CreateInitializedBitmap({w}, {h}, Color.Parse(\"{bg}\"))");
+            }
+            else if (!string.IsNullOrWhiteSpace(node.Source))
+            {
+                var sourcePath = node.Source.Trim();
+                if (node.UseRelativePath && !sourcePath.StartsWith("http", StringComparison.OrdinalIgnoreCase) && !sourcePath.StartsWith("avares://", StringComparison.OrdinalIgnoreCase))
+                {
+                    var fileName = System.IO.Path.GetFileName(sourcePath.Replace('\\', '/'));
+                    var assetUri = $"avares://{rootNamespace}.Shared/Assets/{fileName}";
+                    sb.AppendLine($"{indent}{varName}.Source <- BitmapHelper.LoadBitmap(\"{assetUri}\")");
+                }
+                else
+                {
+                    sb.AppendLine($"{indent}{varName}.Source <- BitmapHelper.LoadBitmap(\"{sourcePath}\")");
+                }
+            }
+        }
+        else if (node.Type == ControlType.MediaPlayer)
+        {
+            if (!string.IsNullOrWhiteSpace(node.Source))
+            {
+                var sourcePath = node.Source.Trim();
+                if (node.UseRelativePath && !sourcePath.StartsWith("http", StringComparison.OrdinalIgnoreCase) && !sourcePath.StartsWith("avares://", StringComparison.OrdinalIgnoreCase))
+                {
+                    var fileName = System.IO.Path.GetFileName(sourcePath.Replace('\\', '/'));
+                    var assetUri = $"avares://{rootNamespace}.Shared/Assets/{fileName}";
+                    sb.AppendLine($"{indent}{varName}.Source <- \"{assetUri}\"");
+                }
+                else
+                {
+                    sb.AppendLine($"{indent}{varName}.Source <- \"{sourcePath}\"");
+                }
+            }
+            if (node.AutoPlay == true)
+                sb.AppendLine($"{indent}{varName}.AutoPlay <- true");
+            if (node.IsLooping == true)
+                sb.AppendLine($"{indent}{varName}.IsLooping <- true");
+            if (node.Volume.HasValue)
+                sb.AppendLine($"{indent}{varName}.Volume <- {node.Volume.Value.ToString(CultureInfo.InvariantCulture)}");
+        }
 
         // 資料綁定
         foreach (var binding in node.Bindings)
@@ -261,7 +308,7 @@ public sealed class FSharpViewGenerator : ICodeGenerator
                 var childVarName = $"{varName}_child{idx}";
                 sb.AppendLine();
                 sb.AppendLine($"{indent}let {childVarName} = {GetAvaloniaControlTypeName(child.Type)}()");
-                RenderNode(sb, child, childVarName, indent, isRoot: false);
+                RenderNode(sb, child, childVarName, indent, rootNamespace, isRoot: false);
 
                 if (node.Type is ControlType.Canvas or ControlType.Grid or ControlType.StackPanel or ControlType.DockPanel or ControlType.WrapPanel)
                 {
@@ -297,6 +344,7 @@ public sealed class FSharpViewGenerator : ICodeGenerator
         ControlType.TimePicker => "TimePicker",
         ControlType.Image => "Image",
         ControlType.PictureBox => "Image",
+        ControlType.MediaPlayer => "MediaPlayerControl",
         _ => "Control"
     };
 

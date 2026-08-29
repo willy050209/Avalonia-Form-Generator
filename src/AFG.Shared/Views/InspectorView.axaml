@@ -474,8 +474,20 @@
                             <!-- 多媒體播放器專屬設定 (MediaPlayerControl Properties) -->
                             <StackPanel Spacing="6" IsVisible="{Binding IsMediaPlayerSupported}">
                                 <TextBlock Text="媒體來源 (URL / 本地檔案路徑)" FontSize="11" Foreground="#38BDF8" FontWeight="SemiBold" />
-                                <TextBox Text="{Binding Source, Mode=TwoWay}"
-                                         PlaceholderText="https://... 或 avares:// 或 本地路徑" />
+                                <Grid ColumnDefinitions="*, Auto">
+                                    <TextBox Text="{Binding Source, Mode=TwoWay}"
+                                             PlaceholderText="https://... 或 avares:// 或 本地路徑" />
+                                    <Button Grid.Column="1"
+                                            Content="瀏覽..."
+                                            Command="{Binding BrowseMediaCommand}"
+                                            Margin="4,0,0,0"
+                                            Padding="8,4"
+                                            FontSize="11" />
+                                </Grid>
+
+                                <CheckBox Content="使用專案相對路徑 (匯出時自動複製至 Assets)"
+                                          IsChecked="{Binding UseRelativePath, Mode=TwoWay}"
+                                          FontSize="11" />
 
                                 <Grid ColumnDefinitions="*, *" Margin="0,2">
                                     <CheckBox Grid.Column="0" Content="自動播放 (AutoPlay)" IsChecked="{Binding AutoPlay, Mode=TwoWay}" FontSize="11" />

@@ -193,6 +193,34 @@ public sealed class InspectorTests
     }
 
     [Fact]
+    public async Task BrowseMediaCommand_WhenExecuted_ShouldUpdateSourceAndNotifyNodeUpdated()
+    {
+        // Arrange
+        var mediaNode = new AstNode
+        {
+            Id = "media1",
+            Name = "MediaPlayer1",
+            Type = ControlType.MediaPlayer
+        };
+
+        var mockDialog = new MockImageFileDialogService("C:/test/sample.mp4");
+        var inspector = new InspectorViewModel(mockDialog);
+        inspector.LoadNode(mediaNode);
+
+        AstNode? updated = null;
+        inspector.NodeUpdated += n => updated = n;
+
+        // Act
+        await inspector.BrowseMediaCommand.ExecuteAsync(null);
+
+        // Assert
+        inspector.Source.Should().Be("C:/test/sample.mp4");
+        inspector.HasImageSource.Should().BeTrue();
+        updated.Should().NotBeNull();
+        updated!.Source.Should().Be("C:/test/sample.mp4");
+    }
+
+    [Fact]
     public void PropertyChanged_WhenInitBitmapModified_ShouldNotifyNodeUpdatedWithBackgroundColor()
     {
         // Arrange
@@ -225,6 +253,9 @@ public sealed class InspectorTests
             Task.FromResult(returnPath);
 
         public Task<string?> OpenImageFileDialogAsync(string title = "選擇圖片檔案") =>
+            Task.FromResult(returnPath);
+
+        public Task<string?> OpenMediaFileDialogAsync(string title = "選擇多媒體檔案") =>
             Task.FromResult(returnPath);
 
         public Task<string?> SaveFileDialogAsync(string title, string defaultFileName, string filterExtension, string filterName) =>

@@ -1461,21 +1461,40 @@ public static class AvaloniaMarkupExtensionsSource
                 if (trimmed.StartsWith("http://", StringComparison.OrdinalIgnoreCase) ||
                     trimmed.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
                 {
-                    var bytes = await s_httpClient.GetByteArrayAsync(trimmed);
-                    using var ms = new MemoryStream(bytes);
-                    loadedBitmap = new Bitmap(ms);
+                    try
+                    {
+                        var bytes = await s_httpClient.GetByteArrayAsync(trimmed);
+                        using var ms = new MemoryStream(bytes);
+                        loadedBitmap = new Bitmap(ms);
+                    }
+                    catch
+                    {
+                        // 若非靜態圖片格式 (例如視訊串流或影片檔)，進入通用多媒體狀態
+                        loadedBitmap = null;
+                    }
                 }
                 // 2. 本地端檔案或內嵌資源
                 else
                 {
-                    loadedBitmap = BitmapExtensions.LoadBitmap(trimmed);
+                    try
+                    {
+                        loadedBitmap = BitmapExtensions.LoadBitmap(trimmed);
+                    }
+                    catch
+                    {
+                        loadedBitmap = null;
+                    }
                 }
+
+                var displayName = System.IO.Path.GetFileName(trimmed);
+                if (string.IsNullOrWhiteSpace(displayName)) displayName = trimmed;
 
                 if (loadedBitmap is not null)
                 {
                     CurrentFrame = loadedBitmap;
                     Duration = TimeSpan.FromSeconds(10);
                     State = MediaState.Stopped;
+                    _statusOverlay.Text = $"▶ {displayName}";
                     MediaOpened?.Invoke(this, EventArgs.Empty);
 
                     if (AutoPlay)
@@ -1485,9 +1504,11 @@ public static class AvaloniaMarkupExtensionsSource
                 }
                 else
                 {
-                    // 若為音訊/視訊串流格式標記
+                    // 音訊/視訊串流格式標記或一般影音檔案
+                    CurrentFrame = null;
                     Duration = TimeSpan.FromSeconds(30);
                     State = MediaState.Stopped;
+                    _statusOverlay.Text = $"▶ {displayName}";
                     MediaOpened?.Invoke(this, EventArgs.Empty);
 
                     if (AutoPlay)
@@ -1499,6 +1520,7 @@ public static class AvaloniaMarkupExtensionsSource
             catch (Exception ex)
             {
                 State = MediaState.Error;
+                _statusOverlay.Text = $"⚠ 載入失敗: {ex.Message}";
                 MediaFailed?.Invoke(this, ex.Message);
             }
         }
@@ -2477,7 +2499,25 @@ public static class AvaloniaMarkupExtensionsSource
                 // 忽略直接讀檔錯誤，進入後續資源/相對路徑解析
             }
 
-            // 2. 解析 avares:// 或相對 Assets 資源路徑
+            // 2. 雲端網路資源 URL (http / https)
+            if (trimmed.StartsWith("http://", StringComparison.OrdinalIgnoreCase) ||
+                trimmed.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
+            {
+                try
+                {
+                    using var client = new System.Net.Http.HttpClient { Timeout = TimeSpan.FromSeconds(10) };
+                    var bytes = client.GetByteArrayAsync(trimmed).GetAwaiter().GetResult();
+                    using var ms = new System.IO.MemoryStream(bytes);
+                    return new Bitmap(ms);
+                }
+                catch
+                {
+                    // 網路載入失敗容錯
+                    return null;
+                }
+            }
+
+            // 3. 解析 avares:// 或相對 Assets 資源路徑
             try
             {
                 if (trimmed.StartsWith("avares://", StringComparison.OrdinalIgnoreCase))

@@ -361,7 +361,7 @@ public sealed class MvvmViewModelGenerator : ICodeGenerator
         {
             "Text" => !string.IsNullOrEmpty(node.Text) ? $"\"{Roslyn.CSharpSyntaxSanitizer.EscapeStringLiteral(node.Text)}\"" : null,
             "Content" => !string.IsNullOrEmpty(node.Content) ? $"\"{Roslyn.CSharpSyntaxSanitizer.EscapeStringLiteral(node.Content)}\"" : null,
-            "Source" when node.Type == ControlType.MediaPlayer && !string.IsNullOrEmpty(node.Source) => $"\"{Roslyn.CSharpSyntaxSanitizer.EscapeStringLiteral(node.Source)}\"",
+            "Source" when node.Type == ControlType.MediaPlayer && !string.IsNullOrEmpty(node.Source) => ExtractMediaSourceExpression(node, rootNamespace),
             "Source" when node.InitBitmap => $"BitmapHelper.CreateInitializedBitmap({(node.Width ?? 200).ToString(System.Globalization.CultureInfo.InvariantCulture)}, {(node.Height ?? 150).ToString(System.Globalization.CultureInfo.InvariantCulture)}, Brush.Parse(\"{(string.IsNullOrWhiteSpace(node.BitmapBackgroundColor) ? "#F0F0F0" : node.BitmapBackgroundColor)}\"))",
             "Source" when !string.IsNullOrEmpty(node.Source) => ExtractSourceExpression(node, rootNamespace),
             "IsChecked" when node.IsChecked.HasValue => node.IsChecked.Value ? "true" : "false",
@@ -389,6 +389,21 @@ public sealed class MvvmViewModelGenerator : ICodeGenerator
             return $"BitmapHelper.LoadBitmap(\"{Roslyn.CSharpSyntaxSanitizer.EscapeStringLiteral(assetUri)}\")";
         }
         return $"BitmapHelper.LoadBitmap(\"{Roslyn.CSharpSyntaxSanitizer.EscapeStringLiteral(sourcePath)}\")";
+    }
+
+    private static string ExtractMediaSourceExpression(AstNode node, string rootNamespace)
+    {
+        var sourcePath = node.Source!.Trim();
+        if (node.UseRelativePath && !sourcePath.StartsWith("http", StringComparison.OrdinalIgnoreCase) && !sourcePath.StartsWith("avares://", StringComparison.OrdinalIgnoreCase))
+        {
+            var fileName = System.IO.Path.GetFileName(sourcePath.Replace('\\', '/'));
+            var sharedAsmName = rootNamespace.EndsWith(".Shared", StringComparison.OrdinalIgnoreCase)
+                ? rootNamespace
+                : $"{rootNamespace}.Shared";
+            var assetUri = $"avares://{sharedAsmName}/Assets/{fileName}";
+            return $"\"{Roslyn.CSharpSyntaxSanitizer.EscapeStringLiteral(assetUri)}\"";
+        }
+        return $"\"{Roslyn.CSharpSyntaxSanitizer.EscapeStringLiteral(sourcePath)}\"";
     }
 
     public static string NormalizePropertyName(string name)

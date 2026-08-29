@@ -374,12 +374,15 @@ public sealed class DesignCanvas : Grid
             case ControlType.MediaPlayer:
                 var player = new MediaPlayerControl
                 {
-                    Source = node.Source,
                     AutoPlay = node.AutoPlay ?? false,
                     IsLooping = node.IsLooping ?? false,
                     Volume = node.Volume ?? 1.0,
                     Stretch = (Avalonia.Media.Stretch)(node.Stretch ?? AFG.Core.Enums.Stretch.Uniform)
                 };
+                if (!string.IsNullOrWhiteSpace(node.Source))
+                {
+                    player.Load(node.Source);
+                }
                 control = player;
                 break;
             case ControlType.Border:

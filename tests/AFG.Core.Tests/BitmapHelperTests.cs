@@ -130,6 +130,16 @@ public class BitmapHelperTests
     }
 
     [Fact]
+    public void LoadBitmap_WithInvalidHttpUrl_ShouldReturnNullGracefully()
+    {
+        // Act: try loading an invalid or non-existent URL
+        var loaded = BitmapHelper.LoadBitmap("http://127.0.0.1:65534/non_existent_image.png");
+
+        // Assert: should gracefully return null without throwing unhandled exceptions
+        loaded.Should().BeNull();
+    }
+
+    [Fact]
     public void LoadBitmap_WithValidLocalFilePath_ShouldLoadBitmap()
     {
         // Arrange: Create a minimal 1x1 png image

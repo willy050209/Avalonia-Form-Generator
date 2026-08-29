@@ -981,6 +981,17 @@ public sealed partial class InspectorViewModel : ObservableObject
         }
     }
 
+    [RelayCommand]
+    public async Task BrowseMediaAsync()
+    {
+        if (_fileDialogService is null) return;
+        var selectedFile = await _fileDialogService.OpenMediaFileDialogAsync("選擇 MediaPlayer 多媒體檔案");
+        if (!string.IsNullOrWhiteSpace(selectedFile))
+        {
+            Source = selectedFile;
+        }
+    }
+
     private void UpdateImagePreviewInfo()
     {
         if (string.IsNullOrWhiteSpace(Source))
@@ -990,13 +1001,18 @@ public sealed partial class InspectorViewModel : ObservableObject
             return;
         }
 
-        HasImageSource = true;
+        HasImageSource = IsImageSupported || IsMediaPlayerSupported;
         try
         {
             if (System.IO.File.Exists(Source))
             {
                 var fi = new System.IO.FileInfo(Source);
                 ImageFileInfo = $"{fi.Name} ({(fi.Length / 1024.0):F1} KB)";
+            }
+            else if (Source.StartsWith("http://", StringComparison.OrdinalIgnoreCase) ||
+                     Source.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
+            {
+                ImageFileInfo = $"網路 URL: {Source}";
             }
             else
             {

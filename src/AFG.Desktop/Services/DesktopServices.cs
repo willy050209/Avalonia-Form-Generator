@@ -61,6 +61,40 @@ public sealed class DesktopFileDialogService(Func<TopLevel?> topLevelProvider) :
         return files.Count > 0 ? files[0].Path.LocalPath : null;
     }
 
+    public async Task<string?> OpenMediaFileDialogAsync(string title = "選擇多媒體檔案")
+    {
+        var topLevel = _topLevelProvider();
+        if (topLevel is null) return null;
+
+        var files = await topLevel.StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
+        {
+            Title = title,
+            AllowMultiple = false,
+            FileTypeFilter =
+            [
+                new FilePickerFileType("所有支援的媒體檔案 (*.mp4;*.mkv;*.avi;*.mov;*.wmv;*.webm;*.mp3;*.wav;*.flac;*.png;*.jpg)")
+                {
+                    Patterns = ["*.mp4", "*.mkv", "*.avi", "*.mov", "*.wmv", "*.webm", "*.flv", "*.m4v", "*.3gp", "*.mp3", "*.wav", "*.flac", "*.aac", "*.ogg", "*.wma", "*.m4a", "*.png", "*.jpg", "*.jpeg", "*.bmp", "*.webp", "*.gif"]
+                },
+                new FilePickerFileType("視訊檔案 (*.mp4;*.mkv;*.avi;*.mov;*.wmv;*.webm)")
+                {
+                    Patterns = ["*.mp4", "*.mkv", "*.avi", "*.mov", "*.wmv", "*.webm", "*.flv", "*.m4v", "*.3gp"]
+                },
+                new FilePickerFileType("音訊檔案 (*.mp3;*.wav;*.flac;*.aac;*.ogg)")
+                {
+                    Patterns = ["*.mp3", "*.wav", "*.flac", "*.aac", "*.ogg", "*.wma", "*.m4a"]
+                },
+                new FilePickerFileType("圖片檔案 (*.png;*.jpg;*.jpeg;*.bmp)")
+                {
+                    Patterns = ["*.png", "*.jpg", "*.jpeg", "*.bmp", "*.webp", "*.gif"]
+                },
+                new FilePickerFileType("所有檔案 (*.*)") { Patterns = ["*.*"] }
+            ]
+        });
+
+        return files.Count > 0 ? files[0].Path.LocalPath : null;
+    }
+
     public async Task<string?> SaveFileDialogAsync(string title, string defaultFileName, string filterExtension, string filterName)
     {
         var topLevel = _topLevelProvider();

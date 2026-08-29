@@ -1390,21 +1390,21 @@ public sealed class ProjectExportService(FormCodeGenerator? codeGenerator = null
             await File.WriteAllTextAsync(fullFilePath, file.Content, Encoding.UTF8, cancellationToken);
         }
 
-        // 自動複製 PictureBox 相對路徑實體圖片至 .Shared/Assets/ 資料夾
+        // 自動複製 PictureBox / MediaPlayer 相對路徑實體資源至 .Shared/Assets/ 資料夾
         var rawProjectName = string.IsNullOrWhiteSpace(options?.CustomProjectName) ? project.ProjectName : options.CustomProjectName;
         var baseProjectName = SanitizeProjectName(rawProjectName);
         var sharedAssetsDir = Path.Combine(fullDestinationDir, "src", $"{baseProjectName}.Shared", "Assets");
 
-        var pictureBoxNodes = project.Documents
+        var mediaAndPictureNodes = project.Documents
             .SelectMany(d => AstTreeOperations.Flatten(d.RootNode))
-            .Where(n => n.Type is ControlType.PictureBox or ControlType.Image)
+            .Where(n => n.Type is ControlType.PictureBox or ControlType.Image or ControlType.MediaPlayer)
             .ToList();
 
-        foreach (var picNode in pictureBoxNodes)
+        foreach (var mediaNode in mediaAndPictureNodes)
         {
-            if (picNode.UseRelativePath && !string.IsNullOrWhiteSpace(picNode.Source))
+            if (mediaNode.UseRelativePath && !string.IsNullOrWhiteSpace(mediaNode.Source))
             {
-                var sourcePath = picNode.Source.Trim();
+                var sourcePath = mediaNode.Source.Trim();
                 var resolvedSourcePath = File.Exists(sourcePath)
                     ? sourcePath
                     : (File.Exists(Path.Combine(Directory.GetCurrentDirectory(), sourcePath))

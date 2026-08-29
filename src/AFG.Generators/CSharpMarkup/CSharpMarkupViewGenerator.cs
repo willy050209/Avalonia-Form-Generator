@@ -658,7 +658,20 @@ public sealed class CSharpMarkupViewGenerator : ICodeGenerator
         {
             if (!boundProps.Contains("Source") && !string.IsNullOrWhiteSpace(node.Source))
             {
-                sb.AppendLine($"{innerIndent}.Source(\"{CSharpSyntaxSanitizer.EscapeStringLiteral(node.Source.Trim())}\")");
+                var sourcePath = node.Source.Trim();
+                if (node.UseRelativePath && !sourcePath.StartsWith("http", StringComparison.OrdinalIgnoreCase) && !sourcePath.StartsWith("avares://", StringComparison.OrdinalIgnoreCase))
+                {
+                    var fileName = System.IO.Path.GetFileName(sourcePath.Replace('\\', '/'));
+                    var sharedAsmName = rootNamespace.EndsWith(".Shared", StringComparison.OrdinalIgnoreCase)
+                        ? rootNamespace
+                        : $"{rootNamespace}.Shared";
+                    var assetUri = $"avares://{sharedAsmName}/Assets/{fileName}";
+                    sb.AppendLine($"{innerIndent}.Source(\"{CSharpSyntaxSanitizer.EscapeStringLiteral(assetUri)}\")");
+                }
+                else
+                {
+                    sb.AppendLine($"{innerIndent}.Source(\"{CSharpSyntaxSanitizer.EscapeStringLiteral(sourcePath)}\")");
+                }
             }
             if (!boundProps.Contains("AutoPlay") && node.AutoPlay == true)
             {

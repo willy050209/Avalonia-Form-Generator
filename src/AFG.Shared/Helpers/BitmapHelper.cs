@@ -1074,7 +1074,25 @@ public static class BitmapExtensions
             // 忽略直接讀檔錯誤，進入後續資源/相對路徑解析
         }
 
-        // 2. 解析 avares:// 或相對 Assets 資源路徑
+        // 2. 雲端網路資源 URL (http / https)
+        if (trimmed.StartsWith("http://", StringComparison.OrdinalIgnoreCase) ||
+            trimmed.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
+        {
+            try
+            {
+                using var client = new System.Net.Http.HttpClient { Timeout = TimeSpan.FromSeconds(10) };
+                var bytes = client.GetByteArrayAsync(trimmed).GetAwaiter().GetResult();
+                using var ms = new System.IO.MemoryStream(bytes);
+                return new Bitmap(ms);
+            }
+            catch
+            {
+                // 網路載入失敗容錯
+                return null;
+            }
+        }
+
+        // 3. 解析 avares:// 或相對 Assets 資源路徑
         try
         {
             if (trimmed.StartsWith("avares://", StringComparison.OrdinalIgnoreCase))

@@ -229,6 +229,60 @@ public sealed class ProjectExportServiceTests
         }
     }
 
+    [Fact]
+    public async Task ExportToFolderAsync_WithMediaPlayerRelativeAsset_ShouldCopyAssetAndGenerateAvaresUri()
+    {
+        // Arrange
+        var tempFolder = Path.Combine(Path.GetTempPath(), "AFG_MediaExport_" + Guid.NewGuid().ToString("N"));
+        var dummyMediaFile = Path.Combine(Path.GetTempPath(), "sample_intro_" + Guid.NewGuid().ToString("N") + ".mp4");
+        await File.WriteAllTextAsync(dummyMediaFile, "dummy media content");
+
+        var doc = FormDocument.CreateDefault() with
+        {
+            RootNamespace = "MainFormApp",
+            RootNode = new AstNode
+            {
+                Id = "mediaPlayer1",
+                Name = "mediaPlayer1",
+                Type = ControlType.MediaPlayer,
+                Source = dummyMediaFile,
+                UseRelativePath = true,
+                AutoPlay = true,
+                IsLooping = true,
+                Volume = 0.8
+            }
+        };
+
+        try
+        {
+            // Act
+            await _exportService.ExportToFolderAsync(doc, tempFolder, new ProjectExportOptions());
+
+            // Assert: Assets file should be copied to .Shared/Assets/
+            var targetAssetFile = Path.Combine(tempFolder, "src", "MainFormApp.Shared", "Assets", Path.GetFileName(dummyMediaFile));
+            File.Exists(targetAssetFile).Should().BeTrue();
+
+            // Assert: Generated View code should contain avares:// URI
+            var viewFile = Path.Combine(tempFolder, "src", "MainFormApp.Shared", "Views", "MainFormView.cs");
+            File.Exists(viewFile).Should().BeTrue();
+            var viewContent = await File.ReadAllTextAsync(viewFile);
+            viewContent.Should().Contain($"avares://MainFormApp.Shared/Assets/{Path.GetFileName(dummyMediaFile)}");
+            viewContent.Should().Contain(".AutoPlay(true)");
+            viewContent.Should().Contain(".IsLooping(true)");
+        }
+        finally
+        {
+            if (File.Exists(dummyMediaFile))
+            {
+                try { File.Delete(dummyMediaFile); } catch { }
+            }
+            if (Directory.Exists(tempFolder))
+            {
+                Directory.Delete(tempFolder, recursive: true);
+            }
+        }
+    }
+
     /// <summary>
     /// 端到端實體編譯測試：驗證匯出之 .Shared 與 .Desktop 專案可直接透過 dotnet CLI 0 錯誤成功編譯。
     /// </summary>
