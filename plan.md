@@ -380,10 +380,27 @@ AvaloniaFormGenerator/
 
 ---
 
+### 🔹 階段 22：修復 Android 執行時 Theme.AppCompat 主題依賴問題 (Fix Android Runtime Theme.AppCompat Dependency)
+- [x] **階段狀態：已完成 (Completed)**
+- **目標**：修復 Android 應用程式啟動時由 `AvaloniaMainActivity` (底層繼承 `AppCompatActivity`) 所引發的 `Java.Lang.IllegalStateException: You need to use a Theme.AppCompat theme (or descendant) with this activity.` 執行時崩潰；將 `Resources/values/styles.xml` 中之 `MyTheme.NoActionBar` 主題父級由 `@android:style/Theme.DeviceDefault.NoActionBar` 修正為標準之 `Theme.AppCompat.DayNight.NoActionBar`，以完美支援 Android 淺色/深色主題自動適配並符合 AppCompat 要求。
+- **任務清單**：
+  - [x] 22.1 **Phase 1: 修正 `styles.xml` 主題繼承為 `Theme.AppCompat.DayNight.NoActionBar` (`ProjectExportService.cs`)**
+    - 在 `ProjectExportService.cs` 中更新 `Resources/values/styles.xml`，將 `<style name="MyTheme.NoActionBar" parent="Theme.AppCompat.DayNight.NoActionBar">` 設定為標準父級。
+  - [x] 22.2 **Phase 2: 更新單元測試與 `styles.xml` 內容斷言 (`ProjectExportServiceTests.cs`)**
+    - 在 `ProjectExportServiceTests.cs` 中驗證產生的 `styles.xml` 包含 `Theme.AppCompat.DayNight.NoActionBar`。
+    - 執行 Android 專案建置與 APK 生成測試。
+  - [x] 22.3 **Phase 3: 技術文件更新、全專案自動化測試與 Git Commit**
+    - 更新技術文件與 `plan.md`。
+    - 執行全專案 100% 測試驗證（0 錯誤 0 警告，298 項測試全數通過）。
+    - 完成 Git Commit。
+
+---
+
 ## 4. 驗證標準與品質指標
 
 1. **單元測試覆蓋率**：所有純函式、AST 操作、歷史堆疊、生成器與序列化演算法 100% 覆蓋。
 2. **零警告與零錯誤**：`dotnet build` 與 `dotnet test` 保持 0 Error, 0 Warning。
 3. **實體跨平台編譯保障**：匯出之專案在 Windows / macOS / Linux 平台均可一鍵執行 `dotnet run` 成功啟動，且在具備 Android SDK 之環境下可成功建置產出 APK 檔案。
+
 
 

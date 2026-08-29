@@ -109,6 +109,8 @@ public sealed class ProjectExportServiceTests
         files.Should().Contain(f => f.FileName == androidGlobalUsings);
         files.Should().Contain(f => f.FileName == mainActivity);
         files.Should().Contain(f => f.FileName == stylesXml);
+        var stylesFile = files.First(f => f.FileName == stylesXml);
+        stylesFile.Content.Should().Contain("parent=\"Theme.AppCompat.DayNight.NoActionBar\"");
         files.Should().Contain(f => f.FileName == iconXml);
         files.Should().Contain(f => f.FileName == manifest);
 

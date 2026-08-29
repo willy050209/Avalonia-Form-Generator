@@ -1292,7 +1292,7 @@ public sealed class ProjectExportService(FormCodeGenerator? codeGenerator = null
             var stylesXml = """
             <?xml version="1.0" encoding="utf-8" ?>
             <resources>
-              <style name="MyTheme.NoActionBar" parent="@android:style/Theme.DeviceDefault.NoActionBar">
+              <style name="MyTheme.NoActionBar" parent="Theme.AppCompat.DayNight.NoActionBar">
                 <item name="android:windowNoTitle">true</item>
                 <item name="android:windowActionBar">false</item>
                 <item name="android:windowFullscreen">false</item>
