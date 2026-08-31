@@ -40,5 +40,8 @@ public enum ControlType
     OpenFileDialog,
     SaveFileDialog,
     MessageBox,
-    DebugConsole
+    DebugConsole,
+
+    // 業務邏輯函數元件
+    LogicFunction
 }

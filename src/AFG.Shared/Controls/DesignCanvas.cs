@@ -522,6 +522,87 @@ public sealed class DesignCanvas : Grid
                 };
                 control = compBorder;
                 break;
+            case ControlType.LogicFunction:
+                var langBadge = (node.TargetLanguage ?? node.LogicFunction?.Language ?? TargetLanguage.CSharp) switch
+                {
+                    TargetLanguage.FSharp => "F#",
+                    TargetLanguage.VisualBasic => "VB",
+                    TargetLanguage.Cpp => "C++",
+                    _ => "C#"
+                };
+                var fnName = !string.IsNullOrWhiteSpace(node.LogicFunction?.Name) ? node.LogicFunction.Name : (!string.IsNullOrWhiteSpace(node.Text) ? node.Text : "Execute");
+                var retType = !string.IsNullOrWhiteSpace(node.LogicFunction?.ReturnType) ? node.LogicFunction.ReturnType : "void";
+                var isAsync = node.LogicFunction?.IsAsync == true ? "async " : "";
+
+                var logicBorder = new Border
+                {
+                    Background = new SolidColorBrush(Color.FromArgb(240, 30, 27, 75)), // #1E1B4B
+                    BorderBrush = new SolidColorBrush(Color.FromRgb(129, 140, 248)), // #818CF8
+                    BorderThickness = new Thickness(1.5),
+                    CornerRadius = new CornerRadius(8),
+                    Padding = new Thickness(8, 5),
+                    Child = new StackPanel
+                    {
+                        Orientation = Avalonia.Layout.Orientation.Vertical,
+                        Spacing = 2,
+                        VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center,
+                        Children =
+                        {
+                            new StackPanel
+                            {
+                                Orientation = Avalonia.Layout.Orientation.Horizontal,
+                                Spacing = 6,
+                                VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center,
+                                Children =
+                                {
+                                    new Border
+                                    {
+                                        Background = new SolidColorBrush(Color.FromRgb(99, 102, 241)), // Indigo-500
+                                        CornerRadius = new CornerRadius(4),
+                                        Padding = new Thickness(4, 1),
+                                        Child = new TextBlock
+                                        {
+                                            Text = "Fn",
+                                            FontWeight = FontWeight.Bold,
+                                            Foreground = Brushes.White,
+                                            FontSize = 10
+                                        }
+                                    },
+                                    new Border
+                                    {
+                                        Background = new SolidColorBrush(Color.FromArgb(180, 55, 48, 163)),
+                                        CornerRadius = new CornerRadius(4),
+                                        Padding = new Thickness(4, 1),
+                                        Child = new TextBlock
+                                        {
+                                            Text = langBadge,
+                                            FontWeight = FontWeight.SemiBold,
+                                            Foreground = new SolidColorBrush(Color.FromRgb(199, 210, 254)),
+                                            FontSize = 10
+                                        }
+                                    },
+                                    new TextBlock
+                                    {
+                                        Text = node.Name,
+                                        FontWeight = FontWeight.Bold,
+                                        Foreground = Brushes.White,
+                                        FontSize = 11,
+                                        VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center
+                                    }
+                                }
+                            },
+                            new TextBlock
+                            {
+                                Text = $"{isAsync}{retType} {fnName}(...)",
+                                Foreground = new SolidColorBrush(Color.FromRgb(199, 210, 254)),
+                                FontSize = 10,
+                                FontFamily = new FontFamily("Consolas, Cascadia Code, Courier New")
+                            }
+                        }
+                    }
+                };
+                control = logicBorder;
+                break;
             case ControlType.DebugConsole:
                 var consoleBorder = new Border
                 {

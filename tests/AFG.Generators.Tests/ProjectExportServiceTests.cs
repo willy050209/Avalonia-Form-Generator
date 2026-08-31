@@ -2450,5 +2450,141 @@ public sealed class ProjectExportServiceTests
 
         return false;
     }
+
+    [Fact]
+    public async Task ExportProject_WithLogicFunctionAstNodes_ShouldMergeAndGenerateFilesAndBuildSuccessfully()
+    {
+        var tempFolder = Path.Combine(Path.GetTempPath(), "AFG_LogicNodeExportTest_" + Guid.NewGuid().ToString("N"));
+        var doc = new FormDocument
+        {
+            ViewClassName = "LogicNodeView",
+            ViewModelClassName = "LogicNodeViewModel",
+            TargetLanguage = TargetLanguage.CSharp,
+            Title = "Logic Node Test Form",
+            RootNode = new AstNode
+            {
+                Type = ControlType.Canvas,
+                Children = [
+                    new AstNode
+                    {
+                        Id = "btnSubmit",
+                        Type = ControlType.Button,
+                        Content = "Submit"
+                    },
+                    // 節點 1: OrderService.CalculateDiscount (C#)
+                    new AstNode
+                    {
+                        Id = "fn1",
+                        Name = "OrderService",
+                        Type = ControlType.LogicFunction,
+                        OutputPath = "Services",
+                        TargetNamespace = "Shop.Services",
+                        TargetLanguage = TargetLanguage.CSharp,
+                        LogicFunction = new LogicFunctionDefinition
+                        {
+                            Name = "CalculateDiscount",
+                            ReturnType = "decimal",
+                            Parameters = [new FunctionParameter { Name = "price", Type = "decimal" }],
+                            CustomImplementation = "return price * 0.9m;"
+                        }
+                    },
+                    // 節點 2: OrderService.CalculateTax (C#) -> 應與節點 1 合併為同一個 OrderService 檔案！
+                    new AstNode
+                    {
+                        Id = "fn2",
+                        Name = "OrderService",
+                        Type = ControlType.LogicFunction,
+                        OutputPath = "Services",
+                        TargetNamespace = "Shop.Services",
+                        TargetLanguage = TargetLanguage.CSharp,
+                        LogicFunction = new LogicFunctionDefinition
+                        {
+                            Name = "CalculateTax",
+                            ReturnType = "decimal",
+                            Parameters = [new FunctionParameter { Name = "amount", Type = "decimal" }],
+                            CustomImplementation = "return amount * 0.05m;"
+                        }
+                    },
+                    // 節點 3: FastMath.Compute (F# 跨語言)
+                    new AstNode
+                    {
+                        Id = "fn3",
+                        Name = "FastMath",
+                        Type = ControlType.LogicFunction,
+                        OutputPath = "Services",
+                        TargetNamespace = "Math.FS",
+                        TargetLanguage = TargetLanguage.FSharp,
+                        LogicFunction = new LogicFunctionDefinition
+                        {
+                            Name = "Compute",
+                            ReturnType = "int",
+                            Parameters = [new FunctionParameter { Name = "n", Type = "int" }],
+                            CustomImplementation = "n * 10"
+                        }
+                    },
+                    // 節點 4: CryptoNative.Hash (C++ DllImport)
+                    new AstNode
+                    {
+                        Id = "fn4",
+                        Name = "CryptoNative",
+                        Type = ControlType.LogicFunction,
+                        OutputPath = "Native",
+                        TargetNamespace = "Security.Native",
+                        TargetLanguage = TargetLanguage.Cpp,
+                        LogicFunction = new LogicFunctionDefinition
+                        {
+                            Name = "Hash",
+                            ReturnType = "int",
+                            Parameters = [new FunctionParameter { Name = "data", Type = "int" }]
+                        }
+                    }
+                ]
+            }
+        };
+
+        try
+        {
+            await _exportService.ExportToFolderAsync(doc, tempFolder, new ProjectExportOptions(IncludeMobileProject: false, CustomProjectName: "LogicNodeApp"));
+
+            var sharedDir = Path.Combine(tempFolder, "src", "LogicNodeApp.Shared");
+            var orderServicePath = Path.Combine(sharedDir, "Services", "OrderService.cs");
+            File.Exists(orderServicePath).Should().BeTrue();
+
+            var orderServiceContent = await File.ReadAllTextAsync(orderServicePath);
+            orderServiceContent.Should().Contain("CalculateDiscount");
+            orderServiceContent.Should().Contain("CalculateTax");
+
+            var desktopCsprojPath = Path.Combine(tempFolder, "src", "LogicNodeApp.Desktop", "LogicNodeApp.Desktop.csproj");
+            File.Exists(desktopCsprojPath).Should().BeTrue();
+
+            var psi = new ProcessStartInfo
+            {
+                FileName = "dotnet",
+                Arguments = $"build \"{desktopCsprojPath}\" -c Release -nodeReuse:false -p:UseSharedCompilation=false",
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            };
+
+            using var process = Process.Start(psi);
+            var stdout = await process!.StandardOutput.ReadToEndAsync();
+            var stderr = await process.StandardError.ReadToEndAsync();
+            await process.WaitForExitAsync();
+
+            process.ExitCode.Should().Be(0, $"含 LogicFunction 節點合併與跨語言之專案應成功編譯。\n標準輸出:\n{stdout}\n錯誤輸出:\n{stderr}");
+        }
+        finally
+        {
+            if (Directory.Exists(tempFolder))
+            {
+                try
+                {
+                    Directory.Delete(tempFolder, recursive: true);
+                }
+                catch { }
+            }
+        }
+    }
 }
 

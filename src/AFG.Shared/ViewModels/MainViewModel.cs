@@ -316,6 +316,40 @@ public sealed partial class MainViewModel : ObservableObject
     {
         try
         {
+            if (Canvas.SelectedNode is not null && Canvas.SelectedNode.Type == ControlType.LogicFunction)
+            {
+                var selectedNode = Canvas.SelectedNode;
+                var services = AFG.Core.Models.Logic.LogicServiceAggregator.AggregateFromNodes([selectedNode], Canvas.Document.RootNamespace, Canvas.Document.TargetLanguage);
+                if (services.Count > 0)
+                {
+                    var s = services[0];
+                    switch (s.Language)
+                    {
+                        case TargetLanguage.CSharp:
+                            var (csIface, csImpl) = AFG.Generators.Logic.CSharpLogicGenerator.Generate(s);
+                            GeneratedViewCode = $"// === 介面原型 ({csIface.FileName}) ===\n\n{csIface.Content}";
+                            GeneratedVmCode = $"// === 實作原型 ({csImpl.FileName}) ===\n\n{csImpl.Content}";
+                            return;
+                        case TargetLanguage.FSharp:
+                            var fsFile = AFG.Generators.Logic.FSharpLogicGenerator.Generate(s);
+                            GeneratedViewCode = $"// === F# 模組/介面原型 ({fsFile.FileName}) ===\n\n{fsFile.Content}";
+                            GeneratedVmCode = "// F# 業務邏輯模組已生成於上方檔案。\n// 支援由 C# / VB / F# 專案跨語言直接調用。";
+                            return;
+                        case TargetLanguage.VisualBasic:
+                            var (vbIface, vbImpl) = AFG.Generators.Logic.VisualBasicLogicGenerator.Generate(s);
+                            GeneratedViewCode = $"' === 介面原型 ({vbIface.FileName}) ===\n\n{vbIface.Content}";
+                            GeneratedVmCode = $"' === 實作原型 ({vbImpl.FileName}) ===\n\n{vbImpl.Content}";
+                            return;
+                        case TargetLanguage.Cpp:
+                            var (h, cpp, _) = AFG.Generators.Logic.CppLogicGenerator.GenerateNative(s, s.ServiceName);
+                            var bridge = AFG.Generators.Logic.CppLogicGenerator.GenerateCSharpBridge(s, s.ServiceName);
+                            GeneratedViewCode = $"// === C++ 標頭檔 ({h.FileName}) ===\n\n{h.Content}\n\n// === C++ 實作檔 ({cpp.FileName}) ===\n\n{cpp.Content}";
+                            GeneratedVmCode = $"// === C# DllImport P/Invoke Bridge ({bridge.FileName}) ===\n\n{bridge.Content}";
+                            return;
+                    }
+                }
+            }
+
             var result = _codeGenerator.GenerateAll(Canvas.Document);
             if (result.IsSuccess)
             {

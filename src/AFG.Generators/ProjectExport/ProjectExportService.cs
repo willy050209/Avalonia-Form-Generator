@@ -4,6 +4,7 @@ using System.Globalization;
 using System.Text;
 using AFG.Core.Enums;
 using AFG.Core.Models.Ast;
+using AFG.Core.Models.Logic;
 using AFG.Generators.Constants;
 using AFG.Generators.CSharpMarkup;
 using AFG.Generators.FSharp;
@@ -2905,7 +2906,7 @@ public sealed class ProjectExportService(FormCodeGenerator? codeGenerator = null
         List<GeneratedSourceFile> files)
     {
         var allLogicServices = project.LogicServices
-            .Concat(project.Documents.SelectMany(d => d.LogicServices))
+            .Concat(project.Documents.SelectMany(LogicServiceAggregator.AggregateFromDocument))
             .DistinctBy(s => s.ServiceName)
             .ToList();
 
@@ -3021,7 +3022,7 @@ public sealed class ProjectExportService(FormCodeGenerator? codeGenerator = null
         List<GeneratedSourceFile> files)
     {
         var allLogicServices = project.LogicServices
-            .Concat(project.Documents.SelectMany(d => d.LogicServices))
+            .Concat(project.Documents.SelectMany(LogicServiceAggregator.AggregateFromDocument))
             .DistinctBy(s => s.ServiceName)
             .ToList();
 
@@ -3134,7 +3135,7 @@ public sealed class ProjectExportService(FormCodeGenerator? codeGenerator = null
         List<GeneratedSourceFile> files)
     {
         var allLogicServices = project.LogicServices
-            .Concat(project.Documents.SelectMany(d => d.LogicServices))
+            .Concat(project.Documents.SelectMany(LogicServiceAggregator.AggregateFromDocument))
             .DistinctBy(s => s.ServiceName)
             .ToList();
 

@@ -245,6 +245,7 @@ public sealed record FunctionParameter
 - **除錯與日誌元件**：DebugConsole（內建深色主控台外觀、Clear 按鈕與日誌 ItemsSource 綁定）
 - **對話方塊元件**：`OpenFileDialog`, `SaveFileDialog`, `MessageBox`。
 - **不可視元件與通訊服務**：`DispatcherTimer`, `BackgroundWorker`, `BluetoothClient`, `SerialPortService`。
+- **業務邏輯函數元件**：`LogicFunction`（工具箱「業務邏輯」元件，專門依設定的路徑、名稱、命名空間、程式語言 [C#, F#, VB, C++] 與參數生成業務邏輯原型，具備同路徑同服務自動合併與跨語言專案配置能力）。
 
 ---
 

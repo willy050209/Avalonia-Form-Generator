@@ -41,7 +41,10 @@ public static class ToolboxService
         new("MessageBox", "對話方塊", ControlType.MessageBox, "Msg", 150, 40, "訊息方塊 (MessageBox)"),
 
         // 除錯控制項
-        new("DebugConsole", "除錯工具", ControlType.DebugConsole, "Dbg", 400, 180, "Debug Console")
+        new("DebugConsole", "除錯工具", ControlType.DebugConsole, "Dbg", 400, 180, "Debug Console"),
+
+        // 業務邏輯原型
+        new("LogicFunction", "業務邏輯", ControlType.LogicFunction, "Fn", 180, 50, "業務邏輯 (LogicFunction)")
     ];
 
     public static IReadOnlyList<ToolboxItem> GetAvailableItems() => Items;

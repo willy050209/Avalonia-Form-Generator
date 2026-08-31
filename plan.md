@@ -480,6 +480,33 @@ AvaloniaFormGenerator/
 
 ---
 
+### 🔹 階段 27：工具箱「業務邏輯函數 (Logic Function)」元件與跨語言程式碼生成系統 (Logic Function Toolbox Component & Cross-Language Generation)
+- [x] **階段狀態：已完成 (Completed)**
+- **目標**：在工具箱新增「業務邏輯」分類與 `LogicFunction` 元件；在畫布提供專屬邏輯卡片呈現；在屬性檢查器提供包含名稱、路徑、命名空間、程式語言 (C#, F#, VB, C++)、傳回型態、非同步模式、多參數清單與自訂實作碼之配置面板；支援多 Logic 依「路徑+名稱+語言」智能合併或分離生成；支援跨語言專案配置與 C++ DllImport P/Invoke Bridge。
+- **任務清單**：
+  - [x] 27.1 **Phase 1: AST 模型擴充與多 Logic 聚合器 (`AFG.Core`)**
+    - 新增 `ControlType.LogicFunction` 列舉值。
+    - 擴充 `AstNode.cs` 支援 `LogicFunction`、`OutputPath`、`TargetNamespace`、`TargetLanguage` 等屬性與 JSON 序列化。
+    - 實作 `LogicServiceAggregator.cs`：依據 `OutputPath + ServiceName + TargetLanguage` 智能聚合多個 Logic 節點。
+    - 撰寫單元測試 `LogicServiceAggregatorTests.cs` 與 `AfgSerializerTests`。
+  - [x] 27.2 **Phase 2: 工具箱註冊與畫布卡片渲染 (`AFG.Shared`)**
+    - 在 `ToolboxService.cs` 註冊「業務邏輯」分類與 `LogicFunction` 項目。
+    - 在 `DesignCanvas.cs` 實作專屬邏輯卡片渲染（深紫漸層、`[Fn]` 圖示、`[C#]` / `[F#]` / `[VB]` / `[C++]` 語言徽章、函數簽章與命名空間）。
+  - [x] 27.3 **Phase 3: 屬性檢查器 ViewModel 與 View 實作 (`AFG.Shared`)**
+    - 在 `InspectorViewModel.cs` 實作邏輯函數專屬屬性雙向綁定與參數增刪命令。
+    - 在 `InspectorView.axaml` 打造「業務邏輯函數設定」面板（參數列表與多行實作碼編輯框）。
+    - 撰寫單元測試 `InspectorViewModelTests` 驗證屬性更新與 AST 同步。
+  - [x] 27.4 **Phase 4: 代碼即時預覽與跨語言專案匯出整合 (`AFG.Generators`)**
+    - 在 `MainViewModel.cs` / `FormCodeGenerator.cs` 整合邏輯函數即時程式碼預覽（選中 Logic 節點時即時產生 C#/F#/VB/C++ 介面與實作原型）。
+    - 在 `ProjectExportService.cs` 整合畫布 Logic 節點的匯出流程，支援 .NET 跨語言專案配置與 C++ DllImport Interop 完整生成。
+    - 撰寫匯出編譯測試 `ProjectExportServiceTests` 驗證實體 `dotnet build` 與跨語言專案編譯。
+  - [x] 27.5 **Phase 5: 全套單元測試、技術文件更新與 Git Commit**
+    - 執行全套單元測試（確保 0 error, 0 warning 且 100% 通過）。
+    - 更新 `docs/ast-schema.md`、`docs/csharp-markup-spec.md` 與 `plan.md`。
+    - 執行 Git Commit。
+
+---
+
 ## 4. 驗證標準與品質指標
 
 1. **單元測試覆蓋率**：所有純函式、AST 操作、歷史堆疊、生成器與序列化演算法 100% 覆蓋。

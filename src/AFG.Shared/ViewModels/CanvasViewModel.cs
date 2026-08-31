@@ -368,9 +368,20 @@ public sealed partial class CanvasViewModel : ObservableObject
             defaultLeft, defaultTop, item.DefaultWidth, item.DefaultHeight, Document.CanvasWidth, Document.CanvasHeight);
 
         var isParentCanvas = parentNode.Type == ControlType.Canvas;
+        var isLogic = item.Type == ControlType.LogicFunction;
+        var defaultLogicFn = isLogic
+            ? new AFG.Core.Models.Logic.LogicFunctionDefinition
+            {
+                Name = "Execute",
+                ReturnType = "void",
+                IsAsync = false,
+                Language = Document.TargetLanguage
+            }
+            : null;
+
         var newNode = new AstNode
         {
-            Name = $"{item.DisplayName}_{Guid.NewGuid():N}"[..12],
+            Name = isLogic ? "LogicService" : $"{item.DisplayName}_{Guid.NewGuid():N}"[..12],
             Type = item.Type,
             Width = isParentCanvas ? item.DefaultWidth : null,
             Height = isParentCanvas ? item.DefaultHeight : null,
@@ -379,7 +390,11 @@ public sealed partial class CanvasViewModel : ObservableObject
             CanvasLeft = isParentCanvas ? clampedLeft : null,
             CanvasTop = isParentCanvas ? clampedTop : null,
             HorizontalAlignment = isParentCanvas ? Core.Enums.HorizontalAlignment.Left : Core.Enums.HorizontalAlignment.Stretch,
-            VerticalAlignment = isParentCanvas ? Core.Enums.VerticalAlignment.Top : Core.Enums.VerticalAlignment.Stretch
+            VerticalAlignment = isParentCanvas ? Core.Enums.VerticalAlignment.Top : Core.Enums.VerticalAlignment.Stretch,
+            OutputPath = isLogic ? "Services" : null,
+            TargetNamespace = isLogic ? Document.RootNamespace : null,
+            TargetLanguage = isLogic ? Document.TargetLanguage : null,
+            LogicFunction = defaultLogicFn
         };
 
         var newRoot = AstTreeOperations.AddChild(Document.RootNode, parentId, newNode);

@@ -890,6 +890,139 @@
                         </ScrollViewer>
                     </Grid>
                 </TabItem>
+
+                <!-- 分頁 5: 業務邏輯函數 (Logic Function) -->
+                <TabItem Header="業務邏輯" IsVisible="{Binding IsLogicFunctionSupported}">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                        <StackPanel Spacing="10" Margin="6">
+                            <!-- 基本模組與檔案設定 -->
+                            <Border Background="#27272A" CornerRadius="6" Padding="8">
+                                <StackPanel Spacing="6">
+                                    <TextBlock Text="服務與檔案設定" FontWeight="Bold" FontSize="12" Foreground="#818CF8" />
+
+                                    <StackPanel Spacing="2">
+                                        <TextBlock Text="服務 / 類別名稱 (ServiceName)" FontSize="10" Foreground="#A1A1AA" />
+                                        <TextBox Text="{Binding LogicServiceName, Mode=TwoWay}" />
+                                    </StackPanel>
+
+                                    <StackPanel Spacing="2">
+                                        <TextBlock Text="輸出相對路徑 (OutputPath)" FontSize="10" Foreground="#A1A1AA" />
+                                        <TextBox Text="{Binding LogicOutputPath, Mode=TwoWay}" PlaceholderText="例如: Services 或 Logic" />
+                                    </StackPanel>
+
+                                    <StackPanel Spacing="2">
+                                        <TextBlock Text="命名空間 (Namespace)" FontSize="10" Foreground="#A1A1AA" />
+                                        <TextBox Text="{Binding LogicNamespace, Mode=TwoWay}" />
+                                    </StackPanel>
+
+                                    <StackPanel Spacing="2">
+                                        <TextBlock Text="目標程式語言 (Target Language)" FontSize="10" Foreground="#A1A1AA" />
+                                        <ComboBox ItemsSource="{Binding TargetLanguageOptions}"
+                                                  SelectedItem="{Binding LogicLanguage, Mode=TwoWay}"
+                                                  HorizontalAlignment="Stretch" />
+                                    </StackPanel>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- 函數簽章配置 -->
+                            <Border Background="#27272A" CornerRadius="6" Padding="8">
+                                <StackPanel Spacing="6">
+                                    <TextBlock Text="函數簽章配置 (Method Signature)" FontWeight="Bold" FontSize="12" Foreground="#38BDF8" />
+
+                                    <Grid ColumnDefinitions="*, *">
+                                        <StackPanel Grid.Column="0" Spacing="2" Margin="0,0,3,0">
+                                            <TextBlock Text="函數名稱 (Function Name)" FontSize="10" Foreground="#A1A1AA" />
+                                            <TextBox Text="{Binding LogicFunctionName, Mode=TwoWay}" />
+                                        </StackPanel>
+                                        <StackPanel Grid.Column="1" Spacing="2" Margin="3,0,0,0">
+                                            <TextBlock Text="傳回型態 (Return Type)" FontSize="10" Foreground="#A1A1AA" />
+                                            <TextBox Text="{Binding LogicReturnType, Mode=TwoWay}" PlaceholderText="void, int, decimal, string..." />
+                                        </StackPanel>
+                                    </Grid>
+
+                                    <CheckBox Content="非同步模式 (async / Task / Async)"
+                                              IsChecked="{Binding LogicIsAsync, Mode=TwoWay}"
+                                              FontSize="11" />
+
+                                    <StackPanel Spacing="2">
+                                        <TextBlock Text="說明註解 (Description / XML Doc)" FontSize="10" Foreground="#A1A1AA" />
+                                        <TextBox Text="{Binding LogicDescription, Mode=TwoWay}" PlaceholderText="函數功能說明摘要" />
+                                    </StackPanel>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- 參數清單 -->
+                            <Border Background="#27272A" CornerRadius="6" Padding="8">
+                                <StackPanel Spacing="6">
+                                    <Grid ColumnDefinitions="*, Auto">
+                                        <TextBlock Grid.Column="0" Text="函數參數清單 (Parameters)" FontWeight="Bold" FontSize="12" Foreground="#F59E0B" VerticalAlignment="Center" />
+                                        <Button Grid.Column="1"
+                                                Content="+ 新增參數"
+                                                Padding="6,2"
+                                                FontSize="10"
+                                                Command="{Binding AddLogicParameterCommand}" />
+                                    </Grid>
+
+                                    <ItemsControl ItemsSource="{Binding LogicParameters}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate x:DataType="vm:FunctionParameterItemViewModel">
+                                                <Border Background="#18181B" CornerRadius="4" Padding="6" Margin="0,3">
+                                                    <StackPanel Spacing="4">
+                                                        <Grid ColumnDefinitions="*, Auto">
+                                                            <TextBlock Grid.Column="0" Text="{Binding Name}" FontSize="10" FontWeight="SemiBold" Foreground="#E4E4E7" VerticalAlignment="Center" />
+                                                            <Button Grid.Column="1"
+                                                                    Content="刪除"
+                                                                    Padding="4,1"
+                                                                    FontSize="9"
+                                                                    Command="{Binding $parent[views:InspectorView].((vm:InspectorViewModel)DataContext).RemoveLogicParameterCommand}"
+                                                                    CommandParameter="{Binding}" />
+                                                        </Grid>
+
+                                                        <Grid ColumnDefinitions="*, *">
+                                                            <StackPanel Grid.Column="0" Spacing="2" Margin="0,0,2,0">
+                                                                <TextBlock Text="參數名稱" FontSize="9" Foreground="#A1A1AA" />
+                                                                <TextBox Text="{Binding Name, Mode=TwoWay}" FontSize="11" />
+                                                            </StackPanel>
+                                                            <StackPanel Grid.Column="1" Spacing="2" Margin="2,0,0,0">
+                                                                <TextBlock Text="型態 (Type)" FontSize="9" Foreground="#A1A1AA" />
+                                                                <TextBox Text="{Binding Type, Mode=TwoWay}" FontSize="11" />
+                                                            </StackPanel>
+                                                        </Grid>
+
+                                                        <Grid ColumnDefinitions="*, *">
+                                                            <StackPanel Grid.Column="0" Spacing="2" Margin="0,0,2,0">
+                                                                <TextBlock Text="預設值 (選填)" FontSize="9" Foreground="#A1A1AA" />
+                                                                <TextBox Text="{Binding DefaultValue, Mode=TwoWay}" FontSize="11" />
+                                                            </StackPanel>
+                                                            <StackPanel Grid.Column="1" Spacing="2" Margin="2,0,0,0">
+                                                                <TextBlock Text="說明註解 (選填)" FontSize="9" Foreground="#A1A1AA" />
+                                                                <TextBox Text="{Binding Description, Mode=TwoWay}" FontSize="11" />
+                                                            </StackPanel>
+                                                        </Grid>
+                                                    </StackPanel>
+                                                </Border>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- 自訂實作區塊 (Custom Implementation) -->
+                            <Border Background="#27272A" CornerRadius="6" Padding="8">
+                                <StackPanel Spacing="4">
+                                    <TextBlock Text="自訂實作程式碼 (Method Body)" FontWeight="Bold" FontSize="12" Foreground="#34D399" />
+                                    <TextBlock Text="可撰寫對應語言之方法體邏輯 (若留空則產生標準 stub 範本)" FontSize="10" Foreground="#71717A" />
+                                    <TextBox Text="{Binding LogicCustomImplementation, Mode=TwoWay}"
+                                             AcceptsReturn="True"
+                                             FontFamily="Consolas, Cascadia Code, Courier New"
+                                             FontSize="11"
+                                             MinHeight="90"
+                                             Margin="0,4,0,0" />
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+                    </ScrollViewer>
+                </TabItem>
             </TabControl>
         </Grid>
     </Grid>

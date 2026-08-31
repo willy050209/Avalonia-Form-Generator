@@ -1250,7 +1250,7 @@ public static class AvaloniaMarkupExtensionsSource
         public double Volume
         {
             get => GetValue(VolumeProperty);
-            set => SetValue(VolumeProperty, Math.Clamp(value, 0.0, 1.0));
+            set => SetValue(VolumeProperty, global::System.Math.Clamp(value, 0.0, 1.0));
         }
 
         public TimeSpan Position
@@ -1286,7 +1286,7 @@ public static class AvaloniaMarkupExtensionsSource
         public double SpeedRatio
         {
             get => GetValue(SpeedRatioProperty);
-            set => SetValue(SpeedRatioProperty, Math.Max(0.1, value));
+            set => SetValue(SpeedRatioProperty, global::System.Math.Max(0.1, value));
         }
 
         public event EventHandler? MediaOpened;
@@ -1570,8 +1570,8 @@ public static class AvaloniaMarkupExtensionsSource
             // 動畫音波等化器
             for (int i = 0; i < _equalizerBars.Length; i++)
             {
-                var wave = Math.Abs(Math.Sin(_tickCount * 0.35 + i * 1.2));
-                _equalizerBars[i].Height = Math.Max(4, 4 + wave * 16 * Volume);
+                var wave = global::System.Math.Abs(global::System.Math.Sin(_tickCount * 0.35 + i * 1.2));
+                _equalizerBars[i].Height = global::System.Math.Max(4, 4 + wave * 16 * Volume);
             }
 
             if (Duration > TimeSpan.Zero && newPos >= Duration)
@@ -1763,7 +1763,7 @@ public static class AvaloniaMarkupExtensionsSource
             }
             else if (Bounds.Width > 0 && Bounds.Height > 0)
             {
-                var rtb = new RenderTargetBitmap(new PixelSize((int)Math.Max(1, Bounds.Width), (int)Math.Max(1, Bounds.Height)));
+                var rtb = new RenderTargetBitmap(new PixelSize((int)global::System.Math.Max(1, Bounds.Width), (int)global::System.Math.Max(1, Bounds.Height)));
                 rtb.Render(this);
                 captured = rtb;
             }
@@ -1847,7 +1847,7 @@ public static class AvaloniaMarkupExtensionsSource
             }
         }
 
-        public static int PreferredPixelBatchCount => Math.Max(1, PreferredVectorByteCount / 4);
+        public static int PreferredPixelBatchCount => global::System.Math.Max(1, PreferredVectorByteCount / 4);
     }
 
     /// <summary>
@@ -1857,8 +1857,8 @@ public static class AvaloniaMarkupExtensionsSource
     {
         public static WriteableBitmap CreateInitializedBitmap(int width, int height, IBrush? backgroundColor = null)
         {
-            width = Math.Max(1, width);
-            height = Math.Max(1, height);
+            width = global::System.Math.Max(1, width);
+            height = global::System.Math.Max(1, height);
             Color color = backgroundColor is ISolidColorBrush scb ? scb.Color : Color.Parse("#F0F0F0");
             var wb = new WriteableBitmap(
                 new PixelSize(width, height),
@@ -1887,13 +1887,13 @@ public static class AvaloniaMarkupExtensionsSource
         }
 
         public static WriteableBitmap CreateInitializedBitmap(double width, double height, IBrush? backgroundColor = null) =>
-            CreateInitializedBitmap((int)Math.Max(1, width), (int)Math.Max(1, height), backgroundColor);
+            CreateInitializedBitmap((int)global::System.Math.Max(1, width), (int)global::System.Math.Max(1, height), backgroundColor);
 
         public static WriteableBitmap CreateInitializedBitmap(int width, int height, Color color) =>
             CreateInitializedBitmap(width, height, new SolidColorBrush(color));
 
         public static WriteableBitmap CreateInitializedBitmap(double width, double height, Color color) =>
-            CreateInitializedBitmap((int)Math.Max(1, width), (int)Math.Max(1, height), new SolidColorBrush(color));
+            CreateInitializedBitmap((int)global::System.Math.Max(1, width), (int)global::System.Math.Max(1, height), new SolidColorBrush(color));
 
         public static WriteableBitmap ConvertToWriteableBitmap(this Bitmap bitmap)
         {
@@ -2519,7 +2519,7 @@ public static class AvaloniaMarkupExtensionsSource
                         int gx = (p02 + 2 * p12 + p22) - (p00 + 2 * p10 + p20);
                         int gy = (p20 + 2 * p21 + p22) - (p00 + 2 * p01 + p02);
 
-                        int mag = (int)Math.Sqrt(gx * gx + gy * gy);
+                        int mag = (int)global::System.Math.Sqrt(gx * gx + gy * gy);
                         if (mag > 255) mag = 255;
                         if (mag < threshold) mag = 0;
 
@@ -2569,17 +2569,17 @@ public static class AvaloniaMarkupExtensionsSource
             PixelProcessingMode mode = PixelProcessingMode.Parallel)
         {
             ArgumentNullException.ThrowIfNull(bitmap);
-            radius = Math.Clamp(radius, 1, 50);
+            radius = global::System.Math.Clamp(radius, 1, 50);
 
             int size = radius * 2 + 1;
             float[] kernel = new float[size];
-            float sigma = Math.Max((float)radius / 2.0f, 0.5f);
+            float sigma = global::System.Math.Max((float)radius / 2.0f, 0.5f);
             float twoSigmaSq = 2.0f * sigma * sigma;
             float sum = 0f;
 
             for (int i = -radius; i <= radius; i++)
             {
-                float val = MathF.Exp(-(i * i) / twoSigmaSq);
+                float val = global::System.MathF.Exp(-(i * i) / twoSigmaSq);
                 kernel[i + radius] = val;
                 sum += val;
             }
@@ -2598,7 +2598,7 @@ public static class AvaloniaMarkupExtensionsSource
             PixelProcessingMode mode = PixelProcessingMode.Parallel)
         {
             ArgumentNullException.ThrowIfNull(bitmap);
-            radius = Math.Clamp(radius, 1, 50);
+            radius = global::System.Math.Clamp(radius, 1, 50);
             int size = radius * 2 + 1;
             float weight = 1.0f / size;
             float[] kernel = new float[size];
@@ -2635,7 +2635,7 @@ public static class AvaloniaMarkupExtensionsSource
                         float b = 0, g = 0, r = 0, a = 0;
                         for (int k = -radius; k <= radius; k++)
                         {
-                            int sampleX = Math.Clamp(x + k, 0, width - 1);
+                            int sampleX = global::System.Math.Clamp(x + k, 0, width - 1);
                             byte* p = srcRow + sampleX * 4;
                             float w = kernel[k + radius];
                             b += p[0] * w;
@@ -2645,10 +2645,10 @@ public static class AvaloniaMarkupExtensionsSource
                         }
 
                         byte* outP = dstRow + x * 4;
-                        outP[0] = (byte)Math.Clamp((int)Math.Round(b), 0, 255);
-                        outP[1] = (byte)Math.Clamp((int)Math.Round(g), 0, 255);
-                        outP[2] = (byte)Math.Clamp((int)Math.Round(r), 0, 255);
-                        outP[3] = (byte)Math.Clamp((int)Math.Round(a), 0, 255);
+                        outP[0] = (byte)global::System.Math.Clamp((int)global::System.Math.Round(b), 0, 255);
+                        outP[1] = (byte)global::System.Math.Clamp((int)global::System.Math.Round(g), 0, 255);
+                        outP[2] = (byte)global::System.Math.Clamp((int)global::System.Math.Round(r), 0, 255);
+                        outP[3] = (byte)global::System.Math.Clamp((int)global::System.Math.Round(a), 0, 255);
                     }
                 }
 
@@ -2661,7 +2661,7 @@ public static class AvaloniaMarkupExtensionsSource
                         float b = 0, g = 0, r = 0, a = 0;
                         for (int k = -radius; k <= radius; k++)
                         {
-                            int sampleY = Math.Clamp(y + k, 0, height - 1);
+                            int sampleY = global::System.Math.Clamp(y + k, 0, height - 1);
                             byte* p = tempScan0 + sampleY * rowBytes + x * 4;
                             float w = kernel[k + radius];
                             b += p[0] * w;
@@ -2671,10 +2671,10 @@ public static class AvaloniaMarkupExtensionsSource
                         }
 
                         byte* outP = dstRow + x * 4;
-                        outP[0] = (byte)Math.Clamp((int)Math.Round(b), 0, 255);
-                        outP[1] = (byte)Math.Clamp((int)Math.Round(g), 0, 255);
-                        outP[2] = (byte)Math.Clamp((int)Math.Round(r), 0, 255);
-                        outP[3] = (byte)Math.Clamp((int)Math.Round(a), 0, 255);
+                        outP[0] = (byte)global::System.Math.Clamp((int)global::System.Math.Round(b), 0, 255);
+                        outP[1] = (byte)global::System.Math.Clamp((int)global::System.Math.Round(g), 0, 255);
+                        outP[2] = (byte)global::System.Math.Clamp((int)global::System.Math.Round(r), 0, 255);
+                        outP[3] = (byte)global::System.Math.Clamp((int)global::System.Math.Round(a), 0, 255);
                     }
                 }
 

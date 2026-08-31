@@ -269,3 +269,50 @@ public sealed partial class EventItemViewModel : ObservableObject
         return vm;
     }
 }
+
+/// <summary>
+/// 邏輯函數參數項目編輯 ViewModel。
+/// </summary>
+public sealed partial class FunctionParameterItemViewModel : ObservableObject
+{
+    [ObservableProperty]
+    private string _name = "param";
+
+    [ObservableProperty]
+    private string _type = "string";
+
+    [ObservableProperty]
+    private string _defaultValue = string.Empty;
+
+    [ObservableProperty]
+    private string _description = string.Empty;
+
+    public event Action? Changed;
+
+    partial void OnNameChanged(string value) => Changed?.Invoke();
+    partial void OnTypeChanged(string value) => Changed?.Invoke();
+    partial void OnDefaultValueChanged(string value) => Changed?.Invoke();
+    partial void OnDescriptionChanged(string value) => Changed?.Invoke();
+
+    public static FunctionParameterItemViewModel FromDefinition(AFG.Core.Models.Logic.FunctionParameter param)
+    {
+        return new FunctionParameterItemViewModel
+        {
+            Name = param.Name,
+            Type = param.Type,
+            DefaultValue = param.DefaultValue ?? string.Empty,
+            Description = param.Description ?? string.Empty
+        };
+    }
+
+    public AFG.Core.Models.Logic.FunctionParameter ToDefinition()
+    {
+        return new AFG.Core.Models.Logic.FunctionParameter
+        {
+            Name = !string.IsNullOrWhiteSpace(Name) ? Name.Trim() : "param",
+            Type = !string.IsNullOrWhiteSpace(Type) ? Type.Trim() : "string",
+            DefaultValue = string.IsNullOrWhiteSpace(DefaultValue) ? null : DefaultValue.Trim(),
+            Description = string.IsNullOrWhiteSpace(Description) ? null : Description.Trim()
+        };
+    }
+}

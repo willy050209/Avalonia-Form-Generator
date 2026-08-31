@@ -1,5 +1,6 @@
 // filepath: tests/AFG.Core.Tests/AfgSerializerTests.cs
 using System.Text.Json;
+using AFG.Core.Models.Logic;
 
 namespace AFG.Core.Tests;
 
@@ -432,6 +433,63 @@ public sealed class AfgSerializerTests
         resFSharp.TargetLanguage.Should().Be(TargetLanguage.FSharp);
         resVB.TargetLanguage.Should().Be(TargetLanguage.VisualBasic);
         resDefault.TargetLanguage.Should().Be(TargetLanguage.CSharp);
+    }
+
+    [Fact]
+    public void Roundtrip_AstNode_ShouldPreserveLogicFunctionProperties()
+    {
+        // Arrange
+        var doc = new FormDocument
+        {
+            Title = "Logic App",
+            RootNode = new AstNode
+            {
+                Type = ControlType.Canvas,
+                Children = [
+                    new AstNode
+                    {
+                        Id = "logic1",
+                        Name = "TaxCalculator",
+                        Type = ControlType.LogicFunction,
+                        OutputPath = "Services/Tax",
+                        TargetNamespace = "Finance.Services",
+                        TargetLanguage = TargetLanguage.CSharp,
+                        LogicFunction = new LogicFunctionDefinition
+                        {
+                            Name = "ComputeVat",
+                            ReturnType = "decimal",
+                            IsAsync = true,
+                            Description = "計算加值營業稅",
+                            CustomImplementation = "return amount * 0.05m;",
+                            Parameters = [
+                                new FunctionParameter { Name = "amount", Type = "decimal", Description = "商品總金額" }
+                            ]
+                        }
+                    }
+                ]
+            }
+        };
+
+        // Act
+        var json = AfgSerializer.SerializeDocument(doc);
+        var res = AfgSerializer.DeserializeDocument(json);
+
+        // Assert
+        var node = res.RootNode.Children[0];
+        node.Type.Should().Be(ControlType.LogicFunction);
+        node.Name.Should().Be("TaxCalculator");
+        node.OutputPath.Should().Be("Services/Tax");
+        node.TargetNamespace.Should().Be("Finance.Services");
+        node.TargetLanguage.Should().Be(TargetLanguage.CSharp);
+        node.LogicFunction.Should().NotBeNull();
+        node.LogicFunction!.Name.Should().Be("ComputeVat");
+        node.LogicFunction.ReturnType.Should().Be("decimal");
+        node.LogicFunction.IsAsync.Should().BeTrue();
+        node.LogicFunction.Description.Should().Be("計算加值營業稅");
+        node.LogicFunction.CustomImplementation.Should().Be("return amount * 0.05m;");
+        node.LogicFunction.Parameters.Should().HaveCount(1);
+        node.LogicFunction.Parameters[0].Name.Should().Be("amount");
+        node.LogicFunction.Parameters[0].Type.Should().Be("decimal");
     }
 
     [Fact]

@@ -1022,7 +1022,8 @@ public sealed class CSharpMarkupViewGenerator : ICodeGenerator
     {
         ControlType.DispatcherTimer or ControlType.BackgroundWorker or
         ControlType.BluetoothClient or ControlType.SerialPortService or
-        ControlType.OpenFileDialog or ControlType.SaveFileDialog or ControlType.MessageBox => true,
+        ControlType.OpenFileDialog or ControlType.SaveFileDialog or ControlType.MessageBox or
+        ControlType.LogicFunction => true,
         _ => false
     };
 

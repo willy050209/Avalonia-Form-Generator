@@ -348,4 +348,52 @@ public sealed class MainViewModelTests
         vm.GeneratedViewCode.Should().Contain(".CornerRadius(new CornerRadius(8, 8, 8, 8))");
         vm.GeneratedViewCode.Should().Contain(".BoxShadow(BoxShadows.Parse(\"0 6 16 0 #33000000\"))");
     }
+
+    [Fact]
+    public void Inspector_WhenLogicFunctionSelected_ShouldConfigureParametersAndSyncToAstNode()
+    {
+        // Arrange
+        var vm = new MainViewModel();
+        var tbItem = new ToolboxItem("LogicFunction", "業務邏輯", ControlType.LogicFunction, "Fn", 180, 50, "業務邏輯");
+        vm.Canvas.AddControlFromToolbox(tbItem, 30, 30);
+
+        // Assert: Inspector 應識別為 LogicFunction
+        vm.Inspector.IsLogicFunctionSupported.Should().BeTrue();
+
+        // Act: 設定邏輯函數各項屬性
+        vm.Inspector.LogicServiceName = "OrderPricingService";
+        vm.Inspector.LogicFunctionName = "CalculateTotal";
+        vm.Inspector.LogicReturnType = "decimal";
+        vm.Inspector.LogicIsAsync = true;
+        vm.Inspector.LogicLanguage = TargetLanguage.CSharp;
+        vm.Inspector.LogicOutputPath = "Services/Pricing";
+        vm.Inspector.LogicNamespace = "ECommerce.Services";
+        vm.Inspector.LogicDescription = "計算訂單總額含折扣與稅額";
+        vm.Inspector.LogicCustomImplementation = "return (price * qty) * (1 - discountRate) * 1.05m;";
+
+        // 新增參數
+        vm.Inspector.AddLogicParameterCommand.Execute(null);
+        var p1 = vm.Inspector.LogicParameters[0];
+        p1.Name = "price";
+        p1.Type = "decimal";
+
+        vm.Inspector.AddLogicParameterCommand.Execute(null);
+        var p2 = vm.Inspector.LogicParameters[1];
+        p2.Name = "qty";
+        p2.Type = "int";
+
+        // Assert: 驗證 AST 節點同步
+        var node = vm.Canvas.Document.RootNode.Children.First(c => c.Type == ControlType.LogicFunction);
+        node.Name.Should().Be("OrderPricingService");
+        node.OutputPath.Should().Be("Services/Pricing");
+        node.TargetNamespace.Should().Be("ECommerce.Services");
+        node.TargetLanguage.Should().Be(TargetLanguage.CSharp);
+        node.LogicFunction.Should().NotBeNull();
+        node.LogicFunction!.Name.Should().Be("CalculateTotal");
+        node.LogicFunction.ReturnType.Should().Be("decimal");
+        node.LogicFunction.IsAsync.Should().BeTrue();
+        node.LogicFunction.Parameters.Should().HaveCount(2);
+        node.LogicFunction.Parameters[0].Name.Should().Be("price");
+        node.LogicFunction.Parameters[1].Name.Should().Be("qty");
+    }
 }

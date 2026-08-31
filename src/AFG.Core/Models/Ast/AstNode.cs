@@ -85,6 +85,12 @@ public sealed record AstNode
     public double? Position { get; init; }
     public double? SpeedRatio { get; init; }
 
+    // --- 業務邏輯函數專屬配置 (Logic Function Configuration) ---
+    public AFG.Core.Models.Logic.LogicFunctionDefinition? LogicFunction { get; init; }
+    public string? OutputPath { get; init; }
+    public string? TargetNamespace { get; init; }
+    public TargetLanguage? TargetLanguage { get; init; }
+
     // --- 擴充自訂屬性 ---
     public ImmutableDictionary<string, string> CustomProperties { get; init; } = ImmutableDictionary<string, string>.Empty;
 

@@ -341,6 +341,38 @@ public sealed partial class InspectorViewModel : ObservableObject
     [ObservableProperty]
     private bool _isDockSupported;
 
+    [ObservableProperty]
+    private bool _isLogicFunctionSupported;
+
+    [ObservableProperty]
+    private string _logicServiceName = "LogicService";
+
+    [ObservableProperty]
+    private string _logicFunctionName = "Execute";
+
+    [ObservableProperty]
+    private string _logicNamespace = "App.Services";
+
+    [ObservableProperty]
+    private TargetLanguage _logicLanguage = TargetLanguage.CSharp;
+
+    [ObservableProperty]
+    private string _logicOutputPath = "Services";
+
+    [ObservableProperty]
+    private string _logicReturnType = "void";
+
+    [ObservableProperty]
+    private bool _logicIsAsync;
+
+    [ObservableProperty]
+    private string _logicDescription = string.Empty;
+
+    [ObservableProperty]
+    private string _logicCustomImplementation = string.Empty;
+
+    public ObservableCollection<FunctionParameterItemViewModel> LogicParameters { get; } = [];
+
     public ObservableCollection<BindingItemViewModel> Bindings { get; } = [];
     public ObservableCollection<EventItemViewModel> Events { get; } = [];
     public ObservableCollection<EventItemViewModel> FormEvents { get; } = [];
@@ -439,6 +471,36 @@ public sealed partial class InspectorViewModel : ObservableObject
                 ApplyFormChanges();
             }
         };
+
+        LogicParameters.CollectionChanged += (s, e) =>
+        {
+            if (e.OldItems is not null)
+            {
+                foreach (FunctionParameterItemViewModel item in e.OldItems)
+                {
+                    item.Changed -= OnLogicParameterItemChanged;
+                }
+            }
+            if (e.NewItems is not null)
+            {
+                foreach (FunctionParameterItemViewModel item in e.NewItems)
+                {
+                    item.Changed += OnLogicParameterItemChanged;
+                }
+            }
+            if (!_isUpdating)
+            {
+                ApplyChanges();
+            }
+        };
+    }
+
+    private void OnLogicParameterItemChanged()
+    {
+        if (!_isUpdating)
+        {
+            ApplyChanges();
+        }
     }
 
     private void OnBindingItemPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
@@ -507,6 +569,8 @@ public sealed partial class InspectorViewModel : ObservableObject
             IsCanvasPositionSupported = true;
             IsGridCellSupported = false;
             IsDockSupported = false;
+            IsLogicFunctionSupported = false;
+            LogicParameters.Clear();
             Bindings.Clear();
             Events.Clear();
             ValidationErrors.Clear();
@@ -593,7 +657,8 @@ public sealed partial class InspectorViewModel : ObservableObject
                                     or CoreControlType.SerialPortService
                                     or CoreControlType.OpenFileDialog
                                     or CoreControlType.SaveFileDialog
-                                    or CoreControlType.MessageBox;
+                                    or CoreControlType.MessageBox
+                                    or CoreControlType.LogicFunction;
 
         IsVisualControl = !isNonVisual;
         IsTextSupported = node.Type is CoreControlType.Button or CoreControlType.TextBox or CoreControlType.TextBlock or CoreControlType.CheckBox or CoreControlType.RadioButton;
@@ -606,6 +671,29 @@ public sealed partial class InspectorViewModel : ObservableObject
         IsCheckableSupported = node.Type is CoreControlType.CheckBox or CoreControlType.RadioButton;
         IsValueSupported = node.Type is CoreControlType.Slider or CoreControlType.ProgressBar;
         IsAutoSizeSupported = !isNonVisual && node.Type is not CoreControlType.Canvas;
+        IsLogicFunctionSupported = node.Type == CoreControlType.LogicFunction;
+
+        if (IsLogicFunctionSupported)
+        {
+            LogicServiceName = !string.IsNullOrWhiteSpace(node.Name) ? node.Name : "LogicService";
+            LogicOutputPath = !string.IsNullOrWhiteSpace(node.OutputPath) ? node.OutputPath : "Services";
+            LogicNamespace = !string.IsNullOrWhiteSpace(node.TargetNamespace) ? node.TargetNamespace : (_currentDocument?.RootNamespace ?? "App.Services");
+            LogicLanguage = node.TargetLanguage ?? node.LogicFunction?.Language ?? (_currentDocument?.TargetLanguage ?? TargetLanguage.CSharp);
+            LogicFunctionName = node.LogicFunction?.Name ?? (!string.IsNullOrWhiteSpace(node.Text) ? node.Text : "Execute");
+            LogicReturnType = node.LogicFunction?.ReturnType ?? "void";
+            LogicIsAsync = node.LogicFunction?.IsAsync ?? false;
+            LogicDescription = node.LogicFunction?.Description ?? string.Empty;
+            LogicCustomImplementation = node.LogicFunction?.CustomImplementation ?? string.Empty;
+
+            LogicParameters.Clear();
+            if (node.LogicFunction?.Parameters is not null)
+            {
+                foreach (var p in node.LogicFunction.Parameters)
+                {
+                    LogicParameters.Add(FunctionParameterItemViewModel.FromDefinition(p));
+                }
+            }
+        }
 
         var isManagedByParent = parentNode is not null && parentNode.Type != CoreControlType.Canvas;
         IsPositionManagedByParent = isManagedByParent;
@@ -960,6 +1048,29 @@ public sealed partial class InspectorViewModel : ObservableObject
                 Events = Events.Select(e => e.ToDefinition()).ToImmutableList()
             };
 
+            if (IsLogicFunctionSupported)
+            {
+                var updatedFn = new AFG.Core.Models.Logic.LogicFunctionDefinition
+                {
+                    Name = !string.IsNullOrWhiteSpace(LogicFunctionName) ? LogicFunctionName.Trim() : "Execute",
+                    ReturnType = !string.IsNullOrWhiteSpace(LogicReturnType) ? LogicReturnType.Trim() : "void",
+                    IsAsync = LogicIsAsync,
+                    Language = LogicLanguage,
+                    Description = string.IsNullOrWhiteSpace(LogicDescription) ? null : LogicDescription.Trim(),
+                    CustomImplementation = string.IsNullOrWhiteSpace(LogicCustomImplementation) ? null : LogicCustomImplementation,
+                    Parameters = LogicParameters.Select(p => p.ToDefinition()).ToImmutableList()
+                };
+
+                updatedNode = updatedNode with
+                {
+                    Name = !string.IsNullOrWhiteSpace(LogicServiceName) ? LogicServiceName.Trim() : "LogicService",
+                    OutputPath = string.IsNullOrWhiteSpace(LogicOutputPath) ? null : LogicOutputPath.Trim(),
+                    TargetNamespace = string.IsNullOrWhiteSpace(LogicNamespace) ? null : LogicNamespace.Trim(),
+                    TargetLanguage = LogicLanguage,
+                    LogicFunction = updatedFn
+                };
+            }
+
             _currentNode = updatedNode;
             ValidateCurrentNode();
             NodeUpdated?.Invoke(updatedNode);
@@ -967,6 +1078,27 @@ public sealed partial class InspectorViewModel : ObservableObject
         catch
         {
             // 防護任何異常輸入與格式轉換錯誤，保持 UI 穩定
+        }
+    }
+
+    [RelayCommand]
+    public void AddLogicParameter()
+    {
+        var item = new FunctionParameterItemViewModel
+        {
+            Name = $"param{LogicParameters.Count + 1}",
+            Type = "string"
+        };
+        LogicParameters.Add(item);
+        ApplyChanges();
+    }
+
+    [RelayCommand]
+    public void RemoveLogicParameter(FunctionParameterItemViewModel item)
+    {
+        if (LogicParameters.Remove(item))
+        {
+            ApplyChanges();
         }
     }
 
@@ -1130,4 +1262,14 @@ public sealed partial class InspectorViewModel : ObservableObject
     partial void OnBoxShadowInsetChanged(bool value) => ApplyChanges();
     partial void OnIsCheckedChanged(bool? value) => ApplyChanges();
     partial void OnValueChanged(double? value) => ApplyChanges();
+
+    partial void OnLogicServiceNameChanged(string value) => ApplyChanges();
+    partial void OnLogicFunctionNameChanged(string value) => ApplyChanges();
+    partial void OnLogicNamespaceChanged(string value) => ApplyChanges();
+    partial void OnLogicLanguageChanged(TargetLanguage value) => ApplyChanges();
+    partial void OnLogicOutputPathChanged(string value) => ApplyChanges();
+    partial void OnLogicReturnTypeChanged(string value) => ApplyChanges();
+    partial void OnLogicIsAsyncChanged(bool value) => ApplyChanges();
+    partial void OnLogicDescriptionChanged(string value) => ApplyChanges();
+    partial void OnLogicCustomImplementationChanged(string value) => ApplyChanges();
 }
