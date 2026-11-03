@@ -11,6 +11,7 @@ public sealed partial class MainViewModel : ObservableObject
     private readonly IFileDialogService? _fileDialogService;
     private readonly IClipboardService? _clipboardService;
     private readonly INotificationService? _notificationService;
+    private readonly IPreviewWindowService? _previewWindowService;
     private readonly FormCodeGenerator _codeGenerator = new();
     private readonly ProjectExportService _exportService = new();
 
@@ -58,11 +59,13 @@ public sealed partial class MainViewModel : ObservableObject
     public MainViewModel(
         IFileDialogService? fileDialogService = null,
         IClipboardService? clipboardService = null,
-        INotificationService? notificationService = null)
+        INotificationService? notificationService = null,
+        IPreviewWindowService? previewWindowService = null)
     {
         _fileDialogService = fileDialogService;
         _clipboardService = clipboardService;
         _notificationService = notificationService;
+        _previewWindowService = previewWindowService;
 
         Canvas = new CanvasViewModel();
         Toolbox = new ToolboxViewModel();
@@ -92,6 +95,7 @@ public sealed partial class MainViewModel : ObservableObject
         Inspector.LoadDocument(doc);
         GeneratePreviewCode();
         ValidateWholeDocument(doc);
+        _previewWindowService?.UpdateFormPreview(doc);
     }
 
     private void OnCanvasSelectionChanged(AstNode? node)
@@ -119,11 +123,13 @@ public sealed partial class MainViewModel : ObservableObject
     private void OnInspectorNodeUpdated(AstNode node)
     {
         Canvas.UpdateNodeProperties(node);
+        _previewWindowService?.UpdateFormPreview(Canvas.Document);
     }
 
     private void OnInspectorFormUpdated(FormDocument doc)
     {
         Canvas.UpdateFormProperties(doc);
+        _previewWindowService?.UpdateFormPreview(doc);
     }
 
     private void ValidateWholeDocument(FormDocument doc)
@@ -371,6 +377,22 @@ public sealed partial class MainViewModel : ObservableObject
         {
             GeneratedViewCode = $"// 代碼生成失敗: {ex.Message}";
         }
+        finally
+        {
+            _previewWindowService?.UpdateCodePreview(GeneratedViewCode, GeneratedVmCode);
+        }
+    }
+
+    [RelayCommand]
+    public void OpenCodePreview()
+    {
+        _previewWindowService?.OpenOrFocusCodePreview(this);
+    }
+
+    [RelayCommand]
+    public void OpenFormPreview()
+    {
+        _previewWindowService?.OpenOrFocusFormPreview(Canvas.Document);
     }
 
     [RelayCommand]

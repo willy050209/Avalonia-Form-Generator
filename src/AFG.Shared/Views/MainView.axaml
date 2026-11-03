@@ -15,6 +15,8 @@
         <KeyBinding Gesture="Ctrl+N" Command="{Binding NewDocumentCommand}" />
         <KeyBinding Gesture="Ctrl+O" Command="{Binding OpenDocumentCommand}" />
         <KeyBinding Gesture="Ctrl+Shift+E" Command="{Binding ExportFullProjectCommand}" />
+        <KeyBinding Gesture="F5" Command="{Binding OpenFormPreviewCommand}" />
+        <KeyBinding Gesture="Ctrl+F5" Command="{Binding OpenCodePreviewCommand}" />
     </UserControl.KeyBindings>
 
     <Grid RowDefinitions="Auto, *, Auto">
@@ -55,6 +57,9 @@
                     <MenuItem Header="工具箱 / 元件樹" Command="{Binding ToggleLeftPanelCommand}" />
                     <MenuItem Header="即時程式碼預覽" Command="{Binding ToggleCodePanelCommand}" />
                     <MenuItem Header="屬性檢查器" Command="{Binding ToggleRightPanelCommand}" />
+                    <Separator />
+                    <MenuItem Header="獨立視窗表單即時預覽" Command="{Binding OpenFormPreviewCommand}" InputGesture="F5" />
+                    <MenuItem Header="獨立視窗程式碼預覽" Command="{Binding OpenCodePreviewCommand}" InputGesture="Ctrl+F5" />
                     <Separator />
                     <MenuItem Header="複製 View C# Markup" Command="{Binding CopyViewCodeCommand}" />
                     <MenuItem Header="複製 ViewModel C#" Command="{Binding CopyVmCodeCommand}" />

@@ -508,7 +508,7 @@ AvaloniaFormGenerator/
 ---
 
 ### 🔹 階段 28：獨立視窗與表單即時預覽功能 (Independent Windows & Real-time Form Preview)
-- [ ] **階段狀態：進行中 (In Progress)**
+- [x] **階段狀態：已完成 (Completed)**
 - **目標**：移除主畫面中央畫布下方內嵌之程式碼預覽區塊，改由獨立視窗 (`CodePreviewWindow`) 呈現並即時同步；於「檢視(_V)」選單新增「表單視窗預覽(_W)」選項 (快速鍵 `F5`)，點擊後依據 AST 動態生成具備真實可互動元件之獨立表單預覽視窗 (`FormPreviewWindow`)。
 - **任務清單**：
   - [x] 28.1 **Phase 1: 預覽服務介面與獨立程式碼預覽視窗 (`AFG.Shared` & `AFG.Desktop`)**
@@ -516,19 +516,19 @@ AvaloniaFormGenerator/
     - 實作獨立 UserControl `CodePreviewView.axaml`，整合語法著色與一鍵複製按鈕。
     - 於 `AFG.Desktop` 建立專屬獨立視窗 `CodePreviewWindow.axaml`。
     - 修改 `MainView.axaml` 移除下方內嵌預覽區塊與 GridSplitter，中央畫布獲得 100% 垂直高度。
-  - [ ] 28.2 **Phase 2: 動態表單控制項生成器與獨立表單預覽視窗 (`AFG.Shared` & `AFG.Desktop`)**
+  - [x] 28.2 **Phase 2: 動態表單控制項生成器與獨立表單預覽視窗 (`AFG.Shared` & `AFG.Desktop`)**
     - 實作 `FormRuntimePreviewBuilder.cs`，支援所有可視元件之動態 Avalonia 控制項實體化、樣式與幾何配置，啟用真實使用者互動 (`IsHitTestVisible = true`)，並自動過濾非可視元件。
     - 於 `AFG.Desktop` 建立動態預覽視窗 `FormPreviewWindow.axaml`，依據表單屬性動態設定視窗標題、寬高、背景色、啟動位置與視窗狀態，並支援 `ReloadDocument` 即時更新。
     - 實作 `DesktopPreviewWindowService.cs`，支援單例聚焦、即時刷新與隨主視窗關閉之資源安全清理。
-  - [ ] 28.3 **Phase 3: 選單項、命令與主 ViewModel 聯動 (`AFG.Shared` & `AFG.Desktop`)**
+  - [x] 28.3 **Phase 3: 選單項、命令與主 ViewModel 聯動 (`AFG.Shared` & `AFG.Desktop`)**
     - 於 `MainViewModel.cs` 整合 `IPreviewWindowService`，新增 `OpenCodePreviewCommand`、`OpenFormPreviewCommand` 與即時同步通知機制。
     - 於 `MainView.axaml` 檢視選單新增「表單視窗預覽」與快捷鍵 `F5`。
     - 於 `MainWindow.axaml.cs` 註冊注入 `DesktopPreviewWindowService`。
-  - [ ] 28.4 **Phase 4: 單元測試與自動化驗證**
+  - [x] 28.4 **Phase 4: 單元測試與自動化驗證**
     - 撰寫 `FormRuntimePreviewBuilderTests` 驗證元件動態建立、樣式套用與非可視元件過濾。
     - 撰寫 `MainViewModelPreviewTests` 驗證選單命令與視窗服務同步。
-    - 執行全專案單元測試，確保 100% 通過（0 Error, 0 Warning）。
-  - [ ] 28.5 **Phase 5: 技術文件更新與 Git Commit**
+    - 執行全專案單元測試，確保 100% 通過（348 測試 0 失敗，0 Warning, 0 Error）。
+  - [x] 28.5 **Phase 5: 技術文件更新與 Git Commit**
     - 更新 `docs/ast-schema.md`、`docs/csharp-markup-spec.md` 與 `plan.md`。
     - 執行 Git Commit。
 

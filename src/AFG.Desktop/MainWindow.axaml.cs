@@ -13,8 +13,9 @@ public partial class MainWindow : Window
 
         var fileService = new DesktopFileDialogService(() => this);
         var clipboardService = new DesktopClipboardService(() => this);
+        var previewService = new DesktopPreviewWindowService(() => this);
 
-        var viewModel = new MainViewModel(fileService, clipboardService);
+        var viewModel = new MainViewModel(fileService, clipboardService, previewWindowService: previewService);
         RootMainView.DataContext = viewModel;
     }
 }

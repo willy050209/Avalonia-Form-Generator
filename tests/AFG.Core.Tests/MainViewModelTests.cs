@@ -396,4 +396,71 @@ public sealed class MainViewModelTests
         node.LogicFunction.Parameters[0].Name.Should().Be("price");
         node.LogicFunction.Parameters[1].Name.Should().Be("qty");
     }
+
+    [Fact]
+    public void MainViewModel_PreviewCommands_ShouldInvokePreviewWindowService()
+    {
+        // Arrange
+        var previewService = new MockPreviewWindowService();
+        var vm = new MainViewModel(previewWindowService: previewService);
+
+        // Act 1: 觸發開啟獨立代碼視窗命令
+        vm.OpenCodePreviewCommand.Execute(null);
+
+        // Assert 1
+        previewService.CodePreviewOpened.Should().BeTrue();
+
+        // Act 2: 觸發開啟獨立表單預覽視窗命令
+        vm.OpenFormPreviewCommand.Execute(null);
+
+        // Assert 2
+        previewService.FormPreviewOpened.Should().BeTrue();
+        previewService.LastFormDocument.Should().NotBeNull();
+        previewService.LastFormDocument!.Title.Should().Be(vm.Canvas.Document.Title);
+    }
+
+    [Fact]
+    public void MainViewModel_WhenDocumentUpdated_ShouldNotifyPreviewWindowService()
+    {
+        // Arrange
+        var previewService = new MockPreviewWindowService();
+        var vm = new MainViewModel(previewWindowService: previewService);
+        var initialUpdateCount = previewService.FormUpdatedCount;
+
+        // Act: 新增控制項觸發 Document 變更
+        var buttonItem = new ToolboxItem("按鈕", "常用", ControlType.Button, "btn", 100, 30, "OK");
+        vm.Canvas.AddControlFromToolbox(buttonItem, 20, 20);
+
+        // Assert: 應同步呼叫 UpdateFormPreview 與 UpdateCodePreview
+        previewService.FormUpdatedCount.Should().BeGreaterThan(initialUpdateCount);
+        previewService.CodeUpdatedCount.Should().BeGreaterThan(0);
+    }
+
+    private sealed class MockPreviewWindowService : AFG.Shared.Services.IPreviewWindowService
+    {
+        public bool CodePreviewOpened { get; private set; }
+        public bool FormPreviewOpened { get; private set; }
+        public int CodeUpdatedCount { get; private set; }
+        public int FormUpdatedCount { get; private set; }
+        public FormDocument? LastFormDocument { get; private set; }
+
+        public void OpenOrFocusCodePreview(MainViewModel mainVm) => CodePreviewOpened = true;
+
+        public void OpenOrFocusFormPreview(FormDocument document)
+        {
+            FormPreviewOpened = true;
+            LastFormDocument = document;
+        }
+
+        public void UpdateCodePreview(string viewCode, string vmCode) => CodeUpdatedCount++;
+
+        public void UpdateFormPreview(FormDocument document)
+        {
+            FormUpdatedCount++;
+            LastFormDocument = document;
+        }
+
+        public bool IsCodePreviewOpen => CodePreviewOpened;
+        public bool IsFormPreviewOpen => FormPreviewOpened;
+    }
 }

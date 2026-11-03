@@ -316,3 +316,25 @@ public sealed record EventParameterDefinition(
 - `commandProperty`: ViewModel 端的 Command 屬性名稱（如 `SubmitCommand`, `DataReceivedCommand`, `FileOpenedCommand`）。
 - `parameters`: 多參數配置清單。生成器會自動將多參數包裝為可空的 `ValueTuple`，並在 View 端透過 `ExecuteCommandWithArgs` 或 ViewModel 建構子精準傳遞。
 - `isAsync`: `bool`（預設 `true`）。指定是否生成非同步 `async Task ...Async()` 方法或同步 `void ...()` 方法。不可視元件與對話方塊事件將在 ViewModel 建構子內自動訂閱並調用對應之 RelayCommand。
+
+---
+
+## 6. 執行期即時動態預覽引擎 (FormRuntimePreviewBuilder)
+
+為了讓使用者在設計階段能即時預覽表單的真實互動外觀，AFG 提供了 `FormRuntimePreviewBuilder` 動態控制項生成引擎，直接由記憶體中的 AST 語意樹動態生成 Avalonia 視覺控制項階層：
+
+### 6.1 非可視服務元件自動過濾
+在執行期預覽視窗 (`FormPreviewWindow`) 中，為了達到 100% 運行期外觀還原，所有非可視元件將由 `IsNonVisualComponent(ControlType type)` 自動識別並排除：
+- 排除對象：`DispatcherTimer`, `BackgroundWorker`, `BluetoothClient`, `SerialPortService`, `OpenFileDialog`, `SaveFileDialog`, `MessageBox`, `LogicFunction`。
+- 這些元件在設計畫布上以視覺卡片呈現，但在獨立預覽視窗中直接返回 `null`，不生成任何視覺佔位符。
+
+### 6.2 完整互動性保證
+所有生成之視覺控制項均明確設置 `IsHitTestVisible = true`：
+- 使用者可在預覽視窗內直接輸入打字 (`TextBox`)、點選與觸發按鈕動畫 (`Button`)、勾選切換 (`CheckBox`, `RadioButton`)、拖曳滑動條 (`Slider`)、展開下拉選單 (`ComboBox`)、切換清單選取 (`ListBox`) 與點選清除日誌 (`DebugConsole`)。
+
+### 6.3 抽象預覽服務 (`IPreviewWindowService`)
+遵循 MVVM 與跨平台原則，將多視窗生命週期抽象於 `AFG.Shared`，並於桌面端 `AFG.Desktop` 實作：
+- `OpenOrFocusCodePreview(MainViewModel)`：單例開啟或聚焦置頂獨立程式碼預覽視窗。
+- `OpenOrFocusFormPreview(FormDocument)`：單例開啟或聚焦置頂獨立表單執行期預覽視窗。
+- `UpdateCodePreview` / `UpdateFormPreview`：當主工作區屬性或階層變更時即時推播刷新。
+

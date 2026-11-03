@@ -966,6 +966,23 @@ End Namespace
 3. **主專案相依性引用**：在主專案（`.Shared.csproj` 或 `.Shared.fsproj`）中自動配置 `<ProjectReference Include="..\..\{ProjectName}.Logic.{Lang}\{ProjectName}.Logic.{Lang}.{proj}" />`。
 4. **DI 容器自動裝配**：於 `App.cs/fs/vb` 的 `ConfigureServices` 中自動注入對應服務實例。
 
+---
+
+## 14. 獨立預覽視窗架構與即時動態生成 (Independent Preview Windows)
+
+AFG 採用解耦的獨立視窗機制替換傳統底部內嵌面板，大幅釋放畫布設計空間：
+
+### 14.1 獨立程式碼視窗 (`CodePreviewWindow`)
+- **單例與置頂喚醒**：點擊「檢視」->「即時程式碼預覽」或快捷鍵時，若視窗已存在則調用 `Activate()` 喚醒至最前列，避免多開重複視窗。
+- **即時熱同步**：當主畫布 AST 變更、屬性檢查器數值修改或新增綁定時，透過 `IPreviewWindowService.UpdateCodePreview` 進行防抖即時著色刷新。
+- **組件重用**：內部封裝 `CodePreviewView`，支援 View / ViewModel 雙頁籤切換與一鍵複製。
+
+### 14.2 獨立執行期表單預覽視窗 (`FormPreviewWindow`)
+- **快捷鍵支援**：按下 `F5` 或點選「檢視」->「表單視窗預覽(_W)」即可瞬間啟動。
+- **動態視窗樣式還原**：依據 `FormDocument` 屬性即時還原 `Title`、`Width`、`Height`、`BackgroundColor`、`WindowStartupLocation` 與 `WindowState`。
+- **動態控制項樹生成**：採用 `FormRuntimePreviewBuilder` 逐層將 AST 節點映射為具備完整使用者互動能力的 Avalonia 控制項實體，並自動過濾非可視服務元件。
+
+
 
 
 
