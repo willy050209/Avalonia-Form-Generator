@@ -1,0 +1,16 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:views="using:AFG.Shared.Views"
+        mc:Ignorable="d" d:DesignWidth="960" d:DesignHeight="700"
+        x:Class="AFG.Desktop.Views.CodePreviewWindow"
+        Title="即時程式碼預覽 - Avalonia Form Generator"
+        Width="960" Height="700"
+        MinWidth="600" MinHeight="400"
+        WindowStartupLocation="CenterOwner"
+        RequestedThemeVariant="Dark"
+        Background="#18181B">
+
+    <views:CodePreviewView x:Name="PreviewView" />
+</Window>

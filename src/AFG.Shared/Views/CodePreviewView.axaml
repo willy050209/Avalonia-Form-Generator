@@ -1,0 +1,64 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="using:AFG.Shared.ViewModels"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="600"
+             x:Class="AFG.Shared.Views.CodePreviewView"
+             x:DataType="vm:MainViewModel">
+
+    <Grid Background="#18181B">
+        <TabControl Background="#18181B">
+            <TabItem Header="View (C# Markup)">
+                <Grid RowDefinitions="Auto, *">
+                    <StackPanel Grid.Row="0" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,4,8,4">
+                        <Button x:Name="CopyViewButton"
+                                Content="複製 View 程式碼"
+                                Command="{Binding CopyViewCodeCommand}"
+                                Click="OnCopyViewClicked"
+                                Padding="10,4"
+                                FontSize="11"
+                                Background="#27272A"
+                                Foreground="#E4E4E7" />
+                    </StackPanel>
+                    <ScrollViewer Grid.Row="1"
+                                  HorizontalScrollBarVisibility="Auto"
+                                  VerticalScrollBarVisibility="Auto"
+                                  Background="#121214"
+                                  Padding="12,8">
+                        <SelectableTextBlock x:Name="ViewCodeTextBlock"
+                                             FontFamily="Consolas, Cascadia Code, Courier New"
+                                             FontSize="12"
+                                             LineHeight="20"
+                                             Foreground="#D4D4D4" />
+                    </ScrollViewer>
+                </Grid>
+            </TabItem>
+            <TabItem Header="ViewModel (CommunityToolkit.Mvvm)">
+                <Grid RowDefinitions="Auto, *">
+                    <StackPanel Grid.Row="0" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,4,8,4">
+                        <Button x:Name="CopyVmButton"
+                                Content="複製 ViewModel 程式碼"
+                                Command="{Binding CopyVmCodeCommand}"
+                                Click="OnCopyVmClicked"
+                                Padding="10,4"
+                                FontSize="11"
+                                Background="#27272A"
+                                Foreground="#E4E4E7" />
+                    </StackPanel>
+                    <ScrollViewer Grid.Row="1"
+                                  HorizontalScrollBarVisibility="Auto"
+                                  VerticalScrollBarVisibility="Auto"
+                                  Background="#121214"
+                                  Padding="12,8">
+                        <SelectableTextBlock x:Name="VmCodeTextBlock"
+                                             FontFamily="Consolas, Cascadia Code, Courier New"
+                                             FontSize="12"
+                                             LineHeight="20"
+                                             Foreground="#D4D4D4" />
+                    </ScrollViewer>
+                </Grid>
+            </TabItem>
+        </TabControl>
+    </Grid>
+</UserControl>

@@ -1,4 +1,7 @@
 // filepath: src/AFG.Shared/Services/ServiceInterfaces.cs
+using AFG.Core.Models.Ast;
+using AFG.Shared.ViewModels;
+
 namespace AFG.Shared.Services;
 
 /// <summary>
@@ -28,4 +31,17 @@ public interface IClipboardService
 public interface INotificationService
 {
     void Show(string title, string message, bool isError = false);
+}
+
+/// <summary>
+/// 獨立預覽視窗管理服務介面。
+/// </summary>
+public interface IPreviewWindowService
+{
+    void OpenOrFocusCodePreview(MainViewModel mainVm);
+    void OpenOrFocusFormPreview(FormDocument document);
+    void UpdateCodePreview(string viewCode, string vmCode);
+    void UpdateFormPreview(FormDocument document);
+    bool IsCodePreviewOpen { get; }
+    bool IsFormPreviewOpen { get; }
 }
