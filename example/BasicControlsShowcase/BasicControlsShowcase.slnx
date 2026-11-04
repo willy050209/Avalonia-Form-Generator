@@ -1,0 +1,4 @@
+﻿<Solution>
+  <Project Path="src/BasicControlsShowcase.Shared/BasicControlsShowcase.Shared.csproj" />
+  <Project Path="src/BasicControlsShowcase.Desktop/BasicControlsShowcase.Desktop.csproj" />
+</Solution>

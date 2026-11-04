@@ -1,0 +1,1011 @@
+{
+  "schemaVersion": "1.0",
+  "projectName": "HighPerformanceDrawingShowcase",
+  "rootNamespace": "HighPerformanceDrawingShowcase",
+  "viewClassName": "HighPerformanceDrawingShowcaseView",
+  "viewModelClassName": "HighPerformanceDrawingShowcaseViewModel",
+  "title": "表單高效繪圖與 C++ Skia 橋接範例",
+  "backgroundColor": "#18181B",
+  "canvasWidth": 680,
+  "canvasHeight": 760,
+  "windowStartupLocation": "centerScreen",
+  "windowState": "normal",
+  "canResize": true,
+  "topmost": false,
+  "showInTaskbar": true,
+  "systemDecorations": "full",
+  "enableDependencyInjection": true,
+  "useCompiledBindings": true,
+  "architectureMode": "hybrid",
+  "targetLanguage": "cSharp",
+  "injectedServices": [],
+  "logicServices": [],
+  "events": [],
+  "rootNode": {
+    "id": "rootCanvas",
+    "name": "RootCanvas",
+    "type": "canvas",
+    "width": 680,
+    "height": 760,
+    "margin": {
+      "left": 0,
+      "top": 0,
+      "right": 0,
+      "bottom": 0
+    },
+    "padding": {
+      "left": 0,
+      "top": 0,
+      "right": 0,
+      "bottom": 0
+    },
+    "horizontalAlignment": "stretch",
+    "verticalAlignment": "stretch",
+    "opacity": 1,
+    "isEnabled": true,
+    "isVisible": true,
+    "zIndex": 0,
+    "gridRow": 0,
+    "gridColumn": 0,
+    "gridRowSpan": 1,
+    "gridColumnSpan": 1,
+    "rowDefinitions": [],
+    "columnDefinitions": [],
+    "useRelativePath": true,
+    "initBitmap": false,
+    "bitmapBackgroundColor": "#F0F0F0",
+    "autoSize": false,
+    "customProperties": {},
+    "bindings": [],
+    "events": [],
+    "children": [
+      {
+        "id": "headerCard",
+        "name": "headerCard",
+        "type": "border",
+        "width": 640,
+        "height": 70,
+        "margin": {
+          "left": 0,
+          "top": 0,
+          "right": 0,
+          "bottom": 0
+        },
+        "padding": {
+          "left": 0,
+          "top": 0,
+          "right": 0,
+          "bottom": 0
+        },
+        "horizontalAlignment": "stretch",
+        "verticalAlignment": "stretch",
+        "opacity": 1,
+        "isEnabled": true,
+        "isVisible": true,
+        "zIndex": 0,
+        "canvasLeft": 20,
+        "canvasTop": 20,
+        "gridRow": 0,
+        "gridColumn": 0,
+        "gridRowSpan": 1,
+        "gridColumnSpan": 1,
+        "rowDefinitions": [],
+        "columnDefinitions": [],
+        "background": "#27272A",
+        "cornerRadius": {
+          "topLeft": 10,
+          "topRight": 10,
+          "bottomRight": 10,
+          "bottomLeft": 10
+        },
+        "boxShadow": {
+          "offsetX": 0,
+          "offsetY": 4,
+          "blur": 8,
+          "spread": 0,
+          "color": "#40000000",
+          "isInset": false
+        },
+        "useRelativePath": true,
+        "initBitmap": false,
+        "bitmapBackgroundColor": "#F0F0F0",
+        "autoSize": false,
+        "customProperties": {},
+        "bindings": [],
+        "events": [],
+        "children": [
+          {
+            "id": "txtHeaderTitle",
+            "name": "txtHeaderTitle",
+            "type": "textBlock",
+            "margin": {
+              "left": 0,
+              "top": 0,
+              "right": 0,
+              "bottom": 0
+            },
+            "padding": {
+              "left": 0,
+              "top": 0,
+              "right": 0,
+              "bottom": 0
+            },
+            "horizontalAlignment": "stretch",
+            "verticalAlignment": "stretch",
+            "opacity": 1,
+            "isEnabled": true,
+            "isVisible": true,
+            "zIndex": 0,
+            "canvasLeft": 20,
+            "canvasTop": 12,
+            "gridRow": 0,
+            "gridColumn": 0,
+            "gridRowSpan": 1,
+            "gridColumnSpan": 1,
+            "rowDefinitions": [],
+            "columnDefinitions": [],
+            "text": "表單高效繪圖與 C++ Skia 橋接範例",
+            "foreground": "#818CF8",
+            "fontSize": 20,
+            "fontWeight": "Bold",
+            "useRelativePath": true,
+            "initBitmap": false,
+            "bitmapBackgroundColor": "#F0F0F0",
+            "autoSize": false,
+            "customProperties": {},
+            "bindings": [],
+            "events": [],
+            "children": []
+          },
+          {
+            "id": "txtHeaderSubtitle",
+            "name": "txtHeaderSubtitle",
+            "type": "textBlock",
+            "margin": {
+              "left": 0,
+              "top": 0,
+              "right": 0,
+              "bottom": 0
+            },
+            "padding": {
+              "left": 0,
+              "top": 0,
+              "right": 0,
+              "bottom": 0
+            },
+            "horizontalAlignment": "stretch",
+            "verticalAlignment": "stretch",
+            "opacity": 1,
+            "isEnabled": true,
+            "isVisible": true,
+            "zIndex": 0,
+            "canvasLeft": 20,
+            "canvasTop": 40,
+            "gridRow": 0,
+            "gridColumn": 0,
+            "gridRowSpan": 1,
+            "gridColumnSpan": 1,
+            "rowDefinitions": [],
+            "columnDefinitions": [],
+            "text": "60 FPS Real-time Waveform Oscilloscope via Native C++ & WriteableBitmap",
+            "foreground": "#94A3B8",
+            "fontSize": 12,
+            "useRelativePath": true,
+            "initBitmap": false,
+            "bitmapBackgroundColor": "#F0F0F0",
+            "autoSize": false,
+            "customProperties": {},
+            "bindings": [],
+            "events": [],
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "screenCard",
+        "name": "screenCard",
+        "type": "border",
+        "width": 640,
+        "height": 360,
+        "margin": {
+          "left": 0,
+          "top": 0,
+          "right": 0,
+          "bottom": 0
+        },
+        "padding": {
+          "left": 0,
+          "top": 0,
+          "right": 0,
+          "bottom": 0
+        },
+        "horizontalAlignment": "stretch",
+        "verticalAlignment": "stretch",
+        "opacity": 1,
+        "isEnabled": true,
+        "isVisible": true,
+        "zIndex": 0,
+        "canvasLeft": 20,
+        "canvasTop": 105,
+        "gridRow": 0,
+        "gridColumn": 0,
+        "gridRowSpan": 1,
+        "gridColumnSpan": 1,
+        "rowDefinitions": [],
+        "columnDefinitions": [],
+        "background": "#09090B",
+        "borderBrush": "#22C55E",
+        "borderThickness": {
+          "left": 2,
+          "top": 2,
+          "right": 2,
+          "bottom": 2
+        },
+        "cornerRadius": {
+          "topLeft": 10,
+          "topRight": 10,
+          "bottomRight": 10,
+          "bottomLeft": 10
+        },
+        "boxShadow": {
+          "offsetX": 0,
+          "offsetY": 0,
+          "blur": 20,
+          "spread": 0,
+          "color": "#3022C55E",
+          "isInset": false
+        },
+        "useRelativePath": true,
+        "initBitmap": false,
+        "bitmapBackgroundColor": "#F0F0F0",
+        "autoSize": false,
+        "customProperties": {},
+        "bindings": [],
+        "events": [],
+        "children": [
+          {
+            "id": "imgOscilloscope",
+            "name": "imgOscilloscope",
+            "type": "image",
+            "width": 620,
+            "height": 340,
+            "margin": {
+              "left": 0,
+              "top": 0,
+              "right": 0,
+              "bottom": 0
+            },
+            "padding": {
+              "left": 0,
+              "top": 0,
+              "right": 0,
+              "bottom": 0
+            },
+            "horizontalAlignment": "stretch",
+            "verticalAlignment": "stretch",
+            "opacity": 1,
+            "isEnabled": true,
+            "isVisible": true,
+            "zIndex": 0,
+            "canvasLeft": 10,
+            "canvasTop": 10,
+            "gridRow": 0,
+            "gridColumn": 0,
+            "gridRowSpan": 1,
+            "gridColumnSpan": 1,
+            "rowDefinitions": [],
+            "columnDefinitions": [],
+            "stretch": "fill",
+            "useRelativePath": true,
+            "initBitmap": false,
+            "bitmapBackgroundColor": "#F0F0F0",
+            "autoSize": false,
+            "customProperties": {},
+            "bindings": [
+              {
+                "targetProperty": "Source",
+                "viewModelProperty": "WaveformImageSource",
+                "mode": "default"
+              }
+            ],
+            "events": [],
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "ctrlCard",
+        "name": "ctrlCard",
+        "type": "border",
+        "width": 640,
+        "height": 160,
+        "margin": {
+          "left": 0,
+          "top": 0,
+          "right": 0,
+          "bottom": 0
+        },
+        "padding": {
+          "left": 0,
+          "top": 0,
+          "right": 0,
+          "bottom": 0
+        },
+        "horizontalAlignment": "stretch",
+        "verticalAlignment": "stretch",
+        "opacity": 1,
+        "isEnabled": true,
+        "isVisible": true,
+        "zIndex": 0,
+        "canvasLeft": 20,
+        "canvasTop": 480,
+        "gridRow": 0,
+        "gridColumn": 0,
+        "gridRowSpan": 1,
+        "gridColumnSpan": 1,
+        "rowDefinitions": [],
+        "columnDefinitions": [],
+        "background": "#27272A",
+        "cornerRadius": {
+          "topLeft": 10,
+          "topRight": 10,
+          "bottomRight": 10,
+          "bottomLeft": 10
+        },
+        "boxShadow": {
+          "offsetX": 0,
+          "offsetY": 4,
+          "blur": 8,
+          "spread": 0,
+          "color": "#40000000",
+          "isInset": false
+        },
+        "useRelativePath": true,
+        "initBitmap": false,
+        "bitmapBackgroundColor": "#F0F0F0",
+        "autoSize": false,
+        "customProperties": {},
+        "bindings": [],
+        "events": [],
+        "children": [
+          {
+            "id": "lblFreq",
+            "name": "lblFreq",
+            "type": "textBlock",
+            "margin": {
+              "left": 0,
+              "top": 0,
+              "right": 0,
+              "bottom": 0
+            },
+            "padding": {
+              "left": 0,
+              "top": 0,
+              "right": 0,
+              "bottom": 0
+            },
+            "horizontalAlignment": "stretch",
+            "verticalAlignment": "stretch",
+            "opacity": 1,
+            "isEnabled": true,
+            "isVisible": true,
+            "zIndex": 0,
+            "canvasLeft": 20,
+            "canvasTop": 15,
+            "gridRow": 0,
+            "gridColumn": 0,
+            "gridRowSpan": 1,
+            "gridColumnSpan": 1,
+            "rowDefinitions": [],
+            "columnDefinitions": [],
+            "text": "訊號頻率 (Frequency: 5.0 Hz)：",
+            "foreground": "#86EFAC",
+            "fontSize": 13,
+            "useRelativePath": true,
+            "initBitmap": false,
+            "bitmapBackgroundColor": "#F0F0F0",
+            "autoSize": false,
+            "customProperties": {},
+            "bindings": [
+              {
+                "targetProperty": "Text",
+                "viewModelProperty": "FrequencyLabel",
+                "mode": "default"
+              }
+            ],
+            "events": [],
+            "children": []
+          },
+          {
+            "id": "sldFreq",
+            "name": "sldFreq",
+            "type": "slider",
+            "width": 400,
+            "height": 28,
+            "margin": {
+              "left": 0,
+              "top": 0,
+              "right": 0,
+              "bottom": 0
+            },
+            "padding": {
+              "left": 0,
+              "top": 0,
+              "right": 0,
+              "bottom": 0
+            },
+            "horizontalAlignment": "stretch",
+            "verticalAlignment": "stretch",
+            "opacity": 1,
+            "isEnabled": true,
+            "isVisible": true,
+            "zIndex": 0,
+            "canvasLeft": 220,
+            "canvasTop": 12,
+            "gridRow": 0,
+            "gridColumn": 0,
+            "gridRowSpan": 1,
+            "gridColumnSpan": 1,
+            "rowDefinitions": [],
+            "columnDefinitions": [],
+            "value": 5,
+            "minimum": 1,
+            "maximum": 20,
+            "useRelativePath": true,
+            "initBitmap": false,
+            "bitmapBackgroundColor": "#F0F0F0",
+            "autoSize": false,
+            "customProperties": {},
+            "bindings": [
+              {
+                "targetProperty": "Value",
+                "viewModelProperty": "FrequencyValue",
+                "mode": "twoWay"
+              }
+            ],
+            "events": [],
+            "children": []
+          },
+          {
+            "id": "lblAmp",
+            "name": "lblAmp",
+            "type": "textBlock",
+            "margin": {
+              "left": 0,
+              "top": 0,
+              "right": 0,
+              "bottom": 0
+            },
+            "padding": {
+              "left": 0,
+              "top": 0,
+              "right": 0,
+              "bottom": 0
+            },
+            "horizontalAlignment": "stretch",
+            "verticalAlignment": "stretch",
+            "opacity": 1,
+            "isEnabled": true,
+            "isVisible": true,
+            "zIndex": 0,
+            "canvasLeft": 20,
+            "canvasTop": 55,
+            "gridRow": 0,
+            "gridColumn": 0,
+            "gridRowSpan": 1,
+            "gridColumnSpan": 1,
+            "rowDefinitions": [],
+            "columnDefinitions": [],
+            "text": "訊號振幅 (Amplitude: 80 px)：",
+            "foreground": "#86EFAC",
+            "fontSize": 13,
+            "useRelativePath": true,
+            "initBitmap": false,
+            "bitmapBackgroundColor": "#F0F0F0",
+            "autoSize": false,
+            "customProperties": {},
+            "bindings": [
+              {
+                "targetProperty": "Text",
+                "viewModelProperty": "AmplitudeLabel",
+                "mode": "default"
+              }
+            ],
+            "events": [],
+            "children": []
+          },
+          {
+            "id": "sldAmp",
+            "name": "sldAmp",
+            "type": "slider",
+            "width": 400,
+            "height": 28,
+            "margin": {
+              "left": 0,
+              "top": 0,
+              "right": 0,
+              "bottom": 0
+            },
+            "padding": {
+              "left": 0,
+              "top": 0,
+              "right": 0,
+              "bottom": 0
+            },
+            "horizontalAlignment": "stretch",
+            "verticalAlignment": "stretch",
+            "opacity": 1,
+            "isEnabled": true,
+            "isVisible": true,
+            "zIndex": 0,
+            "canvasLeft": 220,
+            "canvasTop": 52,
+            "gridRow": 0,
+            "gridColumn": 0,
+            "gridRowSpan": 1,
+            "gridColumnSpan": 1,
+            "rowDefinitions": [],
+            "columnDefinitions": [],
+            "value": 80,
+            "minimum": 10,
+            "maximum": 140,
+            "useRelativePath": true,
+            "initBitmap": false,
+            "bitmapBackgroundColor": "#F0F0F0",
+            "autoSize": false,
+            "customProperties": {},
+            "bindings": [
+              {
+                "targetProperty": "Value",
+                "viewModelProperty": "AmplitudeValue",
+                "mode": "twoWay"
+              }
+            ],
+            "events": [],
+            "children": []
+          },
+          {
+            "id": "btnStart",
+            "name": "btnStart",
+            "type": "button",
+            "width": 150,
+            "height": 38,
+            "margin": {
+              "left": 0,
+              "top": 0,
+              "right": 0,
+              "bottom": 0
+            },
+            "padding": {
+              "left": 0,
+              "top": 0,
+              "right": 0,
+              "bottom": 0
+            },
+            "horizontalAlignment": "stretch",
+            "verticalAlignment": "stretch",
+            "opacity": 1,
+            "isEnabled": true,
+            "isVisible": true,
+            "zIndex": 0,
+            "canvasLeft": 20,
+            "canvasTop": 105,
+            "gridRow": 0,
+            "gridColumn": 0,
+            "gridRowSpan": 1,
+            "gridColumnSpan": 1,
+            "rowDefinitions": [],
+            "columnDefinitions": [],
+            "content": "▶ 啟動 60 FPS 刷新",
+            "background": "#16A34A",
+            "foreground": "#FFFFFF",
+            "fontSize": 13,
+            "cornerRadius": {
+              "topLeft": 8,
+              "topRight": 8,
+              "bottomRight": 8,
+              "bottomLeft": 8
+            },
+            "useRelativePath": true,
+            "initBitmap": false,
+            "bitmapBackgroundColor": "#F0F0F0",
+            "autoSize": false,
+            "customProperties": {},
+            "bindings": [],
+            "events": [
+              {
+                "eventName": "Click",
+                "commandProperty": "StartRefreshCommand",
+                "isAsync": true,
+                "isConstantParameter": false,
+                "parameters": []
+              }
+            ],
+            "children": []
+          },
+          {
+            "id": "btnStop",
+            "name": "btnStop",
+            "type": "button",
+            "width": 150,
+            "height": 38,
+            "margin": {
+              "left": 0,
+              "top": 0,
+              "right": 0,
+              "bottom": 0
+            },
+            "padding": {
+              "left": 0,
+              "top": 0,
+              "right": 0,
+              "bottom": 0
+            },
+            "horizontalAlignment": "stretch",
+            "verticalAlignment": "stretch",
+            "opacity": 1,
+            "isEnabled": true,
+            "isVisible": true,
+            "zIndex": 0,
+            "canvasLeft": 185,
+            "canvasTop": 105,
+            "gridRow": 0,
+            "gridColumn": 0,
+            "gridRowSpan": 1,
+            "gridColumnSpan": 1,
+            "rowDefinitions": [],
+            "columnDefinitions": [],
+            "content": "⏹ 停止即時刷新",
+            "background": "#DC2626",
+            "foreground": "#FFFFFF",
+            "fontSize": 13,
+            "cornerRadius": {
+              "topLeft": 8,
+              "topRight": 8,
+              "bottomRight": 8,
+              "bottomLeft": 8
+            },
+            "useRelativePath": true,
+            "initBitmap": false,
+            "bitmapBackgroundColor": "#F0F0F0",
+            "autoSize": false,
+            "customProperties": {},
+            "bindings": [],
+            "events": [
+              {
+                "eventName": "Click",
+                "commandProperty": "StopRefreshCommand",
+                "isAsync": true,
+                "isConstantParameter": false,
+                "parameters": []
+              }
+            ],
+            "children": []
+          },
+          {
+            "id": "rbSine",
+            "name": "rbSine",
+            "type": "radioButton",
+            "margin": {
+              "left": 0,
+              "top": 0,
+              "right": 0,
+              "bottom": 0
+            },
+            "padding": {
+              "left": 0,
+              "top": 0,
+              "right": 0,
+              "bottom": 0
+            },
+            "horizontalAlignment": "stretch",
+            "verticalAlignment": "stretch",
+            "opacity": 1,
+            "isEnabled": true,
+            "isVisible": true,
+            "zIndex": 0,
+            "canvasLeft": 360,
+            "canvasTop": 110,
+            "gridRow": 0,
+            "gridColumn": 0,
+            "gridRowSpan": 1,
+            "gridColumnSpan": 1,
+            "rowDefinitions": [],
+            "columnDefinitions": [],
+            "content": "正弦波",
+            "isChecked": true,
+            "useRelativePath": true,
+            "initBitmap": false,
+            "bitmapBackgroundColor": "#F0F0F0",
+            "autoSize": false,
+            "customProperties": {},
+            "bindings": [
+              {
+                "targetProperty": "IsChecked",
+                "viewModelProperty": "IsSineWave",
+                "mode": "twoWay"
+              }
+            ],
+            "events": [],
+            "children": []
+          },
+          {
+            "id": "rbSquare",
+            "name": "rbSquare",
+            "type": "radioButton",
+            "margin": {
+              "left": 0,
+              "top": 0,
+              "right": 0,
+              "bottom": 0
+            },
+            "padding": {
+              "left": 0,
+              "top": 0,
+              "right": 0,
+              "bottom": 0
+            },
+            "horizontalAlignment": "stretch",
+            "verticalAlignment": "stretch",
+            "opacity": 1,
+            "isEnabled": true,
+            "isVisible": true,
+            "zIndex": 0,
+            "canvasLeft": 445,
+            "canvasTop": 110,
+            "gridRow": 0,
+            "gridColumn": 0,
+            "gridRowSpan": 1,
+            "gridColumnSpan": 1,
+            "rowDefinitions": [],
+            "columnDefinitions": [],
+            "content": "方波",
+            "isChecked": false,
+            "useRelativePath": true,
+            "initBitmap": false,
+            "bitmapBackgroundColor": "#F0F0F0",
+            "autoSize": false,
+            "customProperties": {},
+            "bindings": [
+              {
+                "targetProperty": "IsChecked",
+                "viewModelProperty": "IsSquareWave",
+                "mode": "twoWay"
+              }
+            ],
+            "events": [],
+            "children": []
+          },
+          {
+            "id": "rbNoise",
+            "name": "rbNoise",
+            "type": "radioButton",
+            "margin": {
+              "left": 0,
+              "top": 0,
+              "right": 0,
+              "bottom": 0
+            },
+            "padding": {
+              "left": 0,
+              "top": 0,
+              "right": 0,
+              "bottom": 0
+            },
+            "horizontalAlignment": "stretch",
+            "verticalAlignment": "stretch",
+            "opacity": 1,
+            "isEnabled": true,
+            "isVisible": true,
+            "zIndex": 0,
+            "canvasLeft": 520,
+            "canvasTop": 110,
+            "gridRow": 0,
+            "gridColumn": 0,
+            "gridRowSpan": 1,
+            "gridColumnSpan": 1,
+            "rowDefinitions": [],
+            "columnDefinitions": [],
+            "content": "諧波雜訊",
+            "isChecked": false,
+            "useRelativePath": true,
+            "initBitmap": false,
+            "bitmapBackgroundColor": "#F0F0F0",
+            "autoSize": false,
+            "customProperties": {},
+            "bindings": [
+              {
+                "targetProperty": "IsChecked",
+                "viewModelProperty": "IsNoiseWave",
+                "mode": "twoWay"
+              }
+            ],
+            "events": [],
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "telemetryCard",
+        "name": "telemetryCard",
+        "type": "border",
+        "width": 640,
+        "height": 85,
+        "margin": {
+          "left": 0,
+          "top": 0,
+          "right": 0,
+          "bottom": 0
+        },
+        "padding": {
+          "left": 0,
+          "top": 0,
+          "right": 0,
+          "bottom": 0
+        },
+        "horizontalAlignment": "stretch",
+        "verticalAlignment": "stretch",
+        "opacity": 1,
+        "isEnabled": true,
+        "isVisible": true,
+        "zIndex": 0,
+        "canvasLeft": 20,
+        "canvasTop": 655,
+        "gridRow": 0,
+        "gridColumn": 0,
+        "gridRowSpan": 1,
+        "gridColumnSpan": 1,
+        "rowDefinitions": [],
+        "columnDefinitions": [],
+        "background": "#1E293B",
+        "borderBrush": "#22C55E",
+        "borderThickness": {
+          "left": 1,
+          "top": 1,
+          "right": 1,
+          "bottom": 1
+        },
+        "cornerRadius": {
+          "topLeft": 8,
+          "topRight": 8,
+          "bottomRight": 8,
+          "bottomLeft": 8
+        },
+        "useRelativePath": true,
+        "initBitmap": false,
+        "bitmapBackgroundColor": "#F0F0F0",
+        "autoSize": false,
+        "customProperties": {},
+        "bindings": [],
+        "events": [],
+        "children": [
+          {
+            "id": "txtTelemetry",
+            "name": "txtTelemetry",
+            "type": "textBlock",
+            "width": 600,
+            "height": 50,
+            "margin": {
+              "left": 0,
+              "top": 0,
+              "right": 0,
+              "bottom": 0
+            },
+            "padding": {
+              "left": 0,
+              "top": 0,
+              "right": 0,
+              "bottom": 0
+            },
+            "horizontalAlignment": "stretch",
+            "verticalAlignment": "stretch",
+            "opacity": 1,
+            "isEnabled": true,
+            "isVisible": true,
+            "zIndex": 0,
+            "canvasLeft": 20,
+            "canvasTop": 18,
+            "gridRow": 0,
+            "gridColumn": 0,
+            "gridRowSpan": 1,
+            "gridColumnSpan": 1,
+            "rowDefinitions": [],
+            "columnDefinitions": [],
+            "text": "即時效能監控：60.0 FPS | 渲染延遲：< 180 μs | 採樣緩衝區：620 × 340 (210,800 像素) | 橋接方式：C++ DllImport SIMD 向量化計算",
+            "foreground": "#4ADE80",
+            "fontSize": 13,
+            "fontWeight": "SemiBold",
+            "useRelativePath": true,
+            "initBitmap": false,
+            "bitmapBackgroundColor": "#F0F0F0",
+            "autoSize": false,
+            "customProperties": {},
+            "bindings": [],
+            "events": [],
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "fnFastSignalRenderer",
+        "name": "FastSignalRendererService",
+        "type": "logicFunction",
+        "margin": {
+          "left": 0,
+          "top": 0,
+          "right": 0,
+          "bottom": 0
+        },
+        "padding": {
+          "left": 0,
+          "top": 0,
+          "right": 0,
+          "bottom": 0
+        },
+        "horizontalAlignment": "stretch",
+        "verticalAlignment": "stretch",
+        "opacity": 1,
+        "isEnabled": true,
+        "isVisible": true,
+        "zIndex": 0,
+        "gridRow": 0,
+        "gridColumn": 0,
+        "gridRowSpan": 1,
+        "gridColumnSpan": 1,
+        "rowDefinitions": [],
+        "columnDefinitions": [],
+        "useRelativePath": true,
+        "initBitmap": false,
+        "bitmapBackgroundColor": "#F0F0F0",
+        "autoSize": false,
+        "logicFunction": {
+          "id": "b82e83c881d04ccda82965536f90c517",
+          "name": "ComputeWaveformBuffer",
+          "returnType": "void",
+          "isAsync": false,
+          "description": "使用 C++ 原生向量運算填充示波器像素緩衝區。",
+          "customImplementation": "// C++ high-performance buffer fill loop",
+          "parameters": [
+            {
+              "name": "bufferPtr",
+              "type": "long",
+              "description": "像素緩衝區記憶體指標"
+            },
+            {
+              "name": "width",
+              "type": "int",
+              "description": "畫布寬度"
+            },
+            {
+              "name": "height",
+              "type": "int",
+              "description": "畫布高度"
+            },
+            {
+              "name": "frequency",
+              "type": "double",
+              "description": "頻率"
+            },
+            {
+              "name": "amplitude",
+              "type": "double",
+              "description": "振幅"
+            },
+            {
+              "name": "phase",
+              "type": "double",
+              "description": "相位"
+            }
+          ]
+        },
+        "outputPath": "Services",
+        "targetNamespace": "HighPerformanceDrawingShowcase.Services",
+        "targetLanguage": "cpp",
+        "customProperties": {},
+        "bindings": [],
+        "events": [],
+        "children": []
+      }
+    ]
+  }
+}

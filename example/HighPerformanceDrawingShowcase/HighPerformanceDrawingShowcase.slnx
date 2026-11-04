@@ -1,0 +1,4 @@
+﻿<Solution>
+  <Project Path="src/HighPerformanceDrawingShowcase.Shared/HighPerformanceDrawingShowcase.Shared.csproj" />
+  <Project Path="src/HighPerformanceDrawingShowcase.Desktop/HighPerformanceDrawingShowcase.Desktop.csproj" />
+</Solution>

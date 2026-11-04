@@ -1,0 +1,6 @@
+﻿<Solution>
+  <Project Path="src/MultiLanguageInteropShowcase.Shared/MultiLanguageInteropShowcase.Shared.csproj" />
+  <Project Path="src/MultiLanguageInteropShowcase.Desktop/MultiLanguageInteropShowcase.Desktop.csproj" />
+  <Project Path="src/MultiLanguageInteropShowcase.Logic.FSharp/MultiLanguageInteropShowcase.Logic.FSharp.fsproj" />
+  <Project Path="src/MultiLanguageInteropShowcase.Logic.VB/MultiLanguageInteropShowcase.Logic.VB.vbproj" />
+</Solution>

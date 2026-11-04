@@ -1,0 +1,4 @@
+﻿<Solution>
+  <Project Path="src/DialogsShowcase.Shared/DialogsShowcase.Shared.csproj" />
+  <Project Path="src/DialogsShowcase.Desktop/DialogsShowcase.Desktop.csproj" />
+</Solution>

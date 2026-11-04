@@ -1,0 +1,4 @@
+﻿<Solution>
+  <Project Path="src/MediaPlayerShowcase.Shared/MediaPlayerShowcase.Shared.csproj" />
+  <Project Path="src/MediaPlayerShowcase.Desktop/MediaPlayerShowcase.Desktop.csproj" />
+</Solution>

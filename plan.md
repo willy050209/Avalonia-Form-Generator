@@ -1,4 +1,4 @@
-# Avalonia Form Generator (AFG) 專案執行計劃書
+﻿# Avalonia Form Generator (AFG) 專案執行計劃書
 
 視覺化拖曳式 Avalonia MVVM 介面與程式碼生成工具  
 遵照 `csharp-master-architect` 規範與 .NET 10 / C# 14 最高標準
@@ -554,8 +554,46 @@ AvaloniaFormGenerator/
     - 執行全專案單元測試，確保 100% 通過（>348 測試無失敗）。
     - 更新 `plan.md` 標記 Phase 29 完成並執行 Git Commit。
 
----
 
+### 🔹 階段 30~37：擴充 7 大核心實機範例專案 (Examples Expansion)
+- [x] **階段狀態：已完成 (Completed)**
+- **目標**：擴充 `example/` 目錄，建立涵蓋基本元件、對話框系統、圖片縮放、擴充圖形函數、高效繪圖與 C++ Skia 橋接、多媒體控制項、多語言分散式協同運算等 7 大範例，包含 `.afg.json` 專案檔、可編譯方案原始碼、Win32 真實視窗像素截圖與手冊。
+- **任務清單**：
+  - [x] **Phase 30: 基本常見控制項展示 (`example/BasicControlsShowcase`)**
+    - 建立 `BasicControlsShowcase.afg.json`，涵蓋 TextBox, CheckBox, RadioButton, ComboBox, ListBox, Slider, ProgressBar, DatePicker, TimePicker。
+    - 匯出方案並實作 ViewModel 設定儲存與重設命令，`dotnet build` 0 warning 0 error。
+    - 擷取真實編輯器畫面與實機執行截圖，建立 `README.md`。
+  - [x] **Phase 31: 對話方塊與訊息視窗展示 (`example/DialogsShowcase`)**
+    - 建立 `DialogsShowcase.afg.json`，配置 MessageBox, OpenFileDialog, SaveFileDialog 與 IDialogService。
+    - 匯出方案並實作對話框觸發與日誌紀錄邏輯，`dotnet build` 0 warning 0 error。
+    - 擷取真實編輯器畫面與實機執行截圖，建立 `README.md`。
+  - [x] **Phase 32: PictureBox / Image 圖片展示與縮放模式 (`example/PictureBoxShowcase`)**
+    - 建立 `PictureBoxShowcase.afg.json`，支援 4 種 Stretch 縮放模式切換。
+    - 匯出方案並以 WriteableBitmap 產生高對比棋盤光譜測試卡，`dotnet build` 0 warning 0 error。
+    - 擷取真實編輯器畫面與實機執行截圖，建立 `README.md`。
+  - [x] **Phase 33: 擴充圖形函數與向量繪圖應用 (`example/VectorGraphicsShowcase`)**
+    - 建立 `VectorGraphicsShowcase.afg.json`，呈現複合圓角、多層立體陰影、霓虹光暈與動態長條圖。
+    - 匯出方案並實作振幅拉桿與隨機資料命令，`dotnet build` 0 warning 0 error。
+    - 擷取真實編輯器畫面與實機執行截圖，建立 `README.md`。
+  - [x] **Phase 34: 表單高效繪圖與橋接 C++ 運算 (`example/HighPerformanceDrawingShowcase`)**
+    - 建立 `HighPerformanceDrawingShowcase.afg.json`，宣告 C++ 原生波形填充 LogicFunction。
+    - 匯出方案，包含 C# WriteableBitmap 記憶體直接寫入與 C++ Native 模組，`dotnet build` 0 warning 0 error。
+    - 擷取真實編輯器畫面與實機執行截圖，建立 `README.md`。
+  - [x] **Phase 35: 多媒體控制項應用 (`example/MediaPlayerShowcase`)**
+    - 建立 `MediaPlayerShowcase.afg.json`，配置 MediaPlayerControl、傳輸控制列與音量進度拉桿。
+    - 匯出方案並實作 Play/Pause/Stop 播放控制邏輯，`dotnet build` 0 warning 0 error。
+    - 擷取真實編輯器畫面與實機執行截圖，建立 `README.md`。
+  - [x] **Phase 36: 多語言交互協同運算展示 (`example/MultiLanguageInteropShowcase`)**
+    - 建立 `MultiLanguageInteropShowcase.afg.json`，配置 F#、VB.NET 與 C++ 三組邏輯函數。
+    - 匯出方案包含 C# 主專案、F# 函數式專案、VB.NET 商業規則專案與 C++ 原生模組，`dotnet build` 0 warning 0 error。
+    - 擷取真實編輯器畫面與實機執行截圖，建立 `README.md`。
+  - [x] **Phase 37: 整合測試、方案驗證與 Git Commit**
+    - AST 序列化測試 (`ShowcaseExamplesTests`) 與匯出測試 (`ShowcaseExamplesExportTests`) 100% 通過。
+    - 全方案 Release 編譯 `/warnaserror` 0 Warning, 0 Error。
+    - 建立 `tools/capture_showcases.ps1` 自動化視窗擷取引擎。
+    - 執行 Git Commit。
+
+---
 ## 4. 驗證標準與品質指標
 
 1. **單元測試覆蓋率**：所有純函式、AST 操作、歷史堆疊、生成器與序列化演算法 100% 覆蓋。

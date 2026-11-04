@@ -1,0 +1,4 @@
+﻿<Solution>
+  <Project Path="src/VectorGraphicsShowcase.Shared/VectorGraphicsShowcase.Shared.csproj" />
+  <Project Path="src/VectorGraphicsShowcase.Desktop/VectorGraphicsShowcase.Desktop.csproj" />
+</Solution>

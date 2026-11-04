@@ -1,0 +1,11 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <NoWarn>$(NoWarn);FS3261;FS3262;FS3263;FS1183;FS0020;3261;3262;3263;1183;0020</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="FSharpFinancialService.fs" />
+  </ItemGroup>
+</Project>
