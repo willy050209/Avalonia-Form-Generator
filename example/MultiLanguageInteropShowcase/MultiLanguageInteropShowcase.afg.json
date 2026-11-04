@@ -926,7 +926,13 @@
             "bitmapBackgroundColor": "#F0F0F0",
             "autoSize": false,
             "customProperties": {},
-            "bindings": [],
+            "bindings": [
+              {
+                "targetProperty": "Text",
+                "viewModelProperty": "StatusText",
+                "mode": "default"
+              }
+            ],
             "events": [],
             "children": []
           }
@@ -965,7 +971,7 @@
         "bitmapBackgroundColor": "#F0F0F0",
         "autoSize": false,
         "logicFunction": {
-          "id": "1cdf9b40c7854112899398fe2c3bb540",
+          "id": "ce60622b16be449bb98ed8652104a88e",
           "name": "CalculateCompoundGrowth",
           "returnType": "double",
           "isAsync": false,
@@ -1027,7 +1033,7 @@
         "bitmapBackgroundColor": "#F0F0F0",
         "autoSize": false,
         "logicFunction": {
-          "id": "2353be38d1f54d0cbd356b435d4c6eb8",
+          "id": "5f5f480c3aa1446f8135b912886a2d6a",
           "name": "ValidateAndFormatOrder",
           "returnType": "string",
           "isAsync": false,
@@ -1089,7 +1095,7 @@
         "bitmapBackgroundColor": "#F0F0F0",
         "autoSize": false,
         "logicFunction": {
-          "id": "fab6c90c8e2e482f9aa2d677705b4b2d",
+          "id": "87108b34a29a43ac933f36e0b12d5a51",
           "name": "ComputeFastChecksum",
           "returnType": "long",
           "isAsync": false,

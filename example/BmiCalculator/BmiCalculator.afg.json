@@ -1338,7 +1338,7 @@
         "bitmapBackgroundColor": "#F0F0F0",
         "autoSize": false,
         "logicFunction": {
-          "id": "fa55b9b9b5434e6891530bf0b44dfac5",
+          "id": "bc8360f26e2a4cada508302dcac98196",
           "name": "CalculateBmi",
           "returnType": "double",
           "isAsync": false,

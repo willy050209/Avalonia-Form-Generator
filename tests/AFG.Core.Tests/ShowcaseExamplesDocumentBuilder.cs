@@ -26,7 +26,7 @@ public static class ShowcaseExamplesDocumentBuilder
             ViewClassName = "BasicControlsShowcaseView",
             ViewModelClassName = "BasicControlsShowcaseViewModel",
             CanvasWidth = 640,
-            CanvasHeight = 880,
+            CanvasHeight = 680,
             BackgroundColor = "#18181B",
             TargetLanguage = TargetLanguage.CSharp,
             ArchitectureMode = ArchitectureMode.Hybrid,
@@ -37,7 +37,7 @@ public static class ShowcaseExamplesDocumentBuilder
                 Name = "RootCanvas",
                 Type = ControlType.Canvas,
                 Width = 640,
-                Height = 880,
+                Height = 680,
                 Children = [
                     // Header Card
                     new AstNode
@@ -46,9 +46,9 @@ public static class ShowcaseExamplesDocumentBuilder
                         Name = "headerCard",
                         Type = ControlType.Border,
                         CanvasLeft = 20,
-                        CanvasTop = 20,
+                        CanvasTop = 15,
                         Width = 600,
-                        Height = 70,
+                        Height = 60,
                         Background = "#27272A",
                         CornerRadius = new CornerRadiusModel(10, 10, 10, 10),
                         BoxShadow = new BoxShadowModel(0, 4, 8, 0, "#40000000", false),
@@ -59,9 +59,9 @@ public static class ShowcaseExamplesDocumentBuilder
                                 Name = "txtHeaderTitle",
                                 Type = ControlType.TextBlock,
                                 CanvasLeft = 20,
-                                CanvasTop = 12,
+                                CanvasTop = 8,
                                 Text = "基本常見控制項綜合展示",
-                                FontSize = 20,
+                                FontSize = 18,
                                 FontWeight = "Bold",
                                 Foreground = "#818CF8"
                             },
@@ -71,7 +71,7 @@ public static class ShowcaseExamplesDocumentBuilder
                                 Name = "txtHeaderSubtitle",
                                 Type = ControlType.TextBlock,
                                 CanvasLeft = 20,
-                                CanvasTop = 40,
+                                CanvasTop = 34,
                                 Text = "常用 UI 控制項與雙向 MVVM 資料綁定示範",
                                 FontSize = 12,
                                 Foreground = "#94A3B8"
@@ -86,20 +86,20 @@ public static class ShowcaseExamplesDocumentBuilder
                         Name = "inputCard",
                         Type = ControlType.Border,
                         CanvasLeft = 20,
-                        CanvasTop = 105,
+                        CanvasTop = 85,
                         Width = 600,
-                        Height = 155,
+                        Height = 135,
                         Background = "#27272A",
                         CornerRadius = new CornerRadiusModel(10, 10, 10, 10),
                         BoxShadow = new BoxShadowModel(0, 4, 8, 0, "#40000000", false),
                         Children = [
-                            new AstNode { Id = "lblSec1", Name = "lblSec1", Type = ControlType.TextBlock, CanvasLeft = 20, CanvasTop = 15, Text = "文字輸入 (Text & Input Controls)", FontSize = 14, FontWeight = "Bold", Foreground = "#38BDF8" },
-                            new AstNode { Id = "lblName", Name = "lblName", Type = ControlType.TextBlock, CanvasLeft = 20, CanvasTop = 52, Text = "使用者名稱：", FontSize = 13, Foreground = "#E2E8F0" },
-                            new AstNode { Id = "txtName", Name = "txtName", Type = ControlType.TextBox, CanvasLeft = 110, CanvasTop = 46, Width = 170, Height = 32, Text = "陳大明", Watermark = "請輸入姓名", Bindings = [new BindingDefinition("Text", "UserName", BindingMode.TwoWay)] },
-                            new AstNode { Id = "lblEmail", Name = "lblEmail", Type = ControlType.TextBlock, CanvasLeft = 300, CanvasTop = 52, Text = "電子郵件：", FontSize = 13, Foreground = "#E2E8F0" },
-                            new AstNode { Id = "txtEmail", Name = "txtEmail", Type = ControlType.TextBox, CanvasLeft = 380, CanvasTop = 46, Width = 200, Height = 32, Text = "daming.chen@example.com", Watermark = "請輸入 Email", Bindings = [new BindingDefinition("Text", "Email", BindingMode.TwoWay)] },
-                            new AstNode { Id = "lblBio", Name = "lblBio", Type = ControlType.TextBlock, CanvasLeft = 20, CanvasTop = 102, Text = "個人簡介：", FontSize = 13, Foreground = "#E2E8F0" },
-                            new AstNode { Id = "txtBio", Name = "txtBio", Type = ControlType.TextBox, CanvasLeft = 110, CanvasTop = 96, Width = 470, Height = 32, Text = "熱愛跨平台開發與 Avalonia 現代化介面架構設計。", Watermark = "請輸入簡介", Bindings = [new BindingDefinition("Text", "Bio", BindingMode.TwoWay)] }
+                            new AstNode { Id = "lblSec1", Name = "lblSec1", Type = ControlType.TextBlock, CanvasLeft = 20, CanvasTop = 10, Text = "文字輸入 (Text & Input Controls)", FontSize = 13, FontWeight = "Bold", Foreground = "#38BDF8" },
+                            new AstNode { Id = "lblName", Name = "lblName", Type = ControlType.TextBlock, CanvasLeft = 20, CanvasTop = 42, Text = "使用者名稱：", FontSize = 13, Foreground = "#E2E8F0" },
+                            new AstNode { Id = "txtName", Name = "txtName", Type = ControlType.TextBox, CanvasLeft = 110, CanvasTop = 36, Width = 170, Height = 32, Text = "陳大明", Watermark = "請輸入姓名", Bindings = [new BindingDefinition("Text", "UserName", BindingMode.TwoWay)] },
+                            new AstNode { Id = "lblEmail", Name = "lblEmail", Type = ControlType.TextBlock, CanvasLeft = 300, CanvasTop = 42, Text = "電子郵件：", FontSize = 13, Foreground = "#E2E8F0" },
+                            new AstNode { Id = "txtEmail", Name = "txtEmail", Type = ControlType.TextBox, CanvasLeft = 380, CanvasTop = 36, Width = 200, Height = 32, Text = "daming.chen@example.com", Watermark = "請輸入 Email", Bindings = [new BindingDefinition("Text", "Email", BindingMode.TwoWay)] },
+                            new AstNode { Id = "lblBio", Name = "lblBio", Type = ControlType.TextBlock, CanvasLeft = 20, CanvasTop = 88, Text = "個人簡介：", FontSize = 13, Foreground = "#E2E8F0" },
+                            new AstNode { Id = "txtBio", Name = "txtBio", Type = ControlType.TextBox, CanvasLeft = 110, CanvasTop = 82, Width = 470, Height = 32, Text = "熱愛跨平台開發與 Avalonia 現代化介面架構設計。", Watermark = "請輸入簡介", Bindings = [new BindingDefinition("Text", "Bio", BindingMode.TwoWay)] }
                         ]
                     },
 
@@ -110,21 +110,21 @@ public static class ShowcaseExamplesDocumentBuilder
                         Name = "choiceCard",
                         Type = ControlType.Border,
                         CanvasLeft = 20,
-                        CanvasTop = 275,
+                        CanvasTop = 230,
                         Width = 600,
-                        Height = 175,
+                        Height = 135,
                         Background = "#27272A",
                         CornerRadius = new CornerRadiusModel(10, 10, 10, 10),
                         BoxShadow = new BoxShadowModel(0, 4, 8, 0, "#40000000", false),
                         Children = [
-                            new AstNode { Id = "lblSec2", Name = "lblSec2", Type = ControlType.TextBlock, CanvasLeft = 20, CanvasTop = 15, Text = "選項與清單 (Choice & List Controls)", FontSize = 14, FontWeight = "Bold", Foreground = "#34D399" },
-                            new AstNode { Id = "chkDarkMode", Name = "chkDarkMode", Type = ControlType.CheckBox, CanvasLeft = 20, CanvasTop = 48, Content = "啟用深色高對比主題", IsChecked = true, Bindings = [new BindingDefinition("IsChecked", "IsDarkMode", BindingMode.TwoWay)] },
-                            new AstNode { Id = "chkNotifications", Name = "chkNotifications", Type = ControlType.CheckBox, CanvasLeft = 240, CanvasTop = 48, Content = "接收即時推播通知", IsChecked = true, Bindings = [new BindingDefinition("IsChecked", "ReceiveNotifications", BindingMode.TwoWay)] },
-                            new AstNode { Id = "lblAccount", Name = "lblAccount", Type = ControlType.TextBlock, CanvasLeft = 20, CanvasTop = 92, Text = "帳戶類型：", FontSize = 13, Foreground = "#E2E8F0" },
-                            new AstNode { Id = "rbPersonal", Name = "rbPersonal", Type = ControlType.RadioButton, CanvasLeft = 110, CanvasTop = 90, Content = "個人帳戶", IsChecked = true, Bindings = [new BindingDefinition("IsChecked", "IsPersonalAccount", BindingMode.TwoWay)] },
-                            new AstNode { Id = "rbEnterprise", Name = "rbEnterprise", Type = ControlType.RadioButton, CanvasLeft = 240, CanvasTop = 90, Content = "企業組織帳戶", IsChecked = false, Bindings = [new BindingDefinition("IsChecked", "IsEnterpriseAccount", BindingMode.TwoWay)] },
-                            new AstNode { Id = "lblRole", Name = "lblRole", Type = ControlType.TextBlock, CanvasLeft = 20, CanvasTop = 132, Text = "身分角色：", FontSize = 13, Foreground = "#E2E8F0" },
-                            new AstNode { Id = "cmbRole", Name = "cmbRole", Type = ControlType.ComboBox, CanvasLeft = 110, CanvasTop = 126, Width = 200, Height = 32, Content = "資深系統架構師" }
+                            new AstNode { Id = "lblSec2", Name = "lblSec2", Type = ControlType.TextBlock, CanvasLeft = 20, CanvasTop = 10, Text = "選項與清單 (Choice & List Controls)", FontSize = 13, FontWeight = "Bold", Foreground = "#34D399" },
+                            new AstNode { Id = "chkDarkMode", Name = "chkDarkMode", Type = ControlType.CheckBox, CanvasLeft = 20, CanvasTop = 40, Content = "啟用深色高對比主題", IsChecked = true, Bindings = [new BindingDefinition("IsChecked", "IsDarkMode", BindingMode.TwoWay)] },
+                            new AstNode { Id = "chkNotifications", Name = "chkNotifications", Type = ControlType.CheckBox, CanvasLeft = 240, CanvasTop = 40, Content = "接收即時推播通知", IsChecked = true, Bindings = [new BindingDefinition("IsChecked", "ReceiveNotifications", BindingMode.TwoWay)] },
+                            new AstNode { Id = "lblAccount", Name = "lblAccount", Type = ControlType.TextBlock, CanvasLeft = 20, CanvasTop = 75, Text = "帳戶類型：", FontSize = 13, Foreground = "#E2E8F0" },
+                            new AstNode { Id = "rbPersonal", Name = "rbPersonal", Type = ControlType.RadioButton, CanvasLeft = 110, CanvasTop = 73, Content = "個人帳戶", IsChecked = true, Bindings = [new BindingDefinition("IsChecked", "IsPersonalAccount", BindingMode.TwoWay)] },
+                            new AstNode { Id = "rbEnterprise", Name = "rbEnterprise", Type = ControlType.RadioButton, CanvasLeft = 240, CanvasTop = 73, Content = "企業組織帳戶", IsChecked = false, Bindings = [new BindingDefinition("IsChecked", "IsEnterpriseAccount", BindingMode.TwoWay)] },
+                            new AstNode { Id = "lblRole", Name = "lblRole", Type = ControlType.TextBlock, CanvasLeft = 20, CanvasTop = 104, Text = "身分角色：", FontSize = 13, Foreground = "#E2E8F0" },
+                            new AstNode { Id = "cmbRole", Name = "cmbRole", Type = ControlType.ComboBox, CanvasLeft = 110, CanvasTop = 98, Width = 200, Height = 28, Content = "資深系統架構師" }
                         ]
                     },
 
@@ -135,21 +135,21 @@ public static class ShowcaseExamplesDocumentBuilder
                         Name = "rangeCard",
                         Type = ControlType.Border,
                         CanvasLeft = 20,
-                        CanvasTop = 465,
+                        CanvasTop = 375,
                         Width = 600,
-                        Height = 180,
+                        Height = 145,
                         Background = "#27272A",
                         CornerRadius = new CornerRadiusModel(10, 10, 10, 10),
                         BoxShadow = new BoxShadowModel(0, 4, 8, 0, "#40000000", false),
                         Children = [
-                            new AstNode { Id = "lblSec3", Name = "lblSec3", Type = ControlType.TextBlock, CanvasLeft = 20, CanvasTop = 15, Text = "數值、進度與日期時間 (Range, Progress & DateTime)", FontSize = 14, FontWeight = "Bold", Foreground = "#FBBF24" },
-                            new AstNode { Id = "lblVolume", Name = "lblVolume", Type = ControlType.TextBlock, CanvasLeft = 20, CanvasTop = 50, Text = "系統主音量 (85%)：", FontSize = 13, Foreground = "#E2E8F0", Bindings = [new BindingDefinition("Text", "VolumeLabel")] },
-                            new AstNode { Id = "sldVolume", Name = "sldVolume", Type = ControlType.Slider, CanvasLeft = 170, CanvasTop = 46, Width = 400, Height = 28, Minimum = 0, Maximum = 100, Value = 85, Bindings = [new BindingDefinition("Value", "VolumeValue", BindingMode.TwoWay)] },
-                            new AstNode { Id = "lblProgress", Name = "lblProgress", Type = ControlType.TextBlock, CanvasLeft = 20, CanvasTop = 92, Text = "雲端同步進度 (75%)：", FontSize = 13, Foreground = "#E2E8F0", Bindings = [new BindingDefinition("Text", "ProgressLabel")] },
-                            new AstNode { Id = "pbProgress", Name = "pbProgress", Type = ControlType.ProgressBar, CanvasLeft = 170, CanvasTop = 92, Width = 400, Height = 18, Minimum = 0, Maximum = 100, Value = 75, Bindings = [new BindingDefinition("Value", "ProgressValue", BindingMode.TwoWay)] },
-                            new AstNode { Id = "lblDate", Name = "lblDate", Type = ControlType.TextBlock, CanvasLeft = 20, CanvasTop = 135, Text = "排程預約：", FontSize = 13, Foreground = "#E2E8F0" },
-                            new AstNode { Id = "dpDate", Name = "dpDate", Type = ControlType.DatePicker, CanvasLeft = 110, CanvasTop = 130, Width = 180, Height = 32 },
-                            new AstNode { Id = "tpTime", Name = "tpTime", Type = ControlType.TimePicker, CanvasLeft = 310, CanvasTop = 130, Width = 150, Height = 32 }
+                            new AstNode { Id = "lblSec3", Name = "lblSec3", Type = ControlType.TextBlock, CanvasLeft = 20, CanvasTop = 10, Text = "數值、進度與日期時間 (Range, Progress & DateTime)", FontSize = 13, FontWeight = "Bold", Foreground = "#FBBF24" },
+                            new AstNode { Id = "lblVolume", Name = "lblVolume", Type = ControlType.TextBlock, CanvasLeft = 20, CanvasTop = 40, Text = "系統主音量 (85%)：", FontSize = 13, Foreground = "#E2E8F0", Bindings = [new BindingDefinition("Text", "VolumeLabel")] },
+                            new AstNode { Id = "sldVolume", Name = "sldVolume", Type = ControlType.Slider, CanvasLeft = 170, CanvasTop = 36, Width = 400, Height = 26, Minimum = 0, Maximum = 100, Value = 85, Bindings = [new BindingDefinition("Value", "VolumeValue", BindingMode.TwoWay)] },
+                            new AstNode { Id = "lblProgress", Name = "lblProgress", Type = ControlType.TextBlock, CanvasLeft = 20, CanvasTop = 75, Text = "雲端同步進度 (75%)：", FontSize = 13, Foreground = "#E2E8F0", Bindings = [new BindingDefinition("Text", "ProgressLabel")] },
+                            new AstNode { Id = "pbProgress", Name = "pbProgress", Type = ControlType.ProgressBar, CanvasLeft = 170, CanvasTop = 75, Width = 400, Height = 16, Minimum = 0, Maximum = 100, Value = 75, Bindings = [new BindingDefinition("Value", "ProgressValue", BindingMode.TwoWay)] },
+                            new AstNode { Id = "lblDate", Name = "lblDate", Type = ControlType.TextBlock, CanvasLeft = 20, CanvasTop = 108, Text = "排程預約：", FontSize = 13, Foreground = "#E2E8F0" },
+                            new AstNode { Id = "dpDate", Name = "dpDate", Type = ControlType.DatePicker, CanvasLeft = 110, CanvasTop = 103, Width = 180, Height = 30 },
+                            new AstNode { Id = "tpTime", Name = "tpTime", Type = ControlType.TimePicker, CanvasLeft = 310, CanvasTop = 103, Width = 150, Height = 30 }
                         ]
                     },
 
@@ -160,13 +160,13 @@ public static class ShowcaseExamplesDocumentBuilder
                         Name = "btnSave",
                         Type = ControlType.Button,
                         CanvasLeft = 20,
-                        CanvasTop = 660,
+                        CanvasTop = 530,
                         Width = 190,
-                        Height = 40,
+                        Height = 36,
                         Content = "儲存所有設定",
                         Background = "#4F46E5",
                         Foreground = "#FFFFFF",
-                        FontSize = 14,
+                        FontSize = 13,
                         FontWeight = "SemiBold",
                         CornerRadius = new CornerRadiusModel(8, 8, 8, 8),
                         Events = [new EventMappingDefinition { EventName = "Click", CommandProperty = "SaveSettingsCommand", IsAsync = true }]
@@ -177,13 +177,13 @@ public static class ShowcaseExamplesDocumentBuilder
                         Name = "btnReset",
                         Type = ControlType.Button,
                         CanvasLeft = 225,
-                        CanvasTop = 660,
+                        CanvasTop = 530,
                         Width = 190,
-                        Height = 40,
+                        Height = 36,
                         Content = "恢復預設值",
                         Background = "#3F3F46",
                         Foreground = "#FFFFFF",
-                        FontSize = 14,
+                        FontSize = 13,
                         CornerRadius = new CornerRadiusModel(8, 8, 8, 8),
                         Events = [new EventMappingDefinition { EventName = "Click", CommandProperty = "ResetSettingsCommand", IsAsync = true }]
                     },
@@ -195,25 +195,25 @@ public static class ShowcaseExamplesDocumentBuilder
                         Name = "statusCard",
                         Type = ControlType.Border,
                         CanvasLeft = 20,
-                        CanvasTop = 715,
+                        CanvasTop = 575,
                         Width = 600,
-                        Height = 140,
+                        Height = 95,
                         Background = "#1E293B",
                         BorderBrush = "#3B82F6",
                         BorderThickness = new ThicknessModel(1, 1, 1, 1),
                         CornerRadius = new CornerRadiusModel(10, 10, 10, 10),
                         BoxShadow = new BoxShadowModel(0, 4, 12, 0, "#40000000", false),
                         Children = [
-                            new AstNode { Id = "lblStatusTitle", Name = "lblStatusTitle", Type = ControlType.TextBlock, CanvasLeft = 20, CanvasTop = 15, Text = "即時設定摘要 (Live Summary)", FontSize = 13, FontWeight = "Bold", Foreground = "#60A5FA" },
+                            new AstNode { Id = "lblStatusTitle", Name = "lblStatusTitle", Type = ControlType.TextBlock, CanvasLeft = 20, CanvasTop = 10, Text = "即時設定摘要 (Live Summary)", FontSize = 13, FontWeight = "Bold", Foreground = "#60A5FA" },
                             new AstNode
                             {
                                 Id = "txtSummary",
                                 Name = "txtSummary",
                                 Type = ControlType.TextBlock,
                                 CanvasLeft = 20,
-                                CanvasTop = 45,
+                                CanvasTop = 32,
                                 Width = 560,
-                                Height = 80,
+                                Height = 55,
                                 Text = "使用者：陳大明 (daming.chen@example.com) | 主題：深色模式 | 通知：已開啟 | 帳戶：個人帳戶 | 音量：85% | 進度：75%",
                                 FontSize = 12,
                                 Foreground = "#E2E8F0",
@@ -429,7 +429,7 @@ public static class ShowcaseExamplesDocumentBuilder
                                 Width = 560,
                                 Height = 330,
                                 Stretch = Stretch.Uniform,
-                                Bindings = [new BindingDefinition("Source", "ImageSource")]
+                                Bindings = [new BindingDefinition("Source", "ImageSource"), new BindingDefinition("Stretch", "StretchMode")]
                             }
                         ]
                     },
@@ -449,12 +449,12 @@ public static class ShowcaseExamplesDocumentBuilder
                         BoxShadow = new BoxShadowModel(0, 4, 8, 0, "#40000000", false),
                         Children = [
                             new AstNode { Id = "lblStretchTitle", Name = "lblStretchTitle", Type = ControlType.TextBlock, CanvasLeft = 20, CanvasTop = 15, Text = "縮放呈現模式 (Stretch Mode)：", FontSize = 13, FontWeight = "Bold", Foreground = "#38BDF8" },
-                            new AstNode { Id = "rbUniform", Name = "rbUniform", Type = ControlType.RadioButton, CanvasLeft = 20, CanvasTop = 42, Content = "Uniform (等比適配)", IsChecked = true, Bindings = [new BindingDefinition("IsChecked", "IsUniformStretch", BindingMode.TwoWay)] },
-                            new AstNode { Id = "rbUniformToFill", Name = "rbUniformToFill", Type = ControlType.RadioButton, CanvasLeft = 165, CanvasTop = 42, Content = "UniformToFill (等比填滿)", IsChecked = false, Bindings = [new BindingDefinition("IsChecked", "IsUniformToFillStretch", BindingMode.TwoWay)] },
-                            new AstNode { Id = "rbFill", Name = "rbFill", Type = ControlType.RadioButton, CanvasLeft = 335, CanvasTop = 42, Content = "Fill (非等比拉伸)", IsChecked = false, Bindings = [new BindingDefinition("IsChecked", "IsFillStretch", BindingMode.TwoWay)] },
-                            new AstNode { Id = "rbNone", Name = "rbNone", Type = ControlType.RadioButton, CanvasLeft = 475, CanvasTop = 42, Content = "None (原始)", IsChecked = false, Bindings = [new BindingDefinition("IsChecked", "IsNoneStretch", BindingMode.TwoWay)] },
-                            new AstNode { Id = "btnSampleA", Name = "btnSampleA", Type = ControlType.Button, CanvasLeft = 20, CanvasTop = 80, Width = 180, Height = 34, Content = "測試圖形 A (幾何網格)", Background = "#4F46E5", Foreground = "#FFFFFF", FontSize = 12, CornerRadius = new CornerRadiusModel(6, 6, 6, 6), Events = [new EventMappingDefinition { EventName = "Click", CommandProperty = "LoadSampleACommand", IsAsync = true }] },
-                            new AstNode { Id = "btnSampleB", Name = "btnSampleB", Type = ControlType.Button, CanvasLeft = 215, CanvasTop = 80, Width = 180, Height = 34, Content = "測試圖形 B (漸層色塊)", Background = "#059669", Foreground = "#FFFFFF", FontSize = 12, CornerRadius = new CornerRadiusModel(6, 6, 6, 6), Events = [new EventMappingDefinition { EventName = "Click", CommandProperty = "LoadSampleBCommand", IsAsync = true }] }
+                            new AstNode { Id = "rbUniform", Name = "rbUniform", Type = ControlType.RadioButton, CanvasLeft = 16, CanvasTop = 42, Content = "Uniform (等比適配)", IsChecked = true, Bindings = [new BindingDefinition("IsChecked", "IsUniformStretch", BindingMode.TwoWay)] },
+                            new AstNode { Id = "rbUniformToFill", Name = "rbUniformToFill", Type = ControlType.RadioButton, CanvasLeft = 166, CanvasTop = 42, Content = "UniformToFill (等比填滿)", IsChecked = false, Bindings = [new BindingDefinition("IsChecked", "IsUniformToFillStretch", BindingMode.TwoWay)] },
+                            new AstNode { Id = "rbFill", Name = "rbFill", Type = ControlType.RadioButton, CanvasLeft = 340, CanvasTop = 42, Content = "Fill (非等比拉伸)", IsChecked = false, Bindings = [new BindingDefinition("IsChecked", "IsFillStretch", BindingMode.TwoWay)] },
+                            new AstNode { Id = "rbNone", Name = "rbNone", Type = ControlType.RadioButton, CanvasLeft = 480, CanvasTop = 42, Content = "None (原始)", IsChecked = false, Bindings = [new BindingDefinition("IsChecked", "IsNoneStretch", BindingMode.TwoWay)] },
+                            new AstNode { Id = "btnSampleA", Name = "btnSampleA", Type = ControlType.Button, CanvasLeft = 16, CanvasTop = 80, Width = 180, Height = 34, Content = "測試圖形 A (幾何網格)", Background = "#4F46E5", Foreground = "#FFFFFF", FontSize = 12, CornerRadius = new CornerRadiusModel(6, 6, 6, 6), Events = [new EventMappingDefinition { EventName = "Click", CommandProperty = "LoadSampleACommand", IsAsync = true }] },
+                            new AstNode { Id = "btnSampleB", Name = "btnSampleB", Type = ControlType.Button, CanvasLeft = 206, CanvasTop = 80, Width = 180, Height = 34, Content = "測試圖形 B (漸層色塊)", Background = "#059669", Foreground = "#FFFFFF", FontSize = 12, CornerRadius = new CornerRadiusModel(6, 6, 6, 6), Events = [new EventMappingDefinition { EventName = "Click", CommandProperty = "LoadSampleBCommand", IsAsync = true }] }
                         ]
                     },
 
@@ -478,11 +478,11 @@ public static class ShowcaseExamplesDocumentBuilder
                                 Id = "txtImageInfo",
                                 Name = "txtImageInfo",
                                 Type = ControlType.TextBlock,
-                                CanvasLeft = 20,
+                                CanvasLeft = 16,
                                 CanvasTop = 22,
                                 Text = "圖片資訊：800 × 600 像素 | 長寬比 4:3 | 模式：Stretch.Uniform | 縮放率：100%",
                                 Foreground = "#E2E8F0",
-                                FontSize = 13,
+                                FontSize = 12,
                                 Bindings = [new BindingDefinition("Text", "ImageInfoText")]
                             }
                         ]
@@ -642,9 +642,11 @@ public static class ShowcaseExamplesDocumentBuilder
                         BorderThickness = new ThicknessModel(1, 1, 1, 1),
                         CornerRadius = new CornerRadiusModel(10, 10, 10, 10),
                         Children = [
-                            new AstNode { Id = "lblScale", Name = "lblScale", Type = ControlType.TextBlock, CanvasLeft = 20, CanvasTop = 20, Text = "向量圖表振幅比例 (Scale: 100%)：", Foreground = "#60A5FA", FontSize = 13, Bindings = [new BindingDefinition("Text", "ScaleLabel")] },
-                            new AstNode { Id = "sldScale", Name = "sldScale", Type = ControlType.Slider, CanvasLeft = 20, CanvasTop = 50, Width = 340, Height = 30, Minimum = 20, Maximum = 150, Value = 100, Bindings = [new BindingDefinition("Value", "ChartScale", BindingMode.TwoWay)] },
-                            new AstNode { Id = "btnRandomize", Name = "btnRandomize", Type = ControlType.Button, CanvasLeft = 390, CanvasTop = 45, Width = 180, Height = 40, Content = "🎲 隨機動態資料", Background = "#4F46E5", Foreground = "#FFFFFF", FontSize = 13, CornerRadius = new CornerRadiusModel(8, 8, 8, 8), Events = [new EventMappingDefinition { EventName = "Click", CommandProperty = "RandomizeDataCommand", IsAsync = true }] }
+                            new AstNode { Id = "lblScale", Name = "lblScale", Type = ControlType.TextBlock, CanvasLeft = 20, CanvasTop = 14, Text = "向量圖表振幅比例 (Scale: 100%)：", Foreground = "#60A5FA", FontSize = 13, Bindings = [new BindingDefinition("Text", "ScaleLabel")] },
+                            new AstNode { Id = "sldScale", Name = "sldScale", Type = ControlType.Slider, CanvasLeft = 20, CanvasTop = 40, Width = 240, Height = 30, Minimum = 20, Maximum = 150, Value = 100, Bindings = [new BindingDefinition("Value", "ChartScale", BindingMode.TwoWay)] },
+                            new AstNode { Id = "btnRandomize", Name = "btnRandomize", Type = ControlType.Button, CanvasLeft = 280, CanvasTop = 38, Width = 140, Height = 36, Content = "🎲 隨機動態資料", Background = "#4F46E5", Foreground = "#FFFFFF", FontSize = 12, CornerRadius = new CornerRadiusModel(8, 8, 8, 8), Events = [new EventMappingDefinition { EventName = "Click", CommandProperty = "RandomizeDataCommand", IsAsync = true }] },
+                            new AstNode { Id = "btnSwitchTheme", Name = "btnSwitchTheme", Type = ControlType.Button, CanvasLeft = 435, CanvasTop = 38, Width = 145, Height = 36, Content = "🎨 切換幾何主題", Background = "#059669", Foreground = "#FFFFFF", FontSize = 12, CornerRadius = new CornerRadiusModel(8, 8, 8, 8), Events = [new EventMappingDefinition { EventName = "Click", CommandProperty = "SwitchThemeCommand", IsAsync = false }] },
+                            new AstNode { Id = "txtThemeDesc", Name = "txtThemeDesc", Type = ControlType.TextBlock, CanvasLeft = 20, CanvasTop = 82, Text = "幾何主題：科技晶片多邊形 (Cyberpunk Neon) | 拓撲演算法：8 節點向量路徑", Foreground = "#94A3B8", FontSize = 11, Bindings = [new BindingDefinition("Text", "ThemeDescription")] }
                         ]
                     }
                 ]
@@ -666,7 +668,7 @@ public static class ShowcaseExamplesDocumentBuilder
             ViewClassName = "HighPerformanceDrawingShowcaseView",
             ViewModelClassName = "HighPerformanceDrawingShowcaseViewModel",
             CanvasWidth = 680,
-            CanvasHeight = 760,
+            CanvasHeight = 680,
             BackgroundColor = "#18181B",
             TargetLanguage = TargetLanguage.CSharp,
             ArchitectureMode = ArchitectureMode.Hybrid,
@@ -677,7 +679,7 @@ public static class ShowcaseExamplesDocumentBuilder
                 Name = "RootCanvas",
                 Type = ControlType.Canvas,
                 Width = 680,
-                Height = 760,
+                Height = 680,
                 Children = [
                     new AstNode
                     {
@@ -685,15 +687,15 @@ public static class ShowcaseExamplesDocumentBuilder
                         Name = "headerCard",
                         Type = ControlType.Border,
                         CanvasLeft = 20,
-                        CanvasTop = 20,
+                        CanvasTop = 15,
                         Width = 640,
-                        Height = 70,
+                        Height = 60,
                         Background = "#27272A",
                         CornerRadius = new CornerRadiusModel(10, 10, 10, 10),
                         BoxShadow = new BoxShadowModel(0, 4, 8, 0, "#40000000", false),
                         Children = [
-                            new AstNode { Id = "txtHeaderTitle", Name = "txtHeaderTitle", Type = ControlType.TextBlock, CanvasLeft = 20, CanvasTop = 12, Text = "表單高效繪圖與 C++ Skia 橋接範例", FontSize = 20, FontWeight = "Bold", Foreground = "#818CF8" },
-                            new AstNode { Id = "txtHeaderSubtitle", Name = "txtHeaderSubtitle", Type = ControlType.TextBlock, CanvasLeft = 20, CanvasTop = 40, Text = "60 FPS Real-time Waveform Oscilloscope via Native C++ & WriteableBitmap", FontSize = 12, Foreground = "#94A3B8" }
+                            new AstNode { Id = "txtHeaderTitle", Name = "txtHeaderTitle", Type = ControlType.TextBlock, CanvasLeft = 20, CanvasTop = 8, Text = "表單高效繪圖與 C++ Skia 橋接範例", FontSize = 18, FontWeight = "Bold", Foreground = "#818CF8" },
+                            new AstNode { Id = "txtHeaderSubtitle", Name = "txtHeaderSubtitle", Type = ControlType.TextBlock, CanvasLeft = 20, CanvasTop = 34, Text = "60 FPS Real-time Waveform Oscilloscope via Native C++ & WriteableBitmap", FontSize = 12, Foreground = "#94A3B8" }
                         ]
                     },
 
@@ -704,9 +706,9 @@ public static class ShowcaseExamplesDocumentBuilder
                         Name = "screenCard",
                         Type = ControlType.Border,
                         CanvasLeft = 20,
-                        CanvasTop = 105,
+                        CanvasTop = 85,
                         Width = 640,
-                        Height = 360,
+                        Height = 310,
                         Background = "#09090B",
                         BorderBrush = "#22C55E",
                         BorderThickness = new ThicknessModel(2, 2, 2, 2),
@@ -721,7 +723,7 @@ public static class ShowcaseExamplesDocumentBuilder
                                 CanvasLeft = 10,
                                 CanvasTop = 10,
                                 Width = 620,
-                                Height = 340,
+                                Height = 290,
                                 Stretch = Stretch.Fill,
                                 Bindings = [new BindingDefinition("Source", "WaveformImageSource")]
                             }
@@ -735,9 +737,9 @@ public static class ShowcaseExamplesDocumentBuilder
                         Name = "ctrlCard",
                         Type = ControlType.Border,
                         CanvasLeft = 20,
-                        CanvasTop = 480,
+                        CanvasTop = 405,
                         Width = 640,
-                        Height = 160,
+                        Height = 155,
                         Background = "#27272A",
                         CornerRadius = new CornerRadiusModel(10, 10, 10, 10),
                         BoxShadow = new BoxShadowModel(0, 4, 8, 0, "#40000000", false),
@@ -761,9 +763,9 @@ public static class ShowcaseExamplesDocumentBuilder
                         Name = "telemetryCard",
                         Type = ControlType.Border,
                         CanvasLeft = 20,
-                        CanvasTop = 655,
+                        CanvasTop = 570,
                         Width = 640,
-                        Height = 85,
+                        Height = 95,
                         Background = "#1E293B",
                         BorderBrush = "#22C55E",
                         BorderThickness = new ThicknessModel(1, 1, 1, 1),
@@ -775,13 +777,14 @@ public static class ShowcaseExamplesDocumentBuilder
                                 Name = "txtTelemetry",
                                 Type = ControlType.TextBlock,
                                 CanvasLeft = 20,
-                                CanvasTop = 18,
+                                CanvasTop = 22,
                                 Width = 600,
                                 Height = 50,
-                                Text = "即時效能監控：60.0 FPS | 渲染延遲：< 180 μs | 採樣緩衝區：620 × 340 (210,800 像素) | 橋接方式：C++ DllImport SIMD 向量化計算",
+                                Text = "即時效能監控：60.0 FPS | 渲染延遲：< 180 μs | 採樣緩衝區：620 × 290 (179,800 像素) | 橋接方式：C++ DllImport SIMD 向量化計算",
                                 Foreground = "#4ADE80",
                                 FontSize = 13,
-                                FontWeight = "SemiBold"
+                                FontWeight = "SemiBold",
+                                Bindings = [new BindingDefinition("Text", "TelemetryText")]
                             }
                         ]
                     },
@@ -907,13 +910,13 @@ public static class ShowcaseExamplesDocumentBuilder
                         CornerRadius = new CornerRadiusModel(10, 10, 10, 10),
                         BoxShadow = new BoxShadowModel(0, 4, 8, 0, "#40000000", false),
                         Children = [
-                            new AstNode { Id = "txtTrack", Name = "txtTrack", Type = ControlType.TextBlock, CanvasLeft = 20, CanvasTop = 15, Text = "正在播放：Cyberpunk Synthwave - Neon Horizon (Track 01)", FontSize = 13, FontWeight = "Bold", Foreground = "#F8FAFC" },
-                            new AstNode { Id = "lblTime", Name = "lblTime", Type = ControlType.TextBlock, CanvasLeft = 490, CanvasTop = 15, Text = "01:14 / 03:32", FontSize = 12, Foreground = "#94A3B8" },
+                            new AstNode { Id = "txtTrack", Name = "txtTrack", Type = ControlType.TextBlock, CanvasLeft = 20, CanvasTop = 15, Text = "正在播放：Cyberpunk Synthwave - Neon Horizon (Track 01)", FontSize = 13, FontWeight = "Bold", Foreground = "#F8FAFC", Bindings = [new BindingDefinition("Text", "TrackTitle", BindingMode.Default)] },
+                            new AstNode { Id = "lblTime", Name = "lblTime", Type = ControlType.TextBlock, CanvasLeft = 490, CanvasTop = 15, Text = "01:14 / 03:32", FontSize = 12, Foreground = "#94A3B8", Bindings = [new BindingDefinition("Text", "TimeDisplay", BindingMode.Default)] },
                             new AstNode { Id = "sldPosition", Name = "sldPosition", Type = ControlType.Slider, CanvasLeft = 20, CanvasTop = 40, Width = 560, Height = 28, Minimum = 0, Maximum = 100, Value = 35, Bindings = [new BindingDefinition("Value", "PositionValue", BindingMode.TwoWay)] },
                             new AstNode { Id = "btnPlay", Name = "btnPlay", Type = ControlType.Button, CanvasLeft = 20, CanvasTop = 80, Width = 90, Height = 36, Content = "▶ 播放", Background = "#4F46E5", Foreground = "#FFFFFF", FontSize = 13, CornerRadius = new CornerRadiusModel(6, 6, 6, 6), Events = [new EventMappingDefinition { EventName = "Click", CommandProperty = "PlayCommand", IsAsync = true }] },
                             new AstNode { Id = "btnPause", Name = "btnPause", Type = ControlType.Button, CanvasLeft = 120, CanvasTop = 80, Width = 90, Height = 36, Content = "⏸ 暫停", Background = "#3F3F46", Foreground = "#FFFFFF", FontSize = 13, CornerRadius = new CornerRadiusModel(6, 6, 6, 6), Events = [new EventMappingDefinition { EventName = "Click", CommandProperty = "PauseCommand", IsAsync = true }] },
                             new AstNode { Id = "btnStop", Name = "btnStop", Type = ControlType.Button, CanvasLeft = 220, CanvasTop = 80, Width = 90, Height = 36, Content = "⏹ 停止", Background = "#DC2626", Foreground = "#FFFFFF", FontSize = 13, CornerRadius = new CornerRadiusModel(6, 6, 6, 6), Events = [new EventMappingDefinition { EventName = "Click", CommandProperty = "StopCommand", IsAsync = true }] },
-                            new AstNode { Id = "lblVol", Name = "lblVol", Type = ControlType.TextBlock, CanvasLeft = 330, CanvasTop = 88, Text = "音量 (80%)：", Foreground = "#E2E8F0", FontSize = 12 },
+                            new AstNode { Id = "lblVol", Name = "lblVol", Type = ControlType.TextBlock, CanvasLeft = 330, CanvasTop = 88, Text = "音量 (80%)：", Foreground = "#E2E8F0", FontSize = 12, Bindings = [new BindingDefinition("Text", "VolumeLabel", BindingMode.Default)] },
                             new AstNode { Id = "sldVol", Name = "sldVol", Type = ControlType.Slider, CanvasLeft = 410, CanvasTop = 84, Width = 170, Height = 26, Minimum = 0, Maximum = 100, Value = 80, Bindings = [new BindingDefinition("Value", "VolumeValue", BindingMode.TwoWay)] },
                             new AstNode { Id = "chkLoop", Name = "chkLoop", Type = ControlType.CheckBox, CanvasLeft = 20, CanvasTop = 126, Content = "循環播放 (Looping)", IsChecked = true, Bindings = [new BindingDefinition("IsChecked", "IsLooping", BindingMode.TwoWay)] }
                         ]
@@ -934,7 +937,7 @@ public static class ShowcaseExamplesDocumentBuilder
                         BorderThickness = new ThicknessModel(1, 1, 1, 1),
                         CornerRadius = new CornerRadiusModel(8, 8, 8, 8),
                         Children = [
-                            new AstNode { Id = "txtStatus", Name = "txtStatus", Type = ControlType.TextBlock, CanvasLeft = 20, CanvasTop = 20, Text = "播放器狀態：播放中 (Playing) | 格式：AAC / 48kHz Stereo | 輸出：立體聲聲道 | 緩衝：100%", Foreground = "#34D399", FontSize = 12 }
+                            new AstNode { Id = "txtStatus", Name = "txtStatus", Type = ControlType.TextBlock, CanvasLeft = 20, CanvasTop = 20, Text = "播放器狀態：播放中 (Playing) | 格式：AAC / 48kHz Stereo | 輸出：立體聲聲道 | 緩衝：100%", Foreground = "#34D399", FontSize = 12, Bindings = [new BindingDefinition("Text", "PlayStatusText", BindingMode.Default)] }
                         ]
                     }
                 ]
@@ -1092,7 +1095,8 @@ public static class ShowcaseExamplesDocumentBuilder
                                 Height = 90,
                                 Text = "多語言分散式運算架構已連線就緒。\nC# 視圖模型透過相依性注入容器調用 F#、VB.NET 與 C++ 原生函式庫完成平行計算！",
                                 FontSize = 13,
-                                Foreground = "#34D399"
+                                Foreground = "#34D399",
+                                Bindings = [new BindingDefinition("Text", "StatusText")]
                             }
                         ]
                     },

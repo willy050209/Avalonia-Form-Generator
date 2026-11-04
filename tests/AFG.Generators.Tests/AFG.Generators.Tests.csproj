@@ -25,4 +25,8 @@
     <ProjectReference Include="..\..\src\AFG.Generators\AFG.Generators.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Compile Include="..\..\example\DialogsShowcase\ShowcaseBuilder.cs" Link="ShowcaseBuilder.cs" />
+  </ItemGroup>
+
 </Project>

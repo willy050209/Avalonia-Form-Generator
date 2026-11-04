@@ -403,7 +403,13 @@
             "bitmapBackgroundColor": "#F0F0F0",
             "autoSize": false,
             "customProperties": {},
-            "bindings": [],
+            "bindings": [
+              {
+                "targetProperty": "Text",
+                "viewModelProperty": "TrackTitle",
+                "mode": "default"
+              }
+            ],
             "events": [],
             "children": []
           },
@@ -445,7 +451,13 @@
             "bitmapBackgroundColor": "#F0F0F0",
             "autoSize": false,
             "customProperties": {},
-            "bindings": [],
+            "bindings": [
+              {
+                "targetProperty": "Text",
+                "viewModelProperty": "TimeDisplay",
+                "mode": "default"
+              }
+            ],
             "events": [],
             "children": []
           },
@@ -714,7 +726,13 @@
             "bitmapBackgroundColor": "#F0F0F0",
             "autoSize": false,
             "customProperties": {},
-            "bindings": [],
+            "bindings": [
+              {
+                "targetProperty": "Text",
+                "viewModelProperty": "VolumeLabel",
+                "mode": "default"
+              }
+            ],
             "events": [],
             "children": []
           },
@@ -909,7 +927,13 @@
             "bitmapBackgroundColor": "#F0F0F0",
             "autoSize": false,
             "customProperties": {},
-            "bindings": [],
+            "bindings": [
+              {
+                "targetProperty": "Text",
+                "viewModelProperty": "PlayStatusText",
+                "mode": "default"
+              }
+            ],
             "events": [],
             "children": []
           }

@@ -22,6 +22,24 @@ public sealed class ShowcaseExamplesExportTests
         return dir;
     }
 
+    [Fact]
+    public void DialogsShowcaseBuilder_BuildDocument_ShouldBeValidAndMatchProperties()
+    {
+        var doc = DialogsShowcase.ShowcaseBuilder.BuildDocument();
+        doc.Should().NotBeNull();
+        doc.ProjectName.Should().Be("DialogsShowcase");
+        doc.ViewClassName.Should().Be("DialogsShowcaseView");
+        doc.ViewModelClassName.Should().Be("DialogsShowcaseViewModel");
+        doc.RootNode.Children.Should().HaveCount(7);
+
+        var json = DialogsShowcase.ShowcaseBuilder.SerializeToJson(doc);
+        json.Should().NotBeNullOrWhiteSpace();
+
+        var roundTrip = AfgSerializer.DeserializeDocument(json);
+        roundTrip.ViewClassName.Should().Be("DialogsShowcaseView");
+        roundTrip.RootNode.Children.Should().HaveCount(7);
+    }
+
     [Theory]
     [InlineData("BasicControlsShowcase", "BasicControlsShowcase.afg.json")]
     [InlineData("DialogsShowcase", "DialogsShowcase.afg.json")]

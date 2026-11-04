@@ -1530,7 +1530,7 @@
             "isVisible": true,
             "zIndex": 0,
             "canvasLeft": 20,
-            "canvasTop": 20,
+            "canvasTop": 14,
             "gridRow": 0,
             "gridColumn": 0,
             "gridRowSpan": 1,
@@ -1559,7 +1559,7 @@
             "id": "sldScale",
             "name": "sldScale",
             "type": "slider",
-            "width": 340,
+            "width": 240,
             "height": 30,
             "margin": {
               "left": 0,
@@ -1580,7 +1580,7 @@
             "isVisible": true,
             "zIndex": 0,
             "canvasLeft": 20,
-            "canvasTop": 50,
+            "canvasTop": 40,
             "gridRow": 0,
             "gridColumn": 0,
             "gridRowSpan": 1,
@@ -1609,8 +1609,8 @@
             "id": "btnRandomize",
             "name": "btnRandomize",
             "type": "button",
-            "width": 180,
-            "height": 40,
+            "width": 140,
+            "height": 36,
             "margin": {
               "left": 0,
               "top": 0,
@@ -1629,8 +1629,8 @@
             "isEnabled": true,
             "isVisible": true,
             "zIndex": 0,
-            "canvasLeft": 390,
-            "canvasTop": 45,
+            "canvasLeft": 280,
+            "canvasTop": 38,
             "gridRow": 0,
             "gridColumn": 0,
             "gridRowSpan": 1,
@@ -1640,7 +1640,7 @@
             "content": "\uD83C\uDFB2 隨機動態資料",
             "background": "#4F46E5",
             "foreground": "#FFFFFF",
-            "fontSize": 13,
+            "fontSize": 12,
             "cornerRadius": {
               "topLeft": 8,
               "topRight": 8,
@@ -1662,6 +1662,113 @@
                 "parameters": []
               }
             ],
+            "children": []
+          },
+          {
+            "id": "btnSwitchTheme",
+            "name": "btnSwitchTheme",
+            "type": "button",
+            "width": 145,
+            "height": 36,
+            "margin": {
+              "left": 0,
+              "top": 0,
+              "right": 0,
+              "bottom": 0
+            },
+            "padding": {
+              "left": 0,
+              "top": 0,
+              "right": 0,
+              "bottom": 0
+            },
+            "horizontalAlignment": "stretch",
+            "verticalAlignment": "stretch",
+            "opacity": 1,
+            "isEnabled": true,
+            "isVisible": true,
+            "zIndex": 0,
+            "canvasLeft": 435,
+            "canvasTop": 38,
+            "gridRow": 0,
+            "gridColumn": 0,
+            "gridRowSpan": 1,
+            "gridColumnSpan": 1,
+            "rowDefinitions": [],
+            "columnDefinitions": [],
+            "content": "\uD83C\uDFA8 切換幾何主題",
+            "background": "#059669",
+            "foreground": "#FFFFFF",
+            "fontSize": 12,
+            "cornerRadius": {
+              "topLeft": 8,
+              "topRight": 8,
+              "bottomRight": 8,
+              "bottomLeft": 8
+            },
+            "useRelativePath": true,
+            "initBitmap": false,
+            "bitmapBackgroundColor": "#F0F0F0",
+            "autoSize": false,
+            "customProperties": {},
+            "bindings": [],
+            "events": [
+              {
+                "eventName": "Click",
+                "commandProperty": "SwitchThemeCommand",
+                "isAsync": false,
+                "isConstantParameter": false,
+                "parameters": []
+              }
+            ],
+            "children": []
+          },
+          {
+            "id": "txtThemeDesc",
+            "name": "txtThemeDesc",
+            "type": "textBlock",
+            "margin": {
+              "left": 0,
+              "top": 0,
+              "right": 0,
+              "bottom": 0
+            },
+            "padding": {
+              "left": 0,
+              "top": 0,
+              "right": 0,
+              "bottom": 0
+            },
+            "horizontalAlignment": "stretch",
+            "verticalAlignment": "stretch",
+            "opacity": 1,
+            "isEnabled": true,
+            "isVisible": true,
+            "zIndex": 0,
+            "canvasLeft": 20,
+            "canvasTop": 82,
+            "gridRow": 0,
+            "gridColumn": 0,
+            "gridRowSpan": 1,
+            "gridColumnSpan": 1,
+            "rowDefinitions": [],
+            "columnDefinitions": [],
+            "text": "幾何主題：科技晶片多邊形 (Cyberpunk Neon) | 拓撲演算法：8 節點向量路徑",
+            "foreground": "#94A3B8",
+            "fontSize": 11,
+            "useRelativePath": true,
+            "initBitmap": false,
+            "bitmapBackgroundColor": "#F0F0F0",
+            "autoSize": false,
+            "customProperties": {},
+            "bindings": [
+              {
+                "targetProperty": "Text",
+                "viewModelProperty": "ThemeDescription",
+                "mode": "default"
+              }
+            ],
+            "events": [],
             "children": []
           }
         ]

@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
     <TargetFramework>net10.0</TargetFramework>
@@ -13,5 +13,11 @@
     <ProjectReference Include="..\MultiLanguageInteropShowcase.Shared\MultiLanguageInteropShowcase.Shared.csproj" />
     <PackageReference Include="Avalonia.Desktop" Version="11.2.5" />
     <PackageReference Include="Avalonia.Fonts.Inter" Version="11.2.5" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\MultiLanguageInteropShowcase.Logic.Cpp\MultiLanguageInteropShowcase.Logic.Cpp.dll" Condition="Exists('..\MultiLanguageInteropShowcase.Logic.Cpp\MultiLanguageInteropShowcase.Logic.Cpp.dll')">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 </Project>
