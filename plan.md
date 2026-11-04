@@ -534,6 +534,28 @@ AvaloniaFormGenerator/
 
 ---
 
+### 🔹 階段 29：BMI 計算機實機範例與展示系統 (BMI Calculator Example & Real-World Showcase)
+- [x] **階段狀態：已完成 (Completed)**
+- **目標**：在專案根目錄建立 `example/` 目錄，實作高品質的「BMI 健康體位計算機」範例，包含完整的 `BmiCalculator.afg.json` 專案檔、由 `ProjectExportService` 匯出之可編譯跨平台專案原始碼，並自動化擷取 AFG 設計器真實編輯畫面與實機運行計算結果截圖，建立完整說明文件。
+- **任務清單**：
+  - [x] 29.1 **Phase 1: 啟動參數增強與 AST 專案檔建置 (`AFG.Desktop` & `example/`)**
+    - 於 `AFG.Desktop` 實作命令列參數支援開啟指定 `.afg.json` 檔案。
+    - 建立 `example/BmiCalculator/BmiCalculator.afg.json`，涵蓋完整 UI 階層、樣式、卡片與邏輯函數。
+    - 撰寫單元測試驗證 `BmiCalculator.afg.json` 能透過 `AfgSerializer` 完美序列化與反序列化。
+  - [x] 29.2 **Phase 2: 實際檔案生成與專案匯出建置 (`example/BmiCalculator/src/`)**
+    - 透過 `ProjectExportService` 匯出 `example/BmiCalculator/src/`。
+    - 完善 ViewModel 計算與體位判定邏輯。
+    - 執行 `dotnet build example/BmiCalculator/src/BmiCalculator.Desktop/BmiCalculator.Desktop.csproj` 確保 0 warning 0 error。
+  - [x] 29.3 **Phase 3: 真實編輯畫面與實機結果截圖 (example/BmiCalculator/screenshots/)**
+    - 執行 AFG 設計器載入 BMI 範例並捕捉真實視窗截圖 `editor_design_view.png`。
+    - 執行 BMI 實機視窗並捕捉計算結果截圖 `runtime_result.png`。
+    - 建立 `example/BmiCalculator/README.md`，嵌入真實截圖與操作說明。
+  - [x] 29.4 **Phase 4: 全方案測試、技術文件更新與 Git Commit**
+    - 執行全專案單元測試，確保 100% 通過（>348 測試無失敗）。
+    - 更新 `plan.md` 標記 Phase 29 完成並執行 Git Commit。
+
+---
+
 ## 4. 驗證標準與品質指標
 
 1. **單元測試覆蓋率**：所有純函式、AST 操作、歷史堆疊、生成器與序列化演算法 100% 覆蓋。

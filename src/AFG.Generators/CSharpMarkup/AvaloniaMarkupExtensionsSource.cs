@@ -282,6 +282,23 @@ public static class AvaloniaMarkupExtensionsSource
         }
 
         // 4. 控制項內容、文字與標題（明確區分靜態常數值與資料綁定）
+        public static T Content<T>(this T control, string? content) where T : Control
+        {
+            if (control is ContentControl cc)
+            {
+                cc.Content = content;
+            }
+            else if (control is TextBlock tb)
+            {
+                tb.Text = content;
+            }
+            else if (control is TextBox txt)
+            {
+                txt.Text = content;
+            }
+            return control;
+        }
+
         public static T Content<T>(this T control, object? content) where T : Control
         {
             if (control is ContentControl cc)
@@ -386,6 +403,15 @@ public static class AvaloniaMarkupExtensionsSource
             return control;
         }
 
+        public static T Header<T>(this T control, string? header) where T : Control
+        {
+            if (control is HeaderedContentControl hcc)
+            {
+                hcc.Header = header;
+            }
+            return control;
+        }
+
         public static T Header<T>(this T control, object? header) where T : Control
         {
             if (control is HeaderedContentControl hcc)
@@ -424,6 +450,25 @@ public static class AvaloniaMarkupExtensionsSource
                 b.Padding = padding;
             }
             return control;
+        }
+
+        public static Border Child(this Border border, params Control[] children)
+        {
+            if (children == null || children.Length == 0) return border;
+            if (children.Length == 1)
+            {
+                border.Child = children[0];
+            }
+            else
+            {
+                var canvas = new Canvas();
+                foreach (var c in children)
+                {
+                    canvas.Children.Add(c);
+                }
+                border.Child = canvas;
+            }
+            return border;
         }
 
         public static Border Child(this Border border, Control child)

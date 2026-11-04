@@ -1,4 +1,6 @@
 // filepath: src/AFG.Desktop/MainWindow.axaml.cs
+using System.IO;
+using AFG.Core.Serialization;
 using AFG.Desktop.Services;
 using AFG.Shared.ViewModels;
 using Avalonia.Controls;
@@ -7,7 +9,11 @@ namespace AFG.Desktop;
 
 public partial class MainWindow : Window
 {
-    public MainWindow()
+    public MainWindow() : this(null)
+    {
+    }
+
+    public MainWindow(string? initialDocumentPath)
     {
         InitializeComponent();
 
@@ -17,5 +23,12 @@ public partial class MainWindow : Window
 
         var viewModel = new MainViewModel(fileService, clipboardService, previewWindowService: previewService);
         RootMainView.DataContext = viewModel;
+
+        if (!string.IsNullOrEmpty(initialDocumentPath) && File.Exists(initialDocumentPath))
+        {
+            var json = File.ReadAllText(initialDocumentPath);
+            var doc = AfgSerializer.DeserializeDocument(json);
+            viewModel.Canvas.LoadDocument(doc);
+        }
     }
 }

@@ -1,0 +1,4 @@
+﻿<Solution>
+  <Project Path="src/BmiCalculator.Shared/BmiCalculator.Shared.csproj" />
+  <Project Path="src/BmiCalculator.Desktop/BmiCalculator.Desktop.csproj" />
+</Solution>

@@ -394,7 +394,19 @@ public sealed class DesignCanvas : Grid
                 };
                 if (node.Children.Count > 0)
                 {
-                    border.Child = CreateControlFromNode(node.Children[0]);
+                    if (node.Children.Count == 1)
+                    {
+                        border.Child = CreateControlFromNode(node.Children[0]);
+                    }
+                    else
+                    {
+                        var panel = new Canvas();
+                        foreach (var c in node.Children)
+                        {
+                            panel.Children.Add(CreateControlFromNode(c));
+                        }
+                        border.Child = panel;
+                    }
                 }
                 control = border;
                 break;

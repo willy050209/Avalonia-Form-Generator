@@ -25,7 +25,7 @@ internal static class Program
             {
                 if (Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
                 {
-                    desktop.MainWindow = new MainWindow();
+                    desktop.MainWindow = new MainWindow(desktop.Args is { Length: > 0 } ? desktop.Args[0] : null);
                 }
             });
 }
