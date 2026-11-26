@@ -498,8 +498,17 @@ writeableBitmap.ProcessPixels((int x, int y, ref byte b, ref byte g, ref byte r,
      writeableBitmap.ApplyGaussianBlur(radius: 3);
      writeableBitmap.ApplyBoxBlur(radius: 2);
      ```
-5. **獨立卷積引擎與自訂算子 (`ImageConvolution` / `ConvolutionKernel`)**：
-   - 匯出專案自動包含 `Helpers/ImageConvolution.cs`，提供不可變算子定義 (`ConvolutionKernel.Create2D`、`CreateSeparable`、`CreateGradient`、`WithFactor`、`WithBias`、`Normalized`)、完整邊界/Alpha/梯度選項 (`ConvolutionOptions`)，以及零開銷結構泛型後處理器介面 (`IConvolutionPostProcessor`)：
+5. **銳化與反銳化遮罩 (`Sharpen` / `ApplySharpen` / `UnsharpMask` / `ApplyUnsharpMask`)**：
+   - 委派至獨立卷積引擎 `ImageConvolution` 執行參數化 3×3 Laplacian 銳化（`ConvolutionKernel.CreateSharpen(intensity, eightNeighbor)`）與可調半徑 1D 可分離高斯反銳化遮罩（USM，支援 `radius`、`amount` 與降噪門檻 `threshold`）：
+     ```csharp
+     var sharpened = bitmap.Sharpen(intensity: 0.8f, eightNeighbor: false);
+     writeableBitmap.ApplySharpen(intensity: 1.0f, eightNeighbor: true);
+
+     var usm = bitmap.UnsharpMask(radius: 3, amount: 1.5f, threshold: 4.0f);
+     writeableBitmap.ApplyUnsharpMask(radius: 2, amount: 1.2f);
+     ```
+6. **獨立卷積引擎與自訂算子 (`ImageConvolution` / `ConvolutionKernel`)**：
+   - 匯出專案自動包含 `Helpers/ImageConvolution.cs`，提供不可變算子定義 (`ConvolutionKernel.Create2D`、`CreateSeparable`、`CreateGradient`、`CreateSharpen`、`WithFactor`、`WithBias`、`Normalized`)、完整邊界/Alpha/梯度選項 (`ConvolutionOptions`)，以及零開銷結構泛型後處理器介面 (`IConvolutionPostProcessor`)：
      ```csharp
      // 自訂 3×5 或 5×5 二維卷積矩陣，並搭配擴充方法執行
      var custom = ConvolutionKernel.Create2D(
