@@ -20,6 +20,12 @@ public partial class PictureBoxShowcaseView : UserControl
     private RadioButton _rbNone;
     private Button _btnSampleA;
     private Button _btnSampleB;
+    private TextBlock _lblConvTitle;
+    private Button _btnConvReset;
+    private Button _btnConvSharpen;
+    private Button _btnConvEmboss;
+    private Button _btnConvSobel;
+    private Button _btnConvCustom;
     private Border _infoCard;
     private TextBlock _txtImageInfo;
 
@@ -40,9 +46,9 @@ public partial class PictureBoxShowcaseView : UserControl
                 _headerCard = new Border()
                     .Name("headerCard")
                     .Width(600)
-                    .Height(70)
+                    .Height(65)
                     .CanvasLeft(20)
-                    .CanvasTop(20)
+                    .CanvasTop(15)
                     .Background(Brush.Parse("#27272A"))
                     .CornerRadius(new CornerRadius(10, 10, 10, 10))
                     .BoxShadow(BoxShadows.Parse("0 4 8 0 #40000000"))
@@ -51,16 +57,17 @@ public partial class PictureBoxShowcaseView : UserControl
                         _txtHeaderTitle = new TextBlock()
                             .Name("txtHeaderTitle")
                             .CanvasLeft(20)
-                            .CanvasTop(12)
-                            .Text("PictureBox 與圖片展示範例")
-                            .FontSize(20)
+                            .CanvasTop(10)
+                            .Text("PictureBox 與圖片卷積展示範例")
+                            .FontSize(19)
+                            .FontWeight(FontWeight.Bold)
                             .Foreground(Brush.Parse("#818CF8")),
                         // txtHeaderSubtitle
                         _txtHeaderSubtitle = new TextBlock()
                             .Name("txtHeaderSubtitle")
                             .CanvasLeft(20)
-                            .CanvasTop(40)
-                            .Text("Image Controls, Stretch Modes & Dynamic Image Sources")
+                            .CanvasTop(37)
+                            .Text("Stretch Modes, Dynamic Sources & Custom ImageConvolution Filters")
                             .FontSize(12)
                             .Foreground(Brush.Parse("#94A3B8"))
                     ),
@@ -68,9 +75,9 @@ public partial class PictureBoxShowcaseView : UserControl
                 _viewerCard = new Border()
                     .Name("viewerCard")
                     .Width(600)
-                    .Height(370)
+                    .Height(330)
                     .CanvasLeft(20)
-                    .CanvasTop(105)
+                    .CanvasTop(90)
                     .Background(Brush.Parse("#27272A"))
                     .CornerRadius(new CornerRadius(10, 10, 10, 10))
                     .BoxShadow(BoxShadows.Parse("0 4 8 0 #40000000"))
@@ -79,9 +86,9 @@ public partial class PictureBoxShowcaseView : UserControl
                         _imgDisplay = new Image()
                             .Name("imgDisplay")
                             .Width(560)
-                            .Height(330)
+                            .Height(294)
                             .CanvasLeft(20)
-                            .CanvasTop(20)
+                            .CanvasTop(18)
                             .Stretch((PictureBoxShowcaseViewModel vm) => vm.StretchMode)
                             .Source((PictureBoxShowcaseViewModel vm) => vm.ImageSource, BindingMode.Default)
                     ),
@@ -89,9 +96,9 @@ public partial class PictureBoxShowcaseView : UserControl
                 _controlCard = new Border()
                     .Name("controlCard")
                     .Width(600)
-                    .Height(130)
+                    .Height(195)
                     .CanvasLeft(20)
-                    .CanvasTop(490)
+                    .CanvasTop(432)
                     .Background(Brush.Parse("#27272A"))
                     .CornerRadius(new CornerRadius(10, 10, 10, 10))
                     .BoxShadow(BoxShadows.Parse("0 4 8 0 #40000000"))
@@ -99,46 +106,47 @@ public partial class PictureBoxShowcaseView : UserControl
                         // lblStretchTitle
                         _lblStretchTitle = new TextBlock()
                             .Name("lblStretchTitle")
-                            .CanvasLeft(20)
-                            .CanvasTop(15)
+                            .CanvasLeft(16)
+                            .CanvasTop(12)
                             .Text("縮放呈現模式 (Stretch Mode)：")
                             .FontSize(13)
+                            .FontWeight(FontWeight.Bold)
                             .Foreground(Brush.Parse("#38BDF8")),
                         // rbUniform
                         _rbUniform = new RadioButton()
                             .Name("rbUniform")
                             .CanvasLeft(16)
-                            .CanvasTop(42)
-                            .Content("Uniform (等比適配)")
+                            .CanvasTop(36)
+                            .Content("Uniform (等比)")
                             .IsChecked((PictureBoxShowcaseViewModel vm) => vm.IsUniformStretch, BindingMode.TwoWay),
                         // rbUniformToFill
                         _rbUniformToFill = new RadioButton()
                             .Name("rbUniformToFill")
-                            .CanvasLeft(166)
-                            .CanvasTop(42)
-                            .Content("UniformToFill (等比填滿)")
+                            .CanvasLeft(160)
+                            .CanvasTop(36)
+                            .Content("UniformToFill (填滿)")
                             .IsChecked((PictureBoxShowcaseViewModel vm) => vm.IsUniformToFillStretch, BindingMode.TwoWay),
                         // rbFill
                         _rbFill = new RadioButton()
                             .Name("rbFill")
-                            .CanvasLeft(340)
-                            .CanvasTop(42)
-                            .Content("Fill (非等比拉伸)")
+                            .CanvasLeft(345)
+                            .CanvasTop(36)
+                            .Content("Fill (拉伸)")
                             .IsChecked((PictureBoxShowcaseViewModel vm) => vm.IsFillStretch, BindingMode.TwoWay),
                         // rbNone
                         _rbNone = new RadioButton()
                             .Name("rbNone")
-                            .CanvasLeft(480)
-                            .CanvasTop(42)
+                            .CanvasLeft(475)
+                            .CanvasTop(36)
                             .Content("None (原始)")
                             .IsChecked((PictureBoxShowcaseViewModel vm) => vm.IsNoneStretch, BindingMode.TwoWay),
                         // btnSampleA
                         _btnSampleA = new Button()
                             .Name("btnSampleA")
                             .Width(180)
-                            .Height(34)
+                            .Height(32)
                             .CanvasLeft(16)
-                            .CanvasTop(80)
+                            .CanvasTop(72)
                             .Content("測試圖形 A (幾何網格)")
                             .FontSize(12)
                             .Background(Brush.Parse("#4F46E5"))
@@ -149,15 +157,89 @@ public partial class PictureBoxShowcaseView : UserControl
                         _btnSampleB = new Button()
                             .Name("btnSampleB")
                             .Width(180)
-                            .Height(34)
+                            .Height(32)
                             .CanvasLeft(206)
-                            .CanvasTop(80)
+                            .CanvasTop(72)
                             .Content("測試圖形 B (漸層色塊)")
                             .FontSize(12)
                             .Background(Brush.Parse("#059669"))
                             .Foreground(Brush.Parse("#FFFFFF"))
                             .CornerRadius(new CornerRadius(6, 6, 6, 6))
-                            .OnClick((PictureBoxShowcaseViewModel vm) => vm.LoadSampleBCommand)
+                            .OnClick((PictureBoxShowcaseViewModel vm) => vm.LoadSampleBCommand),
+                        // lblConvTitle
+                        _lblConvTitle = new TextBlock()
+                            .Name("lblConvTitle")
+                            .CanvasLeft(16)
+                            .CanvasTop(114)
+                            .Text("自訂卷積算子與特效 (ImageConvolution)：")
+                            .FontSize(13)
+                            .FontWeight(FontWeight.Bold)
+                            .Foreground(Brush.Parse("#F472B6")),
+                        // btnConvReset
+                        _btnConvReset = new Button()
+                            .Name("btnConvReset")
+                            .Width(108)
+                            .Height(34)
+                            .CanvasLeft(16)
+                            .CanvasTop(140)
+                            .Content("原圖 (Reset)")
+                            .FontSize(11)
+                            .Background(Brush.Parse("#475569"))
+                            .Foreground(Brush.Parse("#FFFFFF"))
+                            .CornerRadius(new CornerRadius(6, 6, 6, 6))
+                            .OnClick((PictureBoxShowcaseViewModel vm) => vm.ResetFilterCommand),
+                        // btnConvSharpen
+                        _btnConvSharpen = new Button()
+                            .Name("btnConvSharpen")
+                            .Width(108)
+                            .Height(34)
+                            .CanvasLeft(131)
+                            .CanvasTop(140)
+                            .Content("銳化 3×3")
+                            .FontSize(11)
+                            .Background(Brush.Parse("#0284C7"))
+                            .Foreground(Brush.Parse("#FFFFFF"))
+                            .CornerRadius(new CornerRadius(6, 6, 6, 6))
+                            .OnClick((PictureBoxShowcaseViewModel vm) => vm.ApplySharpenCommand),
+                        // btnConvEmboss
+                        _btnConvEmboss = new Button()
+                            .Name("btnConvEmboss")
+                            .Width(108)
+                            .Height(34)
+                            .CanvasLeft(246)
+                            .CanvasTop(140)
+                            .Content("浮雕 3×3")
+                            .FontSize(11)
+                            .Background(Brush.Parse("#7C3AED"))
+                            .Foreground(Brush.Parse("#FFFFFF"))
+                            .CornerRadius(new CornerRadius(6, 6, 6, 6))
+                            .OnClick((PictureBoxShowcaseViewModel vm) => vm.ApplyEmbossCommand),
+                        // btnConvSobel
+                        _btnConvSobel = new Button()
+                            .Name("btnConvSobel")
+                            .Width(108)
+                            .Height(34)
+                            .CanvasLeft(361)
+                            .CanvasTop(140)
+                            .Content("Sobel 邊緣")
+                            .FontSize(11)
+                            .Background(Brush.Parse("#EA580C"))
+                            .Foreground(Brush.Parse("#FFFFFF"))
+                            .CornerRadius(new CornerRadius(6, 6, 6, 6))
+                            .OnClick((PictureBoxShowcaseViewModel vm) => vm.ApplySobelCommand),
+                        // btnConvCustom
+                        _btnConvCustom = new Button()
+                            .Name("btnConvCustom")
+                            .Width(108)
+                            .Height(34)
+                            .CanvasLeft(476)
+                            .CanvasTop(140)
+                            .Content("自訂 5×5")
+                            .FontSize(11)
+                            .Background(Brush.Parse("#DB2777"))
+                            .Foreground(Brush.Parse("#FFFFFF"))
+                            .CornerRadius(new CornerRadius(6, 6, 6, 6))
+                            .OnClick((PictureBoxShowcaseViewModel vm) => vm.ApplyCustomKernelCommand)
                     ),
                 // infoCard
                 _infoCard = new Border()
@@ -165,7 +247,7 @@ public partial class PictureBoxShowcaseView : UserControl
                     .Width(600)
                     .Height(65)
                     .CanvasLeft(20)
-                    .CanvasTop(635)
+                    .CanvasTop(640)
                     .Background(Brush.Parse("#1E293B"))
                     .BorderBrush(Brush.Parse("#3B82F6"))
                     .BorderThickness(new Thickness(1, 1, 1, 1))

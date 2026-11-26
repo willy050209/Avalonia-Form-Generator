@@ -1,7 +1,7 @@
 # PictureBox 圖片展示與縮放模式 (PictureBox Showcase Example)
 
 > 🎨 **Avalonia Form Generator (AFG)** 官方實機展示專案  
-> 示範 `PictureBox` 控制項之影像資料來源綁定、動態幾何網格與同心光譜生成、以及 4 種核心縮放模式 (`Stretch.Uniform`, `Stretch.UniformToFill`, `Stretch.Fill`, `Stretch.None`) 的即時雙向切換。
+> 示範 `PictureBox` 控制項之影像資料來源綁定、動態幾何網格與同心光譜生成、4 種核心縮放模式 (`Stretch.Uniform`, `Stretch.UniformToFill`, `Stretch.Fill`, `Stretch.None`) 的即時雙向切換，以及獨立 SIMD 卷積引擎 (`ImageConvolution` + `ConvolutionKernel` + `IConvolutionPostProcessor`) 之即時濾鏡操作。
 
 ---
 
@@ -46,8 +46,10 @@ example/PictureBoxShowcase/
 └── src/                               # [匯出專案] 完整跨平台可編譯原始碼
     ├── PictureBoxShowcase.Shared/     # 跨平台核心共用專案
     │   ├── PictureBoxShowcase.Shared.csproj
+    │   ├── Helpers/
+    │   │   └── ImageConvolution.cs            # 獨立 SIMD 影像卷積算子與執行引擎
     │   ├── ViewModels/
-    │   │   └── PictureBoxShowcaseViewModel.cs # WriteableBitmap 生成與 MVVM 業務邏輯
+    │   │   └── PictureBoxShowcaseViewModel.cs # WriteableBitmap 生成與即時卷積濾鏡邏輯
     │   ├── Views/
     │   │   └── PictureBoxShowcaseView.cs      # Fluent C# Markup 宣告式介面
     │   └── Markup/
@@ -64,20 +66,26 @@ example/PictureBoxShowcase/
 | 元件識別碼 (ID) | 控制項類型 | 座標 / 尺寸 | 綁定屬性 / 事件映射 | 說明 |
 | :--- | :--- | :--- | :--- | :--- |
 | **RootCanvas** | `Canvas` | `640 × 720` | — | 深色背景畫布 (`#18181B`) |
-| **headerCard** | `Border` | `(20, 20) 600 × 70` | — | 頂部標題卡片，具備立體陰影與圓角 |
-| ├── `txtHeaderTitle` | `TextBlock` | `(20, 12)` | Text: `"PictureBox 與圖片展示範例"` | 主標題 (20pt Bold, `#818CF8`) |
-| └── `txtHeaderSubtitle` | `TextBlock` | `(20, 40)` | Text: `"Image Controls, Stretch Modes & Dynamic Image Sources"` | 副標題 (12pt, `#94A3B8`) |
-| **viewerCard** | `Border` | `(20, 105) 600 × 370` | — | 影像展示主要區域卡片 |
-| └── `imgDisplay` | `PictureBox` | `(20, 20) 560 × 330` | `Source` 綁定 `ImageSource`<br/>`Stretch` 綁定 `StretchMode` | 核心圖片顯示控制項，動態支援 4 種縮放模式 |
-| **controlCard** | `Border` | `(20, 490) 600 × 130` | — | 縮放模式與範例切換控制面板 |
-| ├── `lblStretchTitle` | `TextBlock` | `(20, 15)` | Text: `"縮放呈現模式 (Stretch Mode)："` | 區塊標題 (13pt Bold, `#38BDF8`) |
-| ├── `rbUniform` | `RadioButton` | `(20, 42)` | `IsChecked` 雙向綁定 `IsUniformStretch` | 等比適配模式 (Uniform) |
-| ├── `rbUniformToFill` | `RadioButton` | `(165, 42)` | `IsChecked` 雙向綁定 `IsUniformToFillStretch` | 等比填滿模式 (UniformToFill) |
-| ├── `rbFill` | `RadioButton` | `(335, 42)` | `IsChecked` 雙向綁定 `IsFillStretch` | 非等比拉伸模式 (Fill) |
-| ├── `rbNone` | `RadioButton` | `(475, 42)` | `IsChecked` 雙向綁定 `IsNoneStretch` | 原始解析度置中模式 (None) |
-| ├── `btnSampleA` | `Button` | `(20, 80) 180 × 34` | `Click` 映射 `LoadSampleACommand` | 載入科技幾何網格 (800 × 600) |
-| └── `btnSampleB` | `Button` | `(215, 80) 180 × 34` | `Click` 映射 `LoadSampleBCommand` | 載入同心光環光譜 (1024 × 768) |
-| **infoCard** | `Border` | `(20, 635) 600 × 65` | — | 圖片中繼資料與狀態反饋卡片 |
+| **headerCard** | `Border` | `(20, 15) 600 × 65` | — | 頂部標題卡片，具備立體陰影與圓角 |
+| ├── `txtHeaderTitle` | `TextBlock` | `(20, 10)` | Text: `"PictureBox 與圖片卷積展示範例"` | 主標題 (19pt Bold, `#818CF8`) |
+| └── `txtHeaderSubtitle` | `TextBlock` | `(20, 37)` | Text: `"Stretch Modes, Dynamic Sources & Custom ImageConvolution Filters"` | 副標題 (12pt, `#94A3B8`) |
+| **viewerCard** | `Border` | `(20, 90) 600 × 330` | — | 影像展示主要區域卡片 |
+| └── `imgDisplay` | `PictureBox` | `(20, 18) 560 × 294` | `Source` 綁定 `ImageSource`<br/>`Stretch` 綁定 `StretchMode` | 核心圖片顯示控制項，動態支援 4 種縮放模式 |
+| **controlCard** | `Border` | `(20, 432) 600 × 195` | — | 縮放模式、樣本切換與自訂卷積控制面板 |
+| ├── `lblStretchTitle` | `TextBlock` | `(16, 12)` | Text: `"縮放呈現模式 (Stretch Mode)："` | 區塊標題 (13pt Bold, `#38BDF8`) |
+| ├── `rbUniform` | `RadioButton` | `(16, 36)` | `IsChecked` 雙向綁定 `IsUniformStretch` | 等比適配模式 (Uniform) |
+| ├── `rbUniformToFill` | `RadioButton` | `(160, 36)` | `IsChecked` 雙向綁定 `IsUniformToFillStretch` | 等比填滿模式 (UniformToFill) |
+| ├── `rbFill` | `RadioButton` | `(345, 36)` | `IsChecked` 雙向綁定 `IsFillStretch` | 非等比拉伸模式 (Fill) |
+| ├── `rbNone` | `RadioButton` | `(475, 36)` | `IsChecked` 雙向綁定 `IsNoneStretch` | 原始解析度置中模式 (None) |
+| ├── `btnSampleA` | `Button` | `(16, 72) 180 × 32` | `Click` 映射 `LoadSampleACommand` | 載入科技幾何網格 (800 × 600) |
+| ├── `btnSampleB` | `Button` | `(206, 72) 180 × 32` | `Click` 映射 `LoadSampleBCommand` | 載入同心光環光譜 (1024 × 768) |
+| ├── `lblConvTitle` | `TextBlock` | `(16, 114)` | Text: `"自訂卷積算子與特效 (ImageConvolution)："` | 卷積控制區塊標題 (13pt Bold, `#F472B6`) |
+| ├── `btnConvReset` | `Button` | `(16, 140) 108 × 34` | `Click` 映射 `ResetFilterCommand` | 還原未經濾鏡處理的原始影像 |
+| ├── `btnConvSharpen` | `Button` | `(131, 140) 108 × 34` | `Click` 映射 `ApplySharpenCommand` | 套用內建 3×3 銳化卷積 (`ConvolutionKernel.Sharpen`) |
+| ├── `btnConvEmboss` | `Button` | `(246, 140) 108 × 34` | `Click` 映射 `ApplyEmbossCommand` | 套用浮雕算子 (`ConvolutionKernel.Emboss`) |
+| ├── `btnConvSobel` | `Button` | `(361, 140) 108 × 34` | `Click` 映射 `ApplySobelCommand` | RGB 雙核梯度邊緣偵測 (`ConvolutionKernel.Sobel`) |
+| └── `btnConvCustom` | `Button` | `(476, 140) 108 × 34` | `Click` 映射 `ApplyCustomKernelCommand` | 套用使用者自訂 5×5 卷積核與結構後處理器 |
+| **infoCard** | `Border` | `(20, 640) 600 × 65` | — | 圖片中繼資料與濾鏡耗時反饋卡片 |
 | └── `txtImageInfo` | `TextBlock` | `(20, 22)` | `Text` 單向綁定 `ImageInfoText` | 呈現尺寸、長寬比、模式與樣本資訊 |
 
 ---
@@ -250,8 +258,39 @@ unsafe
   - 高頻同心正弦波光環 (`sin(dist * 0.08)`) 與 16 道放射狀光芒。
   - 核心白色高光聚集與邊緣漸暈暗角 (Vignette) 效果。
 
-### 3. MVVM 屬性綁定與 UI 響應
-在 ViewModel 中將生成的 `WriteableBitmap` 賦值予 `[ObservableProperty] private Avalonia.Media.IImage? _imageSource;`，Avalonia 介面將立即自動重新渲染顯示。
+### 3. MVVM 屬性綁定與獨立卷積引擎 (`ImageConvolution`)
+在 ViewModel 中除了將生成的 `WriteableBitmap` 賦值予 `[ObservableProperty] private Avalonia.Media.IImage? _imageSource;`，亦可直接使用 `Helpers/ImageConvolution.cs` 所提供的獨立 SIMD 卷積引擎套用內建或使用者自訂算子與零開銷結構後處理器：
+
+```csharp
+// 1. 定義使用者自訂 5×5 卷積核與零開銷泛型後處理器
+private static readonly ConvolutionKernel s_custom5x5Kernel = ConvolutionKernel.Create2D(
+    new float[,]
+    {
+        {  0f,  0f, -1f,  0f,  0f },
+        {  0f, -1f, -2f, -1f,  0f },
+        { -1f, -2f, 21f, -2f, -1f },
+        {  0f, -1f, -2f, -1f,  0f },
+        {  0f,  0f, -1f,  0f,  0f }
+    },
+    factor: 1.0f / 5.0f,
+    name: "自訂 5×5 超銳化");
+
+private readonly struct ContrastBoostPostProcessor(float gain) : IConvolutionPostProcessor
+{
+    public void PostProcess(int x, int y, ref float b, ref float g, ref float r, ref float a)
+    {
+        b = (b - 128f) * gain + 128f;
+        g = (g - 128f) * gain + 128f;
+        r = (r - 128f) * gain + 128f;
+    }
+}
+
+// 2. 以非破壞性方式從原始點陣圖生成濾鏡結果 (或使用 ApplyConvolution 原地修改)
+WriteableBitmap filtered = _sourceBitmap.Convolve(s_custom5x5Kernel, new ContrastBoostPostProcessor(1.18f));
+WriteableBitmap sobelRgb = _sourceBitmap.Convolve(
+    ConvolutionKernel.Sobel,
+    new ConvolutionOptions(GradientChannelMode: GradientChannelMode.PerChannelRgb, GradientThreshold: 12.0f));
+```
 
 ---
 

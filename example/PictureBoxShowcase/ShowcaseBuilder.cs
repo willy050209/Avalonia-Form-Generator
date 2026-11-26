@@ -32,10 +32,10 @@ public static class ShowcaseBuilder
             Name = "txtHeaderTitle",
             Type = ControlType.TextBlock,
             CanvasLeft = 20,
-            CanvasTop = 12,
-            Text = "PictureBox 與圖片展示範例",
+            CanvasTop = 10,
+            Text = "PictureBox 與圖片卷積展示範例",
             Foreground = "#818CF8",
-            FontSize = 20,
+            FontSize = 19,
             FontWeight = "Bold"
         };
 
@@ -45,8 +45,8 @@ public static class ShowcaseBuilder
             Name = "txtHeaderSubtitle",
             Type = ControlType.TextBlock,
             CanvasLeft = 20,
-            CanvasTop = 40,
-            Text = "Image Controls, Stretch Modes & Dynamic Image Sources",
+            CanvasTop = 37,
+            Text = "Stretch Modes, Dynamic Sources & Custom ImageConvolution Filters",
             Foreground = "#94A3B8",
             FontSize = 12
         };
@@ -57,9 +57,9 @@ public static class ShowcaseBuilder
             Name = "headerCard",
             Type = ControlType.Border,
             Width = 600,
-            Height = 70,
+            Height = 65,
             CanvasLeft = 20,
-            CanvasTop = 20,
+            CanvasTop = 15,
             Background = "#27272A",
             CornerRadius = new CornerRadiusModel(10),
             BoxShadow = new BoxShadowModel(0, 4, 8, 0, "#40000000", false),
@@ -79,9 +79,9 @@ public static class ShowcaseBuilder
             Name = "imgDisplay",
             Type = ControlType.PictureBox,
             Width = 560,
-            Height = 330,
+            Height = 294,
             CanvasLeft = 20,
-            CanvasTop = 20,
+            CanvasTop = 18,
             Stretch = Stretch.Uniform,
             Bindings =
             [
@@ -106,9 +106,9 @@ public static class ShowcaseBuilder
             Name = "viewerCard",
             Type = ControlType.Border,
             Width = 600,
-            Height = 370,
+            Height = 330,
             CanvasLeft = 20,
-            CanvasTop = 105,
+            CanvasTop = 90,
             Background = "#27272A",
             CornerRadius = new CornerRadiusModel(10),
             BoxShadow = new BoxShadowModel(0, 4, 8, 0, "#40000000", false),
@@ -116,15 +116,15 @@ public static class ShowcaseBuilder
         };
 
         // -------------------------------------------------------------------------------------------------
-        // 3. 縮放模式與範例切換控制面板 (Control Card: RadioButtons & Buttons)
+        // 3. 縮放模式、樣本切換與自訂卷積算子控制面板 (Control Card)
         // -------------------------------------------------------------------------------------------------
         var lblStretchTitle = new AstNode
         {
             Id = "lblStretchTitle",
             Name = "lblStretchTitle",
             Type = ControlType.TextBlock,
-            CanvasLeft = 20,
-            CanvasTop = 15,
+            CanvasLeft = 16,
+            CanvasTop = 12,
             Text = "縮放呈現模式 (Stretch Mode)：",
             Foreground = "#38BDF8",
             FontSize = 13,
@@ -138,8 +138,8 @@ public static class ShowcaseBuilder
             Name = "rbUniform",
             Type = ControlType.RadioButton,
             CanvasLeft = 16,
-            CanvasTop = 42,
-            Content = "Uniform (等比適配)",
+            CanvasTop = 36,
+            Content = "Uniform (等比)",
             IsChecked = true,
             Bindings =
             [
@@ -157,9 +157,9 @@ public static class ShowcaseBuilder
             Id = "rbUniformToFill",
             Name = "rbUniformToFill",
             Type = ControlType.RadioButton,
-            CanvasLeft = 166,
-            CanvasTop = 42,
-            Content = "UniformToFill (等比填滿)",
+            CanvasLeft = 160,
+            CanvasTop = 36,
+            Content = "UniformToFill (填滿)",
             IsChecked = false,
             Bindings =
             [
@@ -177,9 +177,9 @@ public static class ShowcaseBuilder
             Id = "rbFill",
             Name = "rbFill",
             Type = ControlType.RadioButton,
-            CanvasLeft = 340,
-            CanvasTop = 42,
-            Content = "Fill (非等比拉伸)",
+            CanvasLeft = 345,
+            CanvasTop = 36,
+            Content = "Fill (拉伸)",
             IsChecked = false,
             Bindings =
             [
@@ -197,8 +197,8 @@ public static class ShowcaseBuilder
             Id = "rbNone",
             Name = "rbNone",
             Type = ControlType.RadioButton,
-            CanvasLeft = 480,
-            CanvasTop = 42,
+            CanvasLeft = 475,
+            CanvasTop = 36,
             Content = "None (原始)",
             IsChecked = false,
             Bindings =
@@ -219,9 +219,9 @@ public static class ShowcaseBuilder
             Name = "btnSampleA",
             Type = ControlType.Button,
             Width = 180,
-            Height = 34,
+            Height = 32,
             CanvasLeft = 16,
-            CanvasTop = 80,
+            CanvasTop = 72,
             Content = "測試圖形 A (幾何網格)",
             Background = "#4F46E5",
             Foreground = "#FFFFFF",
@@ -244,9 +244,9 @@ public static class ShowcaseBuilder
             Name = "btnSampleB",
             Type = ControlType.Button,
             Width = 180,
-            Height = 34,
+            Height = 32,
             CanvasLeft = 206,
-            CanvasTop = 80,
+            CanvasTop = 72,
             Content = "測試圖形 B (漸層色塊)",
             Background = "#059669",
             Foreground = "#FFFFFF",
@@ -263,15 +263,114 @@ public static class ShowcaseBuilder
             ]
         };
 
+        // 自訂卷積算子即時展示區 (ImageConvolution)
+        var lblConvTitle = new AstNode
+        {
+            Id = "lblConvTitle",
+            Name = "lblConvTitle",
+            Type = ControlType.TextBlock,
+            CanvasLeft = 16,
+            CanvasTop = 114,
+            Text = "自訂卷積算子與特效 (ImageConvolution)：",
+            Foreground = "#F472B6",
+            FontSize = 13,
+            FontWeight = "Bold"
+        };
+
+        var btnConvReset = new AstNode
+        {
+            Id = "btnConvReset",
+            Name = "btnConvReset",
+            Type = ControlType.Button,
+            Width = 108,
+            Height = 34,
+            CanvasLeft = 16,
+            CanvasTop = 140,
+            Content = "原圖 (Reset)",
+            Background = "#475569",
+            Foreground = "#FFFFFF",
+            FontSize = 11,
+            CornerRadius = new CornerRadiusModel(6),
+            Events = [new EventMappingDefinition { EventName = "Click", CommandProperty = "ResetFilterCommand", IsAsync = false }]
+        };
+
+        var btnConvSharpen = new AstNode
+        {
+            Id = "btnConvSharpen",
+            Name = "btnConvSharpen",
+            Type = ControlType.Button,
+            Width = 108,
+            Height = 34,
+            CanvasLeft = 131,
+            CanvasTop = 140,
+            Content = "銳化 3×3",
+            Background = "#0284C7",
+            Foreground = "#FFFFFF",
+            FontSize = 11,
+            CornerRadius = new CornerRadiusModel(6),
+            Events = [new EventMappingDefinition { EventName = "Click", CommandProperty = "ApplySharpenCommand", IsAsync = false }]
+        };
+
+        var btnConvEmboss = new AstNode
+        {
+            Id = "btnConvEmboss",
+            Name = "btnConvEmboss",
+            Type = ControlType.Button,
+            Width = 108,
+            Height = 34,
+            CanvasLeft = 246,
+            CanvasTop = 140,
+            Content = "浮雕 3×3",
+            Background = "#7C3AED",
+            Foreground = "#FFFFFF",
+            FontSize = 11,
+            CornerRadius = new CornerRadiusModel(6),
+            Events = [new EventMappingDefinition { EventName = "Click", CommandProperty = "ApplyEmbossCommand", IsAsync = false }]
+        };
+
+        var btnConvSobel = new AstNode
+        {
+            Id = "btnConvSobel",
+            Name = "btnConvSobel",
+            Type = ControlType.Button,
+            Width = 108,
+            Height = 34,
+            CanvasLeft = 361,
+            CanvasTop = 140,
+            Content = "Sobel 邊緣",
+            Background = "#EA580C",
+            Foreground = "#FFFFFF",
+            FontSize = 11,
+            CornerRadius = new CornerRadiusModel(6),
+            Events = [new EventMappingDefinition { EventName = "Click", CommandProperty = "ApplySobelCommand", IsAsync = false }]
+        };
+
+        var btnConvCustom = new AstNode
+        {
+            Id = "btnConvCustom",
+            Name = "btnConvCustom",
+            Type = ControlType.Button,
+            Width = 108,
+            Height = 34,
+            CanvasLeft = 476,
+            CanvasTop = 140,
+            Content = "自訂 5×5",
+            Background = "#DB2777",
+            Foreground = "#FFFFFF",
+            FontSize = 11,
+            CornerRadius = new CornerRadiusModel(6),
+            Events = [new EventMappingDefinition { EventName = "Click", CommandProperty = "ApplyCustomKernelCommand", IsAsync = false }]
+        };
+
         var controlCard = new AstNode
         {
             Id = "controlCard",
             Name = "controlCard",
             Type = ControlType.Border,
             Width = 600,
-            Height = 130,
+            Height = 195,
             CanvasLeft = 20,
-            CanvasTop = 490,
+            CanvasTop = 432,
             Background = "#27272A",
             CornerRadius = new CornerRadiusModel(10),
             BoxShadow = new BoxShadowModel(0, 4, 8, 0, "#40000000", false),
@@ -283,7 +382,13 @@ public static class ShowcaseBuilder
                 rbFill,
                 rbNone,
                 btnSampleA,
-                btnSampleB
+                btnSampleB,
+                lblConvTitle,
+                btnConvReset,
+                btnConvSharpen,
+                btnConvEmboss,
+                btnConvSobel,
+                btnConvCustom
             ]
         };
 
@@ -297,7 +402,7 @@ public static class ShowcaseBuilder
             Type = ControlType.TextBlock,
             CanvasLeft = 16,
             CanvasTop = 22,
-            Text = "圖片資訊：800 × 600 像素 | 長寬比 4:3 | 模式：Stretch.Uniform | 縮放率：100%",
+            Text = "圖片：800×600 | 模式：Stretch.Uniform | 樣本 A (科技幾何網格) | 濾鏡：原圖",
             Foreground = "#E2E8F0",
             FontSize = 12,
             Bindings =
@@ -319,7 +424,7 @@ public static class ShowcaseBuilder
             Width = 600,
             Height = 65,
             CanvasLeft = 20,
-            CanvasTop = 635,
+            CanvasTop = 640,
             Background = "#1E293B",
             BorderBrush = "#3B82F6",
             BorderThickness = new ThicknessModel(1),
@@ -350,7 +455,7 @@ public static class ShowcaseBuilder
             RootNamespace = "PictureBoxShowcase",
             ViewClassName = "PictureBoxShowcaseView",
             ViewModelClassName = "PictureBoxShowcaseViewModel",
-            Title = "PictureBox 與圖片展示範例",
+            Title = "PictureBox 與圖片卷積展示範例",
             BackgroundColor = "#18181B",
             CanvasWidth = 640,
             CanvasHeight = 720,

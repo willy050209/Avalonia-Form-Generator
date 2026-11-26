@@ -28,20 +28,50 @@ public partial class PictureBoxShowcaseViewModel : ObservableObject
     private bool _isNoneStretch = false;
 
     [ObservableProperty]
-    private string _imageInfoText = "圖片資訊：800 × 600 像素 | 長寬比 4:3 | 模式：Stretch.Uniform | 縮放率：100% | 樣本 A (科技幾何網格)";
+    private string _imageInfoText = "圖片：800×600 | 模式：Stretch.Uniform | 樣本 A (科技幾何網格) | 濾鏡：原圖";
 
+    private WriteableBitmap _sourceBitmap;
     private int _currentWidth = 800;
     private int _currentHeight = 600;
-    private string _currentAspectRatio = "4:3";
     private string _currentSampleName = "樣本 A (科技幾何網格)";
+    private string _currentFilterName = "原圖";
+    private double? _lastFilterElapsedMs;
+
+    /// <summary>
+    /// 示範零開銷泛型卷積後處理器：在不額外掃描點陣圖的情況下，對輸出色彩套用線性對比增益。
+    /// </summary>
+    private readonly struct ContrastBoostPostProcessor(float gain) : IConvolutionPostProcessor
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void PostProcess(int x, int y, ref float b, ref float g, ref float r, ref float a)
+        {
+            b = (b - 128f) * gain + 128f;
+            g = (g - 128f) * gain + 128f;
+            r = (r - 128f) * gain + 128f;
+        }
+    }
+
+    private static readonly ConvolutionKernel s_custom5x5Kernel = ConvolutionKernel.Create2D(
+        new float[,]
+        {
+            {  0f,  0f, -1f,  0f,  0f },
+            {  0f, -1f, -2f, -1f,  0f },
+            { -1f, -2f, 21f, -2f, -1f },
+            {  0f, -1f, -2f, -1f,  0f },
+            {  0f,  0f, -1f,  0f,  0f }
+        },
+        factor: 1.0f / 5.0f,
+        bias: 0.0f,
+        name: "自訂 5×5 超銳化");
 
     /// <summary>
     /// 初始化視圖模型，並預先繪製載入第一張科技幾何漸層測試圖片。
     /// </summary>
     public PictureBoxShowcaseViewModel()
     {
-        _imageSource = GenerateTechGridBitmap(_currentWidth, _currentHeight);
-        _imageInfoText = $"圖片資訊：{_currentWidth} × {_currentHeight} 像素 | 長寬比 {_currentAspectRatio} | 模式：Stretch.Uniform | 縮放率：100% | {_currentSampleName}";
+        _sourceBitmap = GenerateTechGridBitmap(_currentWidth, _currentHeight);
+        _imageSource = _sourceBitmap;
+        UpdateImageInfoText();
     }
 
     partial void OnIsUniformStretchChanged(bool value)
@@ -105,7 +135,7 @@ public partial class PictureBoxShowcaseViewModel : ObservableObject
     }
 
     /// <summary>
-    /// 依據當前選取之 Stretch 模式與圖樣尺寸，即時更新底部中繼資料標籤。
+    /// 依據當前選取之 Stretch 模式、圖樣尺寸與卷積濾鏡狀態，即時更新底部中繼資料標籤。
     /// </summary>
     private void UpdateImageInfoText()
     {
@@ -117,7 +147,65 @@ public partial class PictureBoxShowcaseViewModel : ObservableObject
             Stretch.None => "Stretch.None",
             _ => "Stretch.Uniform"
         };
-        ImageInfoText = $"圖片資訊：{_currentWidth} × {_currentHeight} 像素 | 長寬比 {_currentAspectRatio} | 模式：{modeName} | 縮放率：100% | {_currentSampleName}";
+
+        string filterSuffix = _lastFilterElapsedMs is double elapsedMs
+            ? $"{_currentFilterName} ({elapsedMs:F2} ms)"
+            : _currentFilterName;
+
+        ImageInfoText = $"圖片：{_currentWidth}×{_currentHeight} | 模式：{modeName} | {_currentSampleName} | 濾鏡：{filterSuffix}";
+    }
+
+    /// <summary>
+    /// 套用指定卷積算子並量測真實運算耗時。
+    /// </summary>
+    private void ApplyKernelCore(
+        string displayName,
+        ConvolutionKernel kernel,
+        ConvolutionOptions? options = null)
+    {
+        long startTimestamp = Stopwatch.GetTimestamp();
+        WriteableBitmap filtered = _sourceBitmap.Convolve(kernel, options);
+        _lastFilterElapsedMs = Stopwatch.GetElapsedTime(startTimestamp).TotalMilliseconds;
+        _currentFilterName = displayName;
+        ImageSource = filtered;
+        UpdateImageInfoText();
+    }
+
+    [RelayCommand]
+    private void ResetFilter()
+    {
+        _currentFilterName = "原圖";
+        _lastFilterElapsedMs = null;
+        ImageSource = _sourceBitmap;
+        UpdateImageInfoText();
+    }
+
+    [RelayCommand]
+    private void ApplySharpen() => ApplyKernelCore("銳化 3×3", ConvolutionKernel.Sharpen);
+
+    [RelayCommand]
+    private void ApplyEmboss() => ApplyKernelCore("浮雕 3×3", ConvolutionKernel.Emboss);
+
+    [RelayCommand]
+    private void ApplySobel() => ApplyKernelCore(
+        "Sobel 邊緣",
+        ConvolutionKernel.Sobel,
+        new ConvolutionOptions(
+            GradientChannelMode: GradientChannelMode.PerChannelRgb,
+            GradientNormMode: GradientNormMode.L2,
+            GradientThreshold: 12.0f));
+
+    [RelayCommand]
+    private void ApplyCustomKernel()
+    {
+        long startTimestamp = Stopwatch.GetTimestamp();
+        WriteableBitmap filtered = _sourceBitmap.Convolve(
+            s_custom5x5Kernel,
+            new ContrastBoostPostProcessor(1.18f));
+        _lastFilterElapsedMs = Stopwatch.GetElapsedTime(startTimestamp).TotalMilliseconds;
+        _currentFilterName = "自訂 5×5 + 對比強化";
+        ImageSource = filtered;
+        UpdateImageInfoText();
     }
 
     /// <summary>
@@ -128,13 +216,15 @@ public partial class PictureBoxShowcaseViewModel : ObservableObject
     {
         _currentWidth = 800;
         _currentHeight = 600;
-        _currentAspectRatio = "4:3";
         _currentSampleName = "樣本 A (科技幾何網格)";
+        _currentFilterName = "原圖";
+        _lastFilterElapsedMs = null;
 
-        ImageSource = GenerateTechGridBitmap(_currentWidth, _currentHeight);
+        _sourceBitmap = GenerateTechGridBitmap(_currentWidth, _currentHeight);
+        ImageSource = _sourceBitmap;
         IsUniformStretch = true;
         StretchMode = Stretch.Uniform;
-        ImageInfoText = "圖片資訊：800 × 600 像素 | 長寬比 4:3 | 模式：Stretch.Uniform | 縮放率：100% | 樣本 A (科技幾何網格)";
+        UpdateImageInfoText();
         await Task.CompletedTask;
     }
 
@@ -146,13 +236,15 @@ public partial class PictureBoxShowcaseViewModel : ObservableObject
     {
         _currentWidth = 1024;
         _currentHeight = 768;
-        _currentAspectRatio = "4:3";
         _currentSampleName = "樣本 B (同心光環光譜)";
+        _currentFilterName = "原圖";
+        _lastFilterElapsedMs = null;
 
-        ImageSource = GenerateConcentricRingsBitmap(_currentWidth, _currentHeight);
+        _sourceBitmap = GenerateConcentricRingsBitmap(_currentWidth, _currentHeight);
+        ImageSource = _sourceBitmap;
         IsUniformStretch = true;
         StretchMode = Stretch.Uniform;
-        ImageInfoText = "圖片資訊：1024 × 768 像素 | 長寬比 4:3 | 模式：Stretch.Uniform | 縮放率：100% | 樣本 B (同心光環光譜)";
+        UpdateImageInfoText();
         await Task.CompletedTask;
     }
 

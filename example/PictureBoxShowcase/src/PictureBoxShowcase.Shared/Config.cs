@@ -8,7 +8,7 @@ namespace PictureBoxShowcase;
 /// </summary>
 public static class Config
 {
-    public const string AppTitle = "PictureBox 與圖片展示範例";
+    public const string AppTitle = "PictureBox 與圖片卷積展示範例";
     public const string Version = "1.0.0";
     public const double DefaultWindowWidth = 640;
     public const double DefaultWindowHeight = 720;
