@@ -540,4 +540,215 @@ public class BitmapHelperTests
         p.G.Should().Be(150);
         p.B.Should().Be(150);
     }
+
+    private readonly struct InvertVectorFunctor : IVectorTransform
+    {
+        private static readonly System.Numerics.Vector<byte> Mask = new(255);
+
+        public System.Numerics.Vector<byte> Transform(System.Numerics.Vector<byte> vector) => Mask - vector;
+
+        public void TransformRemainder(ref byte b, ref byte g, ref byte r, ref byte a)
+        {
+            b = (byte)(255 - b);
+            g = (byte)(255 - g);
+            r = (byte)(255 - r);
+            a = (byte)(255 - a);
+        }
+    }
+
+    private readonly struct InvertRgbPixelFunctor : IPixelProcessor
+    {
+        public void Process(ref byte b, ref byte g, ref byte r, ref byte a)
+        {
+            b = (byte)(255 - b);
+            g = (byte)(255 - g);
+            r = (byte)(255 - r);
+        }
+    }
+
+    private readonly struct GradientLocationFunctor : IPixelLocationProcessor
+    {
+        public void Process(int x, int y, ref byte b, ref byte g, ref byte r, ref byte a)
+        {
+            b = (byte)((x * 11) & 255);
+            g = (byte)((y * 13) & 255);
+            r = (byte)(((x + y) * 7) & 255);
+            a = 255;
+        }
+    }
+
+    private readonly struct FillRowFunctor(byte rVal, byte gVal, byte bVal) : IRowPixelProcessor
+    {
+        public void ProcessRow(int y, Span<byte> rowBytes, int width)
+        {
+            for (int x = 0; x < width; x++)
+            {
+                int off = x * 4;
+                rowBytes[off + 0] = bVal;
+                rowBytes[off + 1] = gVal;
+                rowBytes[off + 2] = rVal;
+                rowBytes[off + 3] = 255;
+            }
+        }
+    }
+
+    [Theory]
+    [InlineData(PixelProcessingMode.Sequential)]
+    [InlineData(PixelProcessingMode.SequentialVectorized)]
+    [InlineData(PixelProcessingMode.Parallel)]
+    [InlineData(PixelProcessingMode.ParallelVectorized)]
+    public void ProcessPixels_GenericStructFunctors_ShouldMatchExpectedOutput(PixelProcessingMode mode)
+    {
+        var wbVec = BitmapHelper.CreateInitializedBitmap(19, 13, Color.FromArgb(255, 40, 80, 120));
+        wbVec.ProcessPixels(new InvertVectorFunctor(), mode);
+        var pv = wbVec.GetPixel(18, 12);
+        pv.R.Should().Be(215);
+        pv.G.Should().Be(175);
+        pv.B.Should().Be(135);
+        pv.A.Should().Be(0);
+
+        var wbPx = BitmapHelper.CreateInitializedBitmap(23, 11, Color.FromArgb(200, 40, 80, 120));
+        wbPx.ProcessPixelsPerPixel(new InvertRgbPixelFunctor(), mode);
+        var pp = wbPx.GetPixel(22, 10);
+        pp.R.Should().Be(215);
+        pp.G.Should().Be(175);
+        pp.B.Should().Be(135);
+        pp.A.Should().Be(200);
+
+        var wbLoc = BitmapHelper.CreateInitializedBitmap(17, 9, Colors.Black);
+        wbLoc.ProcessPixelsLocation(new GradientLocationFunctor(), mode);
+        var pl = wbLoc.GetPixel(5, 3);
+        pl.B.Should().Be((byte)((5 * 11) & 255));
+        pl.G.Should().Be((byte)((3 * 13) & 255));
+        pl.R.Should().Be((byte)(((5 + 3) * 7) & 255));
+
+        var wbRow = BitmapHelper.CreateInitializedBitmap(19, 7, Colors.Black);
+        wbRow.ProcessPixelsRow(new FillRowFunctor(10, 20, 30), mode);
+        var pr = wbRow.GetPixel(17, 6);
+        pr.R.Should().Be(10);
+        pr.G.Should().Be(20);
+        pr.B.Should().Be(30);
+    }
+
+    [Theory]
+    [InlineData(3)]
+    [InlineData(4)]
+    [InlineData(7)]
+    [InlineData(8)]
+    [InlineData(15)]
+    [InlineData(16)]
+    [InlineData(37)]
+    public void ApplyGrayscale_SimdWidths_ShouldMatchScalarAndPreserveAlpha(int width)
+    {
+        int height = 7;
+        var wbScalar = BitmapHelper.CreateInitializedBitmap(width, height, Colors.Black);
+        var wbSimd = BitmapHelper.CreateInitializedBitmap(width, height, Colors.Black);
+
+        for (int y = 0; y < height; y++)
+        {
+            for (int x = 0; x < width; x++)
+            {
+                var c = Color.FromArgb((byte)(100 + ((x + y) % 155)), (byte)((x * 17) & 255), (byte)((y * 37) & 255), (byte)(((x + y) * 23) & 255));
+                wbScalar.SetPixel(x, y, c);
+                wbSimd.SetPixel(x, y, c);
+            }
+        }
+
+        wbScalar.ApplyGrayscale(PixelProcessingMode.Sequential);
+        wbSimd.ApplyGrayscale(PixelProcessingMode.ParallelVectorized);
+
+        for (int y = 0; y < height; y++)
+        {
+            for (int x = 0; x < width; x++)
+            {
+                var s = wbScalar.GetPixel(x, y);
+                var v = wbSimd.GetPixel(x, y);
+                v.R.Should().Be(v.G);
+                v.G.Should().Be(v.B);
+                v.A.Should().Be(s.A);
+                Math.Abs(v.R - s.R).Should().BeLessThanOrEqualTo(1);
+            }
+        }
+    }
+
+    [Theory]
+    [InlineData(PixelProcessingMode.Sequential)]
+    [InlineData(PixelProcessingMode.SequentialVectorized)]
+    [InlineData(PixelProcessingMode.Parallel)]
+    [InlineData(PixelProcessingMode.ParallelVectorized)]
+    public void DetectEdges_SmallAndUnalignedDimensions_ShouldHandleSafely(PixelProcessingMode mode)
+    {
+        var wbTiny = BitmapHelper.CreateInitializedBitmap(2, 2, Colors.White);
+        var tinyEdges = wbTiny.DetectEdges(0, mode);
+        tinyEdges.GetPixel(0, 0).Should().Be(Colors.Black);
+        tinyEdges.GetPixel(1, 1).Should().Be(Colors.Black);
+
+        var wbSrc = BitmapHelper.CreateInitializedBitmap(35, 19, Colors.Black);
+        for (int y = 0; y < 19; y++)
+        {
+            for (int x = 15; x < 35; x++)
+            {
+                wbSrc.SetPixel(x, y, Color.FromArgb(255, (byte)(x * 7), (byte)(y * 12), 200));
+            }
+        }
+
+        var scalar = wbSrc.DetectEdges(15.0, PixelProcessingMode.Sequential);
+        var simd = wbSrc.DetectEdges(15.0, mode);
+        for (int y = 0; y < 19; y++)
+        {
+            for (int x = 0; x < 35; x++)
+            {
+                Math.Abs(simd.GetPixel(x, y).R - scalar.GetPixel(x, y).R).Should().BeLessThanOrEqualTo(1);
+                simd.GetPixel(x, y).A.Should().Be(255);
+            }
+        }
+    }
+
+    [Theory]
+    [InlineData(1, 37, 23)]
+    [InlineData(2, 37, 23)]
+    [InlineData(8, 37, 23)]
+    [InlineData(6, 5, 5)]
+    public void ApplyGaussianAndBoxBlur_Simd_ShouldMatchScalarWithinOneLsb(int radius, int width, int height)
+    {
+        var wbG1 = BitmapHelper.CreateInitializedBitmap(width, height, Colors.Black);
+        var wbG2 = BitmapHelper.CreateInitializedBitmap(width, height, Colors.Black);
+        var wbB1 = BitmapHelper.CreateInitializedBitmap(width, height, Colors.Black);
+        var wbB2 = BitmapHelper.CreateInitializedBitmap(width, height, Colors.Black);
+
+        for (int y = 0; y < height; y++)
+        {
+            for (int x = 0; x < width; x++)
+            {
+                var c = Color.FromArgb(255, (byte)((x * 19 + y) & 255), (byte)((y * 29 + x) & 255), (byte)((x ^ y) * 17 & 255));
+                wbG1.SetPixel(x, y, c);
+                wbG2.SetPixel(x, y, c);
+                wbB1.SetPixel(x, y, c);
+                wbB2.SetPixel(x, y, c);
+            }
+        }
+
+        wbG1.ApplyGaussianBlur(radius, PixelProcessingMode.Sequential);
+        wbG2.ApplyGaussianBlur(radius, PixelProcessingMode.ParallelVectorized);
+        wbB1.ApplyBoxBlur(radius, PixelProcessingMode.Sequential);
+        wbB2.ApplyBoxBlur(radius, PixelProcessingMode.ParallelVectorized);
+
+        for (int y = 0; y < height; y++)
+        {
+            for (int x = 0; x < width; x++)
+            {
+                var g1 = wbG1.GetPixel(x, y);
+                var g2 = wbG2.GetPixel(x, y);
+                Math.Abs(g2.R - g1.R).Should().BeLessThanOrEqualTo(1);
+                Math.Abs(g2.G - g1.G).Should().BeLessThanOrEqualTo(1);
+                Math.Abs(g2.B - g1.B).Should().BeLessThanOrEqualTo(1);
+
+                var b1 = wbB1.GetPixel(x, y);
+                var b2 = wbB2.GetPixel(x, y);
+                Math.Abs(b2.R - b1.R).Should().BeLessThanOrEqualTo(1);
+                Math.Abs(b2.G - b1.G).Should().BeLessThanOrEqualTo(1);
+                Math.Abs(b2.B - b1.B).Should().BeLessThanOrEqualTo(1);
+            }
+        }
+    }
 }
