@@ -1165,6 +1165,66 @@ public static class BitmapExtensions
     }
 
     /// <summary>
+    /// 對影像套用 3×3 銳化濾鏡並回傳新點陣圖（委派給獨立 SIMD 卷積引擎 ImageConvolution）。
+    /// </summary>
+    public static WriteableBitmap Sharpen(
+        this Bitmap bitmap,
+        float intensity = 1.0f,
+        bool eightNeighbor = false,
+        PixelProcessingMode mode = PixelProcessingMode.ParallelVectorized)
+    {
+        ArgumentNullException.ThrowIfNull(bitmap);
+        var opts = ConvolutionOptions.Default with { ProcessingMode = mode };
+        return ImageConvolution.Sharpen(bitmap, intensity, eightNeighbor, opts);
+    }
+
+    /// <summary>
+    /// 原地對 WriteableBitmap 套用可調強度 3×3 銳化濾鏡（委派給獨立 SIMD 卷積引擎 ImageConvolution）。
+    /// </summary>
+    public static void ApplySharpen(
+        this WriteableBitmap bitmap,
+        float intensity = 1.0f,
+        bool eightNeighbor = false,
+        PixelProcessingMode mode = PixelProcessingMode.ParallelVectorized)
+    {
+        ArgumentNullException.ThrowIfNull(bitmap);
+        var opts = ConvolutionOptions.Default with { ProcessingMode = mode };
+        ImageConvolution.ApplySharpen(bitmap, intensity, eightNeighbor, opts);
+    }
+
+    /// <summary>
+    /// 對影像套用反銳化遮罩 (Unsharp Masking) 並回傳新點陣圖（基於 1D 可分離高斯模糊與 SIMD 差值強化）。
+    /// </summary>
+    public static WriteableBitmap UnsharpMask(
+        this Bitmap bitmap,
+        int radius = 2,
+        float amount = 1.0f,
+        float threshold = 0.0f,
+        float? sigma = null,
+        PixelProcessingMode mode = PixelProcessingMode.ParallelVectorized)
+    {
+        ArgumentNullException.ThrowIfNull(bitmap);
+        var opts = ConvolutionOptions.Default with { ProcessingMode = mode };
+        return ImageConvolution.UnsharpMask(bitmap, radius, amount, threshold, sigma, opts);
+    }
+
+    /// <summary>
+    /// 原地對 WriteableBitmap 套用反銳化遮罩 (Unsharp Masking)（基於 1D 可分離高斯模糊與 SIMD 差值強化）。
+    /// </summary>
+    public static void ApplyUnsharpMask(
+        this WriteableBitmap bitmap,
+        int radius = 2,
+        float amount = 1.0f,
+        float threshold = 0.0f,
+        float? sigma = null,
+        PixelProcessingMode mode = PixelProcessingMode.ParallelVectorized)
+    {
+        ArgumentNullException.ThrowIfNull(bitmap);
+        var opts = ConvolutionOptions.Default with { ProcessingMode = mode };
+        ImageConvolution.ApplyUnsharpMask(bitmap, radius, amount, threshold, sigma, opts);
+    }
+
+    /// <summary>
     /// 載入本機檔案路徑或 avares:// 資源路徑之 Bitmap（具備動態組件修正、相對路徑尋訪與磁碟目錄後備容錯機制）。
     /// </summary>
     public static Bitmap? LoadBitmap(string? pathOrUri)
@@ -1494,6 +1554,38 @@ public static class BitmapHelper
         int radius = 2,
         PixelProcessingMode mode = PixelProcessingMode.ParallelVectorized) =>
         bitmap.ApplyBoxBlur(radius, mode);
+
+    public static WriteableBitmap Sharpen(
+        Bitmap bitmap,
+        float intensity = 1.0f,
+        bool eightNeighbor = false,
+        PixelProcessingMode mode = PixelProcessingMode.ParallelVectorized) =>
+        bitmap.Sharpen(intensity, eightNeighbor, mode);
+
+    public static void ApplySharpen(
+        WriteableBitmap bitmap,
+        float intensity = 1.0f,
+        bool eightNeighbor = false,
+        PixelProcessingMode mode = PixelProcessingMode.ParallelVectorized) =>
+        bitmap.ApplySharpen(intensity, eightNeighbor, mode);
+
+    public static WriteableBitmap UnsharpMask(
+        Bitmap bitmap,
+        int radius = 2,
+        float amount = 1.0f,
+        float threshold = 0.0f,
+        float? sigma = null,
+        PixelProcessingMode mode = PixelProcessingMode.ParallelVectorized) =>
+        bitmap.UnsharpMask(radius, amount, threshold, sigma, mode);
+
+    public static void ApplyUnsharpMask(
+        WriteableBitmap bitmap,
+        int radius = 2,
+        float amount = 1.0f,
+        float threshold = 0.0f,
+        float? sigma = null,
+        PixelProcessingMode mode = PixelProcessingMode.ParallelVectorized) =>
+        bitmap.ApplyUnsharpMask(radius, amount, threshold, sigma, mode);
 
     public static void ApplyConvolution(
         WriteableBitmap bitmap,

@@ -335,5 +335,99 @@ public class ImageConvolutionTests
             var res = src.Convolve(kernel);
             res.PixelSize.Should().Be(new PixelSize(width, height));
         }
+
+        var usmTiny = src.UnsharpMask(radius: 2, amount: 1.2f, threshold: 2.0f);
+        usmTiny.PixelSize.Should().Be(new PixelSize(width, height));
+    }
+
+    [Fact]
+    public void CreateSharpen_FactoryAndParity_ShouldWorkCorrectly()
+    {
+        Action neg = () => ConvolutionKernel.CreateSharpen(-0.1f);
+        neg.Should().Throw<ArgumentOutOfRangeException>();
+
+        Action nan = () => ConvolutionKernel.CreateSharpen(float.NaN);
+        nan.Should().Throw<ArgumentOutOfRangeException>();
+
+        var src = CreatePatternBitmap(37, 23);
+
+        var idResult = src.Convolve(ConvolutionKernel.CreateSharpen(0.0f));
+        AssertBitmapsMatchWithin(idResult, src, 0);
+
+        var sharp4BuiltIn = src.Convolve(ConvolutionKernel.Sharpen);
+        var sharp4Factory = src.Convolve(ConvolutionKernel.CreateSharpen(1.0f, eightNeighbor: false));
+        AssertBitmapsMatchWithin(sharp4Factory, sharp4BuiltIn, 0);
+
+        var sharp8BuiltIn = src.Convolve(ConvolutionKernel.StrongSharpen);
+        var sharp8Factory = src.Convolve(ConvolutionKernel.CreateSharpen(1.0f, eightNeighbor: true));
+        AssertBitmapsMatchWithin(sharp8Factory, sharp8BuiltIn, 0);
+
+        var customSharp = ConvolutionKernel.CreateSharpen(0.6f, eightNeighbor: true);
+        var seq = src.Convolve(customSharp, new ConvolutionOptions(ProcessingMode: PixelProcessingMode.Sequential));
+        var simd = src.Convolve(customSharp, new ConvolutionOptions(ProcessingMode: PixelProcessingMode.ParallelVectorized));
+        AssertBitmapsMatchWithin(simd, seq, 1);
+    }
+
+    [Theory]
+    [InlineData(1)]
+    [InlineData(3)]
+    [InlineData(6)]
+    public void UnsharpMask_CrossModeParityAndAlphaPreservation_ShouldBeExact(int radius)
+    {
+        var src = CreatePatternBitmap(37, 23, varyingAlpha: true);
+
+        var zeroAmount = src.UnsharpMask(radius, amount: 0.0f, threshold: 0.0f);
+        AssertBitmapsMatchWithin(zeroAmount, src, 0);
+
+        var seq = src.UnsharpMask(radius, amount: 1.4f, threshold: 2.0f, mode: PixelProcessingMode.Sequential);
+        var simd = src.UnsharpMask(radius, amount: 1.4f, threshold: 2.0f, mode: PixelProcessingMode.ParallelVectorized);
+        AssertBitmapsMatchWithin(simd, seq, 1);
+
+        // Alpha 通道應保持原樣，且就地修改版本結果一致
+        var inPlace = src.ConvertToWriteableBitmap();
+        inPlace.ApplyUnsharpMask(radius, amount: 1.4f, threshold: 2.0f, mode: PixelProcessingMode.ParallelVectorized);
+        AssertBitmapsMatchWithin(inPlace, simd, 0);
+
+        for (int y = 0; y < 23; y++)
+        {
+            for (int x = 0; x < 37; x++)
+            {
+                inPlace.GetPixel(x, y).A.Should().Be(src.GetPixel(x, y).A);
+            }
+        }
+    }
+
+    [Fact]
+    public void UnsharpMask_Threshold_ShouldSuppressLowContrastNoiseWhileEnhancingEdges()
+    {
+        Action negAmount = () => ImageConvolution.UnsharpMask(CreatePatternBitmap(4, 4), amount: -1.0f);
+        negAmount.Should().Throw<ArgumentOutOfRangeException>();
+
+        Action negThreshold = () => ImageConvolution.UnsharpMask(CreatePatternBitmap(4, 4), threshold: -0.5f);
+        negThreshold.Should().Throw<ArgumentOutOfRangeException>();
+
+        // 左半邊低頻微差 (100 vs 102)，右半邊高對比邊緣 (40 vs 180)
+        var src = BitmapHelper.CreateInitializedBitmap(32, 16, Color.FromArgb(255, 100, 100, 100));
+        for (int y = 0; y < 16; y++)
+        {
+            for (int x = 0; x < 32; x++)
+            {
+                if (x >= 4 && x < 12)
+                    src.SetPixel(x, y, Color.FromArgb(255, 102, 102, 102));
+                else if (x >= 20)
+                    src.SetPixel(x, y, Color.FromArgb(255, 180, 180, 180));
+                else if (x >= 16)
+                    src.SetPixel(x, y, Color.FromArgb(255, 40, 40, 40));
+            }
+        }
+
+        var usm = src.UnsharpMask(radius: 2, amount: 1.5f, threshold: 8.0f);
+
+        // 差異低於門檻的微弱訊號 (102 vs 100) 應維持原值不變
+        usm.GetPixel(8, 8).R.Should().Be(102);
+
+        // 高對比邊緣左側 (x=19, 原=40 < blur) 應變得更暗；右側 (x=20, 原=180 > blur) 應變得更亮
+        usm.GetPixel(19, 8).R.Should().BeLessThan(40);
+        usm.GetPixel(20, 8).R.Should().BeGreaterThan(180);
     }
 }

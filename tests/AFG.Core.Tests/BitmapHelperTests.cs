@@ -751,4 +751,37 @@ public class BitmapHelperTests
             }
         }
     }
+
+    [Fact]
+    public void SharpenAndUnsharpMask_ExtensionsAndStaticForwarders_ShouldMatchAndEnhanceContrast()
+    {
+        var src = BitmapHelper.CreateInitializedBitmap(33, 21, Color.FromArgb(255, 80, 90, 100));
+        for (int y = 0; y < 21; y++)
+        {
+            for (int x = 16; x < 33; x++)
+            {
+                src.SetPixel(x, y, Color.FromArgb(255, 170, 180, 190));
+            }
+        }
+
+        var sharpSeq = BitmapHelper.Sharpen(src, intensity: 0.8f, eightNeighbor: false, PixelProcessingMode.Sequential);
+        var sharpSimd = src.Sharpen(intensity: 0.8f, eightNeighbor: false, PixelProcessingMode.ParallelVectorized);
+
+        var sharpInPlace = src.ConvertToWriteableBitmap();
+        BitmapHelper.ApplySharpen(sharpInPlace, intensity: 0.8f, eightNeighbor: false, PixelProcessingMode.ParallelVectorized);
+
+        sharpSimd.GetPixel(16, 10).R.Should().BeGreaterThan(170);
+        sharpSimd.GetPixel(15, 10).R.Should().BeLessThan(80);
+        Math.Abs(sharpSimd.GetPixel(16, 10).R - sharpSeq.GetPixel(16, 10).R).Should().BeLessThanOrEqualTo(1);
+        sharpInPlace.GetPixel(16, 10).Should().Be(sharpSimd.GetPixel(16, 10));
+
+        var usmExt = src.UnsharpMask(radius: 2, amount: 1.2f, threshold: 3.0f);
+        var usmStatic = BitmapHelper.UnsharpMask(src, radius: 2, amount: 1.2f, threshold: 3.0f);
+        var usmInPlace = src.ConvertToWriteableBitmap();
+        BitmapHelper.ApplyUnsharpMask(usmInPlace, radius: 2, amount: 1.2f, threshold: 3.0f);
+
+        usmExt.GetPixel(16, 10).R.Should().BeGreaterThan(170);
+        usmStatic.GetPixel(16, 10).Should().Be(usmExt.GetPixel(16, 10));
+        usmInPlace.GetPixel(16, 10).Should().Be(usmExt.GetPixel(16, 10));
+    }
 }
