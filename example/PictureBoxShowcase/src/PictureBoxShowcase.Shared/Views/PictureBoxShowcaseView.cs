@@ -23,6 +23,7 @@ public partial class PictureBoxShowcaseView : UserControl
     private TextBlock _lblConvTitle;
     private Button _btnConvReset;
     private Button _btnConvSharpen;
+    private Button _btnConvUnsharp;
     private Button _btnConvEmboss;
     private Button _btnConvSobel;
     private Button _btnConvCustom;
@@ -178,11 +179,11 @@ public partial class PictureBoxShowcaseView : UserControl
                         // btnConvReset
                         _btnConvReset = new Button()
                             .Name("btnConvReset")
-                            .Width(108)
+                            .Width(88)
                             .Height(34)
                             .CanvasLeft(16)
                             .CanvasTop(140)
-                            .Content("原圖 (Reset)")
+                            .Content("原圖")
                             .FontSize(11)
                             .Background(Brush.Parse("#475569"))
                             .Foreground(Brush.Parse("#FFFFFF"))
@@ -191,9 +192,9 @@ public partial class PictureBoxShowcaseView : UserControl
                         // btnConvSharpen
                         _btnConvSharpen = new Button()
                             .Name("btnConvSharpen")
-                            .Width(108)
+                            .Width(88)
                             .Height(34)
-                            .CanvasLeft(131)
+                            .CanvasLeft(112)
                             .CanvasTop(140)
                             .Content("銳化 3×3")
                             .FontSize(11)
@@ -201,12 +202,25 @@ public partial class PictureBoxShowcaseView : UserControl
                             .Foreground(Brush.Parse("#FFFFFF"))
                             .CornerRadius(new CornerRadius(6, 6, 6, 6))
                             .OnClick((PictureBoxShowcaseViewModel vm) => vm.ApplySharpenCommand),
+                        // btnConvUnsharp
+                        _btnConvUnsharp = new Button()
+                            .Name("btnConvUnsharp")
+                            .Width(88)
+                            .Height(34)
+                            .CanvasLeft(208)
+                            .CanvasTop(140)
+                            .Content("USM 銳化")
+                            .FontSize(11)
+                            .Background(Brush.Parse("#0D9488"))
+                            .Foreground(Brush.Parse("#FFFFFF"))
+                            .CornerRadius(new CornerRadius(6, 6, 6, 6))
+                            .OnClick((PictureBoxShowcaseViewModel vm) => vm.ApplyUnsharpMaskCommand),
                         // btnConvEmboss
                         _btnConvEmboss = new Button()
                             .Name("btnConvEmboss")
-                            .Width(108)
+                            .Width(88)
                             .Height(34)
-                            .CanvasLeft(246)
+                            .CanvasLeft(304)
                             .CanvasTop(140)
                             .Content("浮雕 3×3")
                             .FontSize(11)
@@ -217,11 +231,11 @@ public partial class PictureBoxShowcaseView : UserControl
                         // btnConvSobel
                         _btnConvSobel = new Button()
                             .Name("btnConvSobel")
-                            .Width(108)
+                            .Width(88)
                             .Height(34)
-                            .CanvasLeft(361)
+                            .CanvasLeft(400)
                             .CanvasTop(140)
-                            .Content("Sobel 邊緣")
+                            .Content("Sobel邊緣")
                             .FontSize(11)
                             .Background(Brush.Parse("#EA580C"))
                             .Foreground(Brush.Parse("#FFFFFF"))
@@ -230,9 +244,9 @@ public partial class PictureBoxShowcaseView : UserControl
                         // btnConvCustom
                         _btnConvCustom = new Button()
                             .Name("btnConvCustom")
-                            .Width(108)
+                            .Width(88)
                             .Height(34)
-                            .CanvasLeft(476)
+                            .CanvasLeft(496)
                             .CanvasTop(140)
                             .Content("自訂 5×5")
                             .FontSize(11)

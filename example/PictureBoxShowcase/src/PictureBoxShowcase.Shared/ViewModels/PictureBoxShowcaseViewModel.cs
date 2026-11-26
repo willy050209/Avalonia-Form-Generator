@@ -181,7 +181,26 @@ public partial class PictureBoxShowcaseViewModel : ObservableObject
     }
 
     [RelayCommand]
-    private void ApplySharpen() => ApplyKernelCore("銳化 3×3", ConvolutionKernel.Sharpen);
+    private void ApplySharpen()
+    {
+        long startTimestamp = Stopwatch.GetTimestamp();
+        WriteableBitmap filtered = _sourceBitmap.Sharpen(1.0f);
+        _lastFilterElapsedMs = Stopwatch.GetElapsedTime(startTimestamp).TotalMilliseconds;
+        _currentFilterName = "銳化 3×3";
+        ImageSource = filtered;
+        UpdateImageInfoText();
+    }
+
+    [RelayCommand]
+    private void ApplyUnsharpMask()
+    {
+        long startTimestamp = Stopwatch.GetTimestamp();
+        WriteableBitmap filtered = _sourceBitmap.UnsharpMask(radius: 3, amount: 1.5f, threshold: 4.0f);
+        _lastFilterElapsedMs = Stopwatch.GetElapsedTime(startTimestamp).TotalMilliseconds;
+        _currentFilterName = "USM 銳化 (r=3)";
+        ImageSource = filtered;
+        UpdateImageInfoText();
+    }
 
     [RelayCommand]
     private void ApplyEmboss() => ApplyKernelCore("浮雕 3×3", ConvolutionKernel.Emboss);

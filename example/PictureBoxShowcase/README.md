@@ -80,11 +80,12 @@ example/PictureBoxShowcase/
 | ├── `btnSampleA` | `Button` | `(16, 72) 180 × 32` | `Click` 映射 `LoadSampleACommand` | 載入科技幾何網格 (800 × 600) |
 | ├── `btnSampleB` | `Button` | `(206, 72) 180 × 32` | `Click` 映射 `LoadSampleBCommand` | 載入同心光環光譜 (1024 × 768) |
 | ├── `lblConvTitle` | `TextBlock` | `(16, 114)` | Text: `"自訂卷積算子與特效 (ImageConvolution)："` | 卷積控制區塊標題 (13pt Bold, `#F472B6`) |
-| ├── `btnConvReset` | `Button` | `(16, 140) 108 × 34` | `Click` 映射 `ResetFilterCommand` | 還原未經濾鏡處理的原始影像 |
-| ├── `btnConvSharpen` | `Button` | `(131, 140) 108 × 34` | `Click` 映射 `ApplySharpenCommand` | 套用內建 3×3 銳化卷積 (`ConvolutionKernel.Sharpen`) |
-| ├── `btnConvEmboss` | `Button` | `(246, 140) 108 × 34` | `Click` 映射 `ApplyEmbossCommand` | 套用浮雕算子 (`ConvolutionKernel.Emboss`) |
-| ├── `btnConvSobel` | `Button` | `(361, 140) 108 × 34` | `Click` 映射 `ApplySobelCommand` | RGB 雙核梯度邊緣偵測 (`ConvolutionKernel.Sobel`) |
-| └── `btnConvCustom` | `Button` | `(476, 140) 108 × 34` | `Click` 映射 `ApplyCustomKernelCommand` | 套用使用者自訂 5×5 卷積核與結構後處理器 |
+| ├── `btnConvReset` | `Button` | `(16, 140) 88 × 34` | `Click` 映射 `ResetFilterCommand` | 還原未經濾鏡處理的原始影像 |
+| ├── `btnConvSharpen` | `Button` | `(112, 140) 88 × 34` | `Click` 映射 `ApplySharpenCommand` | 套用 3×3 銳化擴充 (`BitmapExtensions.Sharpen`) |
+| ├── `btnConvUnsharp` | `Button` | `(208, 140) 88 × 34` | `Click` 映射 `ApplyUnsharpMaskCommand` | 套用反銳化遮罩 (`BitmapExtensions.UnsharpMask`) |
+| ├── `btnConvEmboss` | `Button` | `(304, 140) 88 × 34` | `Click` 映射 `ApplyEmbossCommand` | 套用浮雕算子 (`ConvolutionKernel.Emboss`) |
+| ├── `btnConvSobel` | `Button` | `(400, 140) 88 × 34` | `Click` 映射 `ApplySobelCommand` | RGB 雙核梯度邊緣偵測 (`ConvolutionKernel.Sobel`) |
+| └── `btnConvCustom` | `Button` | `(496, 140) 88 × 34` | `Click` 映射 `ApplyCustomKernelCommand` | 套用使用者自訂 5×5 卷積核與結構後處理器 |
 | **infoCard** | `Border` | `(20, 640) 600 × 65` | — | 圖片中繼資料與濾鏡耗時反饋卡片 |
 | └── `txtImageInfo` | `TextBlock` | `(20, 22)` | `Text` 單向綁定 `ImageInfoText` | 呈現尺寸、長寬比、模式與樣本資訊 |
 
