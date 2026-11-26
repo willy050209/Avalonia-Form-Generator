@@ -2856,6 +2856,54 @@ public static class BitmapExtensions
         ImageConvolution.Apply(bitmap, ConvolutionKernel.CreateBox(radius), opts);
     }
 
+    public static WriteableBitmap Sharpen(
+        this Bitmap bitmap,
+        float intensity = 1.0f,
+        bool eightNeighbor = false,
+        PixelProcessingMode mode = PixelProcessingMode.ParallelVectorized)
+    {
+        ArgumentNullException.ThrowIfNull(bitmap);
+        var opts = ConvolutionOptions.Default with { ProcessingMode = mode };
+        return ImageConvolution.Sharpen(bitmap, intensity, eightNeighbor, opts);
+    }
+
+    public static void ApplySharpen(
+        this WriteableBitmap bitmap,
+        float intensity = 1.0f,
+        bool eightNeighbor = false,
+        PixelProcessingMode mode = PixelProcessingMode.ParallelVectorized)
+    {
+        ArgumentNullException.ThrowIfNull(bitmap);
+        var opts = ConvolutionOptions.Default with { ProcessingMode = mode };
+        ImageConvolution.ApplySharpen(bitmap, intensity, eightNeighbor, opts);
+    }
+
+    public static WriteableBitmap UnsharpMask(
+        this Bitmap bitmap,
+        int radius = 2,
+        float amount = 1.0f,
+        float threshold = 0.0f,
+        float? sigma = null,
+        PixelProcessingMode mode = PixelProcessingMode.ParallelVectorized)
+    {
+        ArgumentNullException.ThrowIfNull(bitmap);
+        var opts = ConvolutionOptions.Default with { ProcessingMode = mode };
+        return ImageConvolution.UnsharpMask(bitmap, radius, amount, threshold, sigma, opts);
+    }
+
+    public static void ApplyUnsharpMask(
+        this WriteableBitmap bitmap,
+        int radius = 2,
+        float amount = 1.0f,
+        float threshold = 0.0f,
+        float? sigma = null,
+        PixelProcessingMode mode = PixelProcessingMode.ParallelVectorized)
+    {
+        ArgumentNullException.ThrowIfNull(bitmap);
+        var opts = ConvolutionOptions.Default with { ProcessingMode = mode };
+        ImageConvolution.ApplyUnsharpMask(bitmap, radius, amount, threshold, sigma, opts);
+    }
+
     /// <summary>
     /// 載入本機檔案路徑或 avares:// 資源路徑之 Bitmap（具備動態組件修正、相對路徑尋訪與磁碟目錄後備容錯機制）。
     /// </summary>
@@ -3192,6 +3240,38 @@ public static class BitmapHelper
         int radius = 2,
         PixelProcessingMode mode = PixelProcessingMode.ParallelVectorized) =>
         bitmap.ApplyBoxBlur(radius, mode);
+
+    public static WriteableBitmap Sharpen(
+        Bitmap bitmap,
+        float intensity = 1.0f,
+        bool eightNeighbor = false,
+        PixelProcessingMode mode = PixelProcessingMode.ParallelVectorized) =>
+        bitmap.Sharpen(intensity, eightNeighbor, mode);
+
+    public static void ApplySharpen(
+        WriteableBitmap bitmap,
+        float intensity = 1.0f,
+        bool eightNeighbor = false,
+        PixelProcessingMode mode = PixelProcessingMode.ParallelVectorized) =>
+        bitmap.ApplySharpen(intensity, eightNeighbor, mode);
+
+    public static WriteableBitmap UnsharpMask(
+        Bitmap bitmap,
+        int radius = 2,
+        float amount = 1.0f,
+        float threshold = 0.0f,
+        float? sigma = null,
+        PixelProcessingMode mode = PixelProcessingMode.ParallelVectorized) =>
+        bitmap.UnsharpMask(radius, amount, threshold, sigma, mode);
+
+    public static void ApplyUnsharpMask(
+        WriteableBitmap bitmap,
+        int radius = 2,
+        float amount = 1.0f,
+        float threshold = 0.0f,
+        float? sigma = null,
+        PixelProcessingMode mode = PixelProcessingMode.ParallelVectorized) =>
+        bitmap.ApplyUnsharpMask(radius, amount, threshold, sigma, mode);
 
     public static void ApplyConvolution(
         WriteableBitmap bitmap,

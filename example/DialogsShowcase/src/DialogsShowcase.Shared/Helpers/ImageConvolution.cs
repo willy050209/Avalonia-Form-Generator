@@ -545,6 +545,33 @@ public sealed class ConvolutionKernel
         Array.Fill(weights, 1.0f / size);
         return CreateSeparable(weights, weights, name: $"BoxBlur(r={radius})");
     }
+
+    /// <summary>
+    /// 建立可調強度之 3×3 銳化算子（4 鄰域或 8 鄰域 Laplacian 銳化）。
+    /// </summary>
+    /// <param name="intensity">銳化強度（非負有限數；0.0 等價恆等核，1.0 等價標準 Sharpen / StrongSharpen）。</param>
+    /// <param name="eightNeighbor">若為 true 採用 8 鄰域強銳化，否則採用 4 鄰域銳化。</param>
+    public static ConvolutionKernel CreateSharpen(float intensity = 1.0f, bool eightNeighbor = false)
+    {
+        if (intensity < 0.0f || float.IsNaN(intensity) || float.IsInfinity(intensity))
+            throw new ArgumentOutOfRangeException(nameof(intensity), "銳化強度必須為非負有限數值。");
+
+        float[,] weights = eightNeighbor
+            ? new float[,]
+            {
+                { -intensity, -intensity, -intensity },
+                { -intensity, 1.0f + 8.0f * intensity, -intensity },
+                { -intensity, -intensity, -intensity }
+            }
+            : new float[,]
+            {
+                { 0.0f, -intensity, 0.0f },
+                { -intensity, 1.0f + 4.0f * intensity, -intensity },
+                { 0.0f, -intensity, 0.0f }
+            };
+
+        return Create2D(weights, name: $"Sharpen({(eightNeighbor ? "8N" : "4N")}, intensity={intensity:0.##})");
+    }
 }
 
 /// <summary>
@@ -607,6 +634,88 @@ public static unsafe class ImageConvolution
         var opts = options ?? ConvolutionOptions.Default;
         Execute(srcWb, dstWb, kernel, postProcessor, opts);
         return dstWb;
+    }
+
+    /// <summary>
+    /// 原地對 WriteableBitmap 套用可調強度 3×3 銳化運算。
+    /// </summary>
+    public static void ApplySharpen(
+        WriteableBitmap bitmap,
+        float intensity = 1.0f,
+        bool eightNeighbor = false,
+        ConvolutionOptions? options = null)
+    {
+        ArgumentNullException.ThrowIfNull(bitmap);
+        var kernel = ConvolutionKernel.CreateSharpen(intensity, eightNeighbor);
+        Apply(bitmap, kernel, options);
+    }
+
+    /// <summary>
+    /// 對 Bitmap 套用可調強度 3×3 銳化並回傳新的 WriteableBitmap（不修改原始影像）。
+    /// </summary>
+    public static WriteableBitmap Sharpen(
+        Bitmap source,
+        float intensity = 1.0f,
+        bool eightNeighbor = false,
+        ConvolutionOptions? options = null)
+    {
+        ArgumentNullException.ThrowIfNull(source);
+        var kernel = ConvolutionKernel.CreateSharpen(intensity, eightNeighbor);
+        return Convolve(source, kernel, options);
+    }
+
+    /// <summary>
+    /// 原地對 WriteableBitmap 套用反銳化遮罩 (Unsharp Masking)，結合 1D 可分離高斯模糊與 SIMD 差值強化。
+    /// </summary>
+    public static void ApplyUnsharpMask(
+        WriteableBitmap bitmap,
+        int radius = 2,
+        float amount = 1.0f,
+        float threshold = 0.0f,
+        float? sigma = null,
+        ConvolutionOptions? options = null)
+    {
+        ArgumentNullException.ThrowIfNull(bitmap);
+        ValidateUnsharpMaskArgs(amount, threshold);
+
+        var gaussian = ConvolutionKernel.CreateGaussian(radius, sigma);
+        var opts = options ?? ConvolutionOptions.Default;
+        ExecuteUnsharpMask(bitmap, bitmap, gaussian, amount, threshold, opts);
+    }
+
+    /// <summary>
+    /// 對 Bitmap 套用反銳化遮罩 (Unsharp Masking) 並回傳新的 WriteableBitmap（不修改原始影像）。
+    /// </summary>
+    public static WriteableBitmap UnsharpMask(
+        Bitmap source,
+        int radius = 2,
+        float amount = 1.0f,
+        float threshold = 0.0f,
+        float? sigma = null,
+        ConvolutionOptions? options = null)
+    {
+        ArgumentNullException.ThrowIfNull(source);
+        ValidateUnsharpMaskArgs(amount, threshold);
+
+        var srcWb = source.ConvertToWriteableBitmap();
+        var dstWb = new WriteableBitmap(
+            srcWb.PixelSize,
+            srcWb.Dpi,
+            Platform.PixelFormat.Bgra8888,
+            Platform.AlphaFormat.Premul);
+
+        var gaussian = ConvolutionKernel.CreateGaussian(radius, sigma);
+        var opts = options ?? ConvolutionOptions.Default;
+        ExecuteUnsharpMask(srcWb, dstWb, gaussian, amount, threshold, opts);
+        return dstWb;
+    }
+
+    private static void ValidateUnsharpMaskArgs(float amount, float threshold)
+    {
+        if (amount < 0.0f || float.IsNaN(amount) || float.IsInfinity(amount))
+            throw new ArgumentOutOfRangeException(nameof(amount), "銳化增強倍率 (amount) 必須為非負有限數值。");
+        if (threshold < 0.0f || float.IsNaN(threshold) || float.IsInfinity(threshold))
+            throw new ArgumentOutOfRangeException(nameof(threshold), "雜訊抑制門檻 (threshold) 必須為非負有限數值。");
     }
 
     private static void Execute<TPost>(
@@ -1019,6 +1128,46 @@ public static unsafe class ImageConvolution
         byte* srcScan0 = (byte*)srcFb.Address;
         byte* dstScan0 = dstFb != null ? (byte*)dstFb.Address : srcScan0;
 
+        int tempRowBytes = width * 4;
+        long totalBytes = (long)tempRowBytes * height;
+        RentScratch(totalBytes, out var pooled, out var native);
+
+        try
+        {
+            fixed (byte* pooledPtr = pooled)
+            {
+                byte* tempScan0 = pooled != null ? pooledPtr : native;
+                bool preserveAlpha = ShouldPreserveAlpha(kernel, options.AlphaMode);
+                ExecuteSeparable1DBuffers(
+                    srcScan0, srcRowBytes,
+                    dstScan0, dstRowBytes,
+                    tempScan0, tempRowBytes,
+                    width, height,
+                    kernel, preserveAlpha, options, postProcessor);
+            }
+        }
+        finally
+        {
+            ReturnScratch(pooled, native);
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+    private static void ExecuteSeparable1DBuffers<TPost>(
+        byte* srcScan0,
+        int srcRowBytes,
+        byte* dstScan0,
+        int dstRowBytes,
+        byte* tempScan0,
+        int tempRowBytes,
+        int width,
+        int height,
+        ConvolutionKernel kernel,
+        bool preserveAlpha,
+        ConvolutionOptions options,
+        TPost postProcessor)
+        where TPost : struct, IConvolutionPostProcessor
+    {
         int hSize = kernel.Width;
         int vSize = kernel.Height;
         int rx = kernel.RadiusX;
@@ -1031,37 +1180,94 @@ public static unsafe class ImageConvolution
         for (int i = 0; i < hSize; i++) hKernel[i] = hSpan[i];
         for (int i = 0; i < vSize; i++) vKernel[i] = vSpan[i] * kernel.Factor;
 
-        int tempRowBytes = width * 4;
-        long totalBytes = (long)tempRowBytes * height;
-        RentScratch(totalBytes, out var pooled, out var native);
+        bool isParallel = options.ProcessingMode is PixelProcessingMode.Parallel or PixelProcessingMode.ParallelVectorized;
+        bool isVectorized = options.ProcessingMode is PixelProcessingMode.SequentialVectorized or PixelProcessingMode.ParallelVectorized;
+        float bias = kernel.Bias;
+        var borderMode = options.BorderMode;
+
+        if (isParallel)
+        {
+            Parallel.For(0, height, y =>
+                SeparableHorizontalRow(srcScan0 + y * srcRowBytes, tempScan0 + y * tempRowBytes, hKernel, rx, hSize, width, preserveAlpha, borderMode, isVectorized));
+            Parallel.For(0, height, y =>
+                SeparableVerticalRow(tempScan0, srcScan0 + y * srcRowBytes, dstScan0 + y * dstRowBytes, vKernel, ry, vSize, y, width, height, tempRowBytes, bias, preserveAlpha, borderMode, isVectorized, postProcessor));
+        }
+        else
+        {
+            for (int y = 0; y < height; y++)
+            {
+                SeparableHorizontalRow(srcScan0 + y * srcRowBytes, tempScan0 + y * tempRowBytes, hKernel, rx, hSize, width, preserveAlpha, borderMode, isVectorized);
+            }
+            for (int y = 0; y < height; y++)
+            {
+                SeparableVerticalRow(tempScan0, srcScan0 + y * srcRowBytes, dstScan0 + y * dstRowBytes, vKernel, ry, vSize, y, width, height, tempRowBytes, bias, preserveAlpha, borderMode, isVectorized, postProcessor);
+            }
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+    private static void ExecuteUnsharpMask(
+        WriteableBitmap src,
+        WriteableBitmap dst,
+        ConvolutionKernel gaussianKernel,
+        float amount,
+        float threshold,
+        ConvolutionOptions options)
+    {
+        bool inPlace = ReferenceEquals(src, dst);
+        using var srcFb = src.Lock();
+        using var dstFb = inPlace ? null : dst.Lock();
+
+        int width = srcFb.Size.Width;
+        int height = srcFb.Size.Height;
+        int srcRowBytes = srcFb.RowBytes;
+        int dstRowBytes = dstFb?.RowBytes ?? srcRowBytes;
+
+        byte* srcScan0 = (byte*)srcFb.Address;
+        byte* dstScan0 = dstFb != null ? (byte*)dstFb.Address : srcScan0;
+
+        int scratchRowBytes = width * 4;
+        long singleBufferBytes = (long)scratchRowBytes * height;
+        RentScratch(singleBufferBytes * 2, out var pooled, out var native);
 
         try
         {
             fixed (byte* pooledPtr = pooled)
             {
                 byte* tempScan0 = pooled != null ? pooledPtr : native;
+                byte* blurredScan0 = tempScan0 + singleBufferBytes;
+
+                ExecuteSeparable1DBuffers(
+                    srcScan0, srcRowBytes,
+                    blurredScan0, scratchRowBytes,
+                    tempScan0, scratchRowBytes,
+                    width, height,
+                    gaussianKernel,
+                    preserveAlpha: true,
+                    options,
+                    default(IdentityConvolutionPostProcessor));
+
                 bool isParallel = options.ProcessingMode is PixelProcessingMode.Parallel or PixelProcessingMode.ParallelVectorized;
                 bool isVectorized = options.ProcessingMode is PixelProcessingMode.SequentialVectorized or PixelProcessingMode.ParallelVectorized;
-                bool preserveAlpha = ShouldPreserveAlpha(kernel, options.AlphaMode);
-                float bias = kernel.Bias;
-                var borderMode = options.BorderMode;
 
                 if (isParallel)
                 {
                     Parallel.For(0, height, y =>
-                        SeparableHorizontalRow(srcScan0 + y * srcRowBytes, tempScan0 + y * tempRowBytes, hKernel, rx, hSize, width, preserveAlpha, borderMode, isVectorized));
-                    Parallel.For(0, height, y =>
-                        SeparableVerticalRow(tempScan0, srcScan0 + y * srcRowBytes, dstScan0 + y * dstRowBytes, vKernel, ry, vSize, y, width, height, tempRowBytes, bias, preserveAlpha, borderMode, isVectorized, postProcessor));
+                        UnsharpBlendRow(
+                            srcScan0 + y * srcRowBytes,
+                            blurredScan0 + y * scratchRowBytes,
+                            dstScan0 + y * dstRowBytes,
+                            width, amount, threshold, isVectorized));
                 }
                 else
                 {
                     for (int y = 0; y < height; y++)
                     {
-                        SeparableHorizontalRow(srcScan0 + y * srcRowBytes, tempScan0 + y * tempRowBytes, hKernel, rx, hSize, width, preserveAlpha, borderMode, isVectorized);
-                    }
-                    for (int y = 0; y < height; y++)
-                    {
-                        SeparableVerticalRow(tempScan0, srcScan0 + y * srcRowBytes, dstScan0 + y * dstRowBytes, vKernel, ry, vSize, y, width, height, tempRowBytes, bias, preserveAlpha, borderMode, isVectorized, postProcessor);
+                        UnsharpBlendRow(
+                            srcScan0 + y * srcRowBytes,
+                            blurredScan0 + y * scratchRowBytes,
+                            dstScan0 + y * dstRowBytes,
+                            width, amount, threshold, isVectorized);
                     }
                 }
             }
@@ -1069,6 +1275,94 @@ public static unsafe class ImageConvolution
         finally
         {
             ReturnScratch(pooled, native);
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+    private static void UnsharpBlendRow(
+        byte* srcRow,
+        byte* blurRow,
+        byte* dstRow,
+        int width,
+        float amount,
+        float threshold,
+        bool vectorized)
+    {
+        int x = 0;
+        if (vectorized && Vector256.IsHardwareAccelerated)
+        {
+            var vAmount = Vector256.Create(amount);
+            var vThreshold = Vector256.Create(threshold);
+            bool hasThreshold = threshold > 0.0f;
+
+            for (; x + 2 <= width; x += 2)
+            {
+                int offset = x * 4;
+                var vSrc = Load8BytesAsFloat256(srcRow + offset);
+                var vBlur = Load8BytesAsFloat256(blurRow + offset);
+                var vDiff = vSrc - vBlur;
+
+                if (hasThreshold)
+                {
+                    var vMask = Vector256.GreaterThanOrEqual(Vector256.Abs(vDiff), vThreshold);
+                    vDiff = Vector256.ConditionalSelect(vMask, vDiff, Vector256<float>.Zero);
+                }
+
+                var vOut = vSrc + vDiff * vAmount;
+                ulong origAlpha = *(ulong*)(srcRow + offset) & 0xFF000000FF000000UL;
+                StoreFloat256As8Bytes(vOut, dstRow + offset);
+                *(ulong*)(dstRow + offset) = (*(ulong*)(dstRow + offset) & 0x00FFFFFF00FFFFFFUL) | origAlpha;
+            }
+        }
+
+        if (vectorized && Vector128.IsHardwareAccelerated)
+        {
+            var vAmount128 = Vector128.Create(amount);
+            var vThreshold128 = Vector128.Create(threshold);
+            bool hasThreshold = threshold > 0.0f;
+
+            for (; x < width; x++)
+            {
+                int offset = x * 4;
+                var vSrc = Load4BytesAsFloat128(srcRow + offset);
+                var vBlur = Load4BytesAsFloat128(blurRow + offset);
+                var vDiff = vSrc - vBlur;
+
+                if (hasThreshold)
+                {
+                    var vMask = Vector128.GreaterThanOrEqual(Vector128.Abs(vDiff), vThreshold128);
+                    vDiff = Vector128.ConditionalSelect(vMask, vDiff, Vector128<float>.Zero);
+                }
+
+                var vOut = vSrc + vDiff * vAmount128;
+                byte origA = srcRow[offset + 3];
+                StoreFloat128As4Bytes(vOut, dstRow + offset);
+                dstRow[offset + 3] = origA;
+            }
+            return;
+        }
+
+        for (; x < width; x++)
+        {
+            int offset = x * 4;
+            byte* sP = srcRow + offset;
+            byte* bP = blurRow + offset;
+            byte* dP = dstRow + offset;
+
+            float db = sP[0] - bP[0];
+            float dg = sP[1] - bP[1];
+            float dr = sP[2] - bP[2];
+
+            dP[0] = MathF.Abs(db) >= threshold
+                ? (byte)global::System.Math.Clamp((int)global::System.Math.Round(sP[0] + amount * db), 0, 255)
+                : sP[0];
+            dP[1] = MathF.Abs(dg) >= threshold
+                ? (byte)global::System.Math.Clamp((int)global::System.Math.Round(sP[1] + amount * dg), 0, 255)
+                : sP[1];
+            dP[2] = MathF.Abs(dr) >= threshold
+                ? (byte)global::System.Math.Clamp((int)global::System.Math.Round(sP[2] + amount * dr), 0, 255)
+                : sP[2];
+            dP[3] = sP[3];
         }
     }
 
