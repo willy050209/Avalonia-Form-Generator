@@ -79,6 +79,9 @@ public sealed class ShowcaseExamplesExportTests
 
             var viewModelPath = Path.Combine(tempFolder, "src", $"{folder}.Shared", "ViewModels", $"{doc.ViewModelClassName}.cs");
             File.Exists(viewModelPath).Should().BeTrue();
+
+            var convolutionPath = Path.Combine(tempFolder, "src", $"{folder}.Shared", "Helpers", "ImageConvolution.cs");
+            File.Exists(convolutionPath).Should().BeTrue();
         }
         finally
         {

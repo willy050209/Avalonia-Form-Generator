@@ -264,9 +264,6 @@ public static class BitmapExtensions
         }
     }
 
-    private static readonly global::System.Buffers.ArrayPool<byte> s_frameScratchPool =
-        global::System.Buffers.ArrayPool<byte>.Create(64 * 1024 * 1024, 4);
-
     // ==========================================
     // 1. 高效直接記憶體遍歷方法 (ProcessPixels)
     // ==========================================
@@ -1085,7 +1082,7 @@ public static class BitmapExtensions
     }
 
     /// <summary>
-    /// 執行 3x3 Sobel 邊緣偵測濾鏡，回傳新邊緣點陣圖。
+    /// 執行 3x3 Sobel 邊緣偵測濾鏡，回傳新邊緣點陣圖（委派給獨立 SIMD 卷積引擎 ImageConvolution）。
     /// </summary>
     /// <param name="bitmap">原始影像</param>
     /// <param name="threshold">邊緣強度過濾門檻值 (0~255)</param>
@@ -1096,19 +1093,18 @@ public static class BitmapExtensions
         PixelProcessingMode mode = PixelProcessingMode.ParallelVectorized)
     {
         ArgumentNullException.ThrowIfNull(bitmap);
-        var wb = bitmap.ConvertToWriteableBitmap();
-        var result = new WriteableBitmap(
-            wb.PixelSize,
-            wb.Dpi,
-            Platform.PixelFormat.Bgra8888,
-            Platform.AlphaFormat.Premul);
-
-        ApplySobelInternal(wb, result, threshold, mode);
-        return result;
+        var opts = new ConvolutionOptions(
+            BorderMode: ConvolutionBorderMode.Clamp,
+            AlphaMode: ConvolutionAlphaMode.Convolve,
+            GradientChannelMode: GradientChannelMode.Luminance,
+            GradientNormMode: GradientNormMode.L2,
+            GradientThreshold: (float)threshold,
+            ProcessingMode: mode);
+        return ImageConvolution.Convolve(bitmap, ConvolutionKernel.Sobel, opts);
     }
 
     /// <summary>
-    /// 對 WriteableBitmap 原地套用 Sobel 邊緣偵測運算（2-Pass 真實 SIMD 與單通道亮度暫存，零多餘點陣圖配置）。
+    /// 對 WriteableBitmap 原地套用 Sobel 邊緣偵測運算（委派給獨立 SIMD 卷積引擎 ImageConvolution）。
     /// </summary>
     public static void ApplySobel(
         this WriteableBitmap bitmap,
@@ -1116,300 +1112,18 @@ public static class BitmapExtensions
         PixelProcessingMode mode = PixelProcessingMode.ParallelVectorized)
     {
         ArgumentNullException.ThrowIfNull(bitmap);
-        ApplySobelInternal(bitmap, bitmap, threshold, mode);
-    }
-
-    private static unsafe void ApplySobelInternal(
-        WriteableBitmap src,
-        WriteableBitmap dst,
-        double threshold,
-        PixelProcessingMode mode)
-    {
-        bool inPlace = ReferenceEquals(src, dst);
-        using var srcFb = src.Lock();
-        using var dstFb = inPlace ? null : dst.Lock();
-
-        int width = srcFb.Size.Width;
-        int height = srcFb.Size.Height;
-        int srcRowBytes = srcFb.RowBytes;
-        int dstRowBytes = dstFb?.RowBytes ?? srcRowBytes;
-
-        byte* srcScan0 = (byte*)srcFb.Address;
-        byte* dstScan0 = dstFb != null ? (byte*)dstFb.Address : srcScan0;
-
-        if (width < 3 || height < 3)
-        {
-            for (int y = 0; y < height; y++)
-            {
-                uint* rowDst = (uint*)(dstScan0 + y * dstRowBytes);
-                for (int x = 0; x < width; x++)
-                {
-                    rowDst[x] = 0xFF000000u;
-                }
-            }
-            return;
-        }
-
-        bool isParallel = mode is PixelProcessingMode.Parallel or PixelProcessingMode.ParallelVectorized;
-        bool isVectorized = mode is PixelProcessingMode.SequentialVectorized or PixelProcessingMode.ParallelVectorized;
-        float threshF = (float)threshold;
-
-        long lumBytes = (long)width * height;
-        byte[]? pooledLum = lumBytes <= 64L * 1024 * 1024 ? s_frameScratchPool.Rent((int)lumBytes) : null;
-        byte* nativeLum = pooledLum == null ? (byte*)System.Runtime.InteropServices.NativeMemory.Alloc((nuint)lumBytes) : null;
-
-        try
-        {
-            fixed (byte* pooledPtr = pooledLum)
-            {
-                byte* lumScan0 = pooledLum != null ? pooledPtr : nativeLum;
-
-                // Pass 1: 提取單通道 8-bit 亮度緩衝區 (避免在 3x3 卷積內對每個像素重複計算 8 次亮度)
-                if (isParallel)
-                {
-                    Parallel.For(0, height, y =>
-                    {
-                        ExtractLuminanceRow(srcScan0 + y * srcRowBytes, lumScan0 + y * width, width, isVectorized);
-                    });
-                }
-                else
-                {
-                    for (int y = 0; y < height; y++)
-                    {
-                        ExtractLuminanceRow(srcScan0 + y * srcRowBytes, lumScan0 + y * width, width, isVectorized);
-                    }
-                }
-
-                // Pass 2: 3x3 Sobel 梯度運算 + 硬體 Sqrt 輸出 BGRA8888
-                if (isParallel)
-                {
-                    Parallel.For(0, height, y =>
-                    {
-                        ComputeSobelRow(lumScan0, dstScan0 + y * dstRowBytes, y, width, height, threshF, isVectorized);
-                    });
-                }
-                else
-                {
-                    for (int y = 0; y < height; y++)
-                    {
-                        ComputeSobelRow(lumScan0, dstScan0 + y * dstRowBytes, y, width, height, threshF, isVectorized);
-                    }
-                }
-            }
-        }
-        finally
-        {
-            if (pooledLum != null) s_frameScratchPool.Return(pooledLum);
-            if (nativeLum != null) System.Runtime.InteropServices.NativeMemory.Free(nativeLum);
-        }
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static unsafe void ExtractLuminanceRow(byte* srcRow, byte* lumRow, int width, bool vectorized)
-    {
-        uint* px = (uint*)srcRow;
-        int x = 0;
-
-        if (vectorized && Vector256.IsHardwareAccelerated && width >= 8)
-        {
-            var vMaskByte = Vector256.Create(0xFFu);
-            var vWR = Vector256.Create(9798u);
-            var vWG = Vector256.Create(19235u);
-            var vWB = Vector256.Create(3735u);
-            var vBias = Vector256.Create(16384u);
-
-            int limit = width - (width % 8);
-            for (; x < limit; x += 8)
-            {
-                var v = Vector256.Load(px + x);
-                var b = v & vMaskByte;
-                var g = (v >>> 8) & vMaskByte;
-                var r = (v >>> 16) & vMaskByte;
-                var gray = (r * vWR + g * vWG + b * vWB + vBias) >>> 15;
-
-                var u16 = Vector128.Narrow(gray.GetLower(), gray.GetUpper());
-                var u8 = Vector128.Narrow(u16, u16);
-                *(ulong*)(lumRow + x) = u8.AsUInt64().GetElement(0);
-            }
-        }
-
-        if (vectorized && Vector128.IsHardwareAccelerated && width - x >= 4)
-        {
-            var vMaskByte = Vector128.Create(0xFFu);
-            var vWR = Vector128.Create(9798u);
-            var vWG = Vector128.Create(19235u);
-            var vWB = Vector128.Create(3735u);
-            var vBias = Vector128.Create(16384u);
-
-            int limit = x + ((width - x) & ~3);
-            for (; x < limit; x += 4)
-            {
-                var v = Vector128.Load(px + x);
-                var b = v & vMaskByte;
-                var g = (v >>> 8) & vMaskByte;
-                var r = (v >>> 16) & vMaskByte;
-                var gray = (r * vWR + g * vWG + b * vWB + vBias) >>> 15;
-
-                var u16 = Vector128.Narrow(gray, gray);
-                var u8 = Vector128.Narrow(u16, u16);
-                *(uint*)(lumRow + x) = u8.AsUInt32().GetElement(0);
-            }
-        }
-
-        for (; x < width; x++)
-        {
-            uint v = px[x];
-            lumRow[x] = (byte)((((v >> 16) & 0xFFu) * 9798u + ((v >> 8) & 0xFFu) * 19235u + (v & 0xFFu) * 3735u + 16384u) >> 15);
-        }
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static unsafe Vector256<float> Load8BytesAsFloat256(byte* ptr)
-    {
-        var vBytes = Vector128.CreateScalarUnsafe(*(ulong*)ptr).AsByte();
-        var vU16 = Vector128.WidenLower(vBytes);
-        var vU32 = Vector256.WidenLower(vU16.ToVector256Unsafe());
-        return Vector256.ConvertToSingle(vU32.AsInt32());
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static unsafe Vector128<float> Load4BytesAsFloat128(byte* ptr)
-    {
-        var vBytes = Vector128.CreateScalarUnsafe(*(uint*)ptr).AsByte();
-        var vU16 = Vector128.WidenLower(vBytes);
-        var vU32 = Vector128.WidenLower(vU16);
-        return Vector128.ConvertToSingle(vU32.AsInt32());
-    }
-
-    private static unsafe void ComputeSobelRow(
-        byte* lumScan0,
-        byte* rowDst,
-        int y,
-        int width,
-        int height,
-        float threshold,
-        bool vectorized)
-    {
-        uint* dstPx = (uint*)rowDst;
-
-        if (y == 0 || y == height - 1)
-        {
-            if (vectorized && Vector256.IsHardwareAccelerated && width >= 8)
-            {
-                var vBlack = Vector256.Create(0xFF000000u);
-                int bx = 0;
-                int limit = width - (width % 8);
-                for (; bx < limit; bx += 8) Vector256.Store(vBlack, dstPx + bx);
-                for (; bx < width; bx++) dstPx[bx] = 0xFF000000u;
-            }
-            else
-            {
-                for (int bx = 0; bx < width; bx++) dstPx[bx] = 0xFF000000u;
-            }
-            return;
-        }
-
-        byte* rowPrev = lumScan0 + (y - 1) * width;
-        byte* rowCurr = lumScan0 + y * width;
-        byte* rowNext = lumScan0 + (y + 1) * width;
-
-        dstPx[0] = 0xFF000000u;
-        int x = 1;
-        int innerEnd = width - 1;
-
-        if (vectorized && Vector256.IsHardwareAccelerated && innerEnd - x >= 8)
-        {
-            var vTwo = Vector256.Create(2.0f);
-            var vMax = Vector256.Create(255.0f);
-            var vThresh = Vector256.Create(threshold);
-            var vZero = Vector256<float>.Zero;
-            var vAlpha = Vector256.Create(0xFF000000u);
-            var vRep = Vector256.Create(0x00010101u);
-
-            for (; x + 8 <= innerEnd; x += 8)
-            {
-                var p00 = Load8BytesAsFloat256(rowPrev + x - 1);
-                var p01 = Load8BytesAsFloat256(rowPrev + x);
-                var p02 = Load8BytesAsFloat256(rowPrev + x + 1);
-                var p10 = Load8BytesAsFloat256(rowCurr + x - 1);
-                var p12 = Load8BytesAsFloat256(rowCurr + x + 1);
-                var p20 = Load8BytesAsFloat256(rowNext + x - 1);
-                var p21 = Load8BytesAsFloat256(rowNext + x);
-                var p22 = Load8BytesAsFloat256(rowNext + x + 1);
-
-                var gx = (p02 + vTwo * p12 + p22) - (p00 + vTwo * p10 + p20);
-                var gy = (p20 + vTwo * p21 + p22) - (p00 + vTwo * p01 + p02);
-                var mag = Vector256.Sqrt(gx * gx + gy * gy);
-                mag = Vector256.Min(mag, vMax);
-                if (threshold > 0.0f)
-                {
-                    mag = Vector256.ConditionalSelect(Vector256.GreaterThanOrEqual(mag, vThresh), mag, vZero);
-                }
-
-                // Truncate (ConvertToInt32Native / cast semantics) 相當於標量 (int)mag
-                var magInt = Vector256.ConvertToInt32(Vector256.Floor(mag));
-                var outPx = vAlpha | (magInt.AsUInt32() * vRep);
-                Vector256.Store(outPx, dstPx + x);
-            }
-        }
-
-        if (vectorized && Vector128.IsHardwareAccelerated && innerEnd - x >= 4)
-        {
-            var vTwo = Vector128.Create(2.0f);
-            var vMax = Vector128.Create(255.0f);
-            var vThresh = Vector128.Create(threshold);
-            var vZero = Vector128<float>.Zero;
-            var vAlpha = Vector128.Create(0xFF000000u);
-            var vRep = Vector128.Create(0x00010101u);
-
-            for (; x + 4 <= innerEnd; x += 4)
-            {
-                var p00 = Load4BytesAsFloat128(rowPrev + x - 1);
-                var p01 = Load4BytesAsFloat128(rowPrev + x);
-                var p02 = Load4BytesAsFloat128(rowPrev + x + 1);
-                var p10 = Load4BytesAsFloat128(rowCurr + x - 1);
-                var p12 = Load4BytesAsFloat128(rowCurr + x + 1);
-                var p20 = Load4BytesAsFloat128(rowNext + x - 1);
-                var p21 = Load4BytesAsFloat128(rowNext + x);
-                var p22 = Load4BytesAsFloat128(rowNext + x + 1);
-
-                var gx = (p02 + vTwo * p12 + p22) - (p00 + vTwo * p10 + p20);
-                var gy = (p20 + vTwo * p21 + p22) - (p00 + vTwo * p01 + p02);
-                var mag = Vector128.Sqrt(gx * gx + gy * gy);
-                mag = Vector128.Min(mag, vMax);
-                if (threshold > 0.0f)
-                {
-                    mag = Vector128.ConditionalSelect(Vector128.GreaterThanOrEqual(mag, vThresh), mag, vZero);
-                }
-
-                var magInt = Vector128.ConvertToInt32(Vector128.Floor(mag));
-                var outPx = vAlpha | (magInt.AsUInt32() * vRep);
-                Vector128.Store(outPx, dstPx + x);
-            }
-        }
-
-        for (; x < innerEnd; x++)
-        {
-            int p00 = rowPrev[x - 1], p01 = rowPrev[x], p02 = rowPrev[x + 1];
-            int p10 = rowCurr[x - 1], p12 = rowCurr[x + 1];
-            int p20 = rowNext[x - 1], p21 = rowNext[x], p22 = rowNext[x + 1];
-
-            int gx = (p02 + 2 * p12 + p22) - (p00 + 2 * p10 + p20);
-            int gy = (p20 + 2 * p21 + p22) - (p00 + 2 * p01 + p02);
-
-            int mag = (int)Math.Sqrt(gx * gx + gy * gy);
-            if (mag > 255) mag = 255;
-            if (mag < threshold) mag = 0;
-
-            uint val = (uint)mag;
-            dstPx[x] = 0xFF000000u | (val * 0x00010101u);
-        }
-
-        dstPx[width - 1] = 0xFF000000u;
+        var opts = new ConvolutionOptions(
+            BorderMode: ConvolutionBorderMode.Clamp,
+            AlphaMode: ConvolutionAlphaMode.Convolve,
+            GradientChannelMode: GradientChannelMode.Luminance,
+            GradientNormMode: GradientNormMode.L2,
+            GradientThreshold: (float)threshold,
+            ProcessingMode: mode);
+        ImageConvolution.Apply(bitmap, ConvolutionKernel.Sobel, opts);
     }
 
     /// <summary>
-    /// 對影像套用高斯模糊，回傳新點陣圖。
+    /// 對影像套用高斯模糊，回傳新點陣圖（委派給獨立 SIMD 卷積引擎 ImageConvolution）。
     /// </summary>
     /// <param name="bitmap">原始影像</param>
     /// <param name="radius">模糊半徑 (像素，預設 2)</param>
@@ -1420,368 +1134,34 @@ public static class BitmapExtensions
         PixelProcessingMode mode = PixelProcessingMode.ParallelVectorized)
     {
         ArgumentNullException.ThrowIfNull(bitmap);
-        var wb = bitmap.ConvertToWriteableBitmap();
-        ApplyGaussianBlur(wb, radius, mode);
-        return wb;
+        var opts = ConvolutionOptions.Default with { ProcessingMode = mode };
+        return ImageConvolution.Convolve(bitmap, ConvolutionKernel.CreateGaussian(radius), opts);
     }
 
     /// <summary>
-    /// 原地對 WriteableBitmap 進行高斯模糊運算（採用 2-Pass 1D 可分離卷積與硬體 SIMD 向量化加速）。
+    /// 原地對 WriteableBitmap 進行高斯模糊運算（委派給獨立 SIMD 卷積引擎 ImageConvolution）。
     /// </summary>
-    public static unsafe void ApplyGaussianBlur(
+    public static void ApplyGaussianBlur(
         this WriteableBitmap bitmap,
         int radius = 2,
         PixelProcessingMode mode = PixelProcessingMode.ParallelVectorized)
     {
         ArgumentNullException.ThrowIfNull(bitmap);
-        radius = Math.Clamp(radius, 1, 50);
-
-        int size = radius * 2 + 1;
-        float* kernel = stackalloc float[size];
-        float sigma = Math.Max((float)radius / 2.0f, 0.5f);
-        float twoSigmaSq = 2.0f * sigma * sigma;
-        float sum = 0f;
-
-        for (int i = -radius; i <= radius; i++)
-        {
-            float val = MathF.Exp(-(i * i) / twoSigmaSq);
-            kernel[i + radius] = val;
-            sum += val;
-        }
-
-        for (int i = 0; i < size; i++)
-        {
-            kernel[i] /= sum;
-        }
-
-        ApplySeparableConvolution(bitmap, kernel, radius, mode);
+        var opts = ConvolutionOptions.Default with { ProcessingMode = mode };
+        ImageConvolution.Apply(bitmap, ConvolutionKernel.CreateGaussian(radius), opts);
     }
 
     /// <summary>
-    /// 原地對 WriteableBitmap 進行均值模糊 (Box Blur) 運算（採用 2-Pass 1D 可分離卷積與硬體 SIMD 向量化加速）。
+    /// 原地對 WriteableBitmap 進行均值模糊 (Box Blur) 運算（委派給獨立 SIMD 卷積引擎 ImageConvolution）。
     /// </summary>
-    public static unsafe void ApplyBoxBlur(
+    public static void ApplyBoxBlur(
         this WriteableBitmap bitmap,
         int radius = 2,
         PixelProcessingMode mode = PixelProcessingMode.ParallelVectorized)
     {
         ArgumentNullException.ThrowIfNull(bitmap);
-        radius = Math.Clamp(radius, 1, 50);
-        int size = radius * 2 + 1;
-        float weight = 1.0f / size;
-        float* kernel = stackalloc float[size];
-        for (int i = 0; i < size; i++)
-        {
-            kernel[i] = weight;
-        }
-
-        ApplySeparableConvolution(bitmap, kernel, radius, mode);
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static unsafe void StoreFloat256As8Bytes(Vector256<float> acc, byte* dst)
-    {
-        var vClamped = Vector256.Clamp(acc + Vector256.Create(0.5f), Vector256<float>.Zero, Vector256.Create(255.0f));
-        var vI32 = Vector256.ConvertToInt32(vClamped);
-        var vPack16 = Vector128.Narrow(vI32.GetLower(), vI32.GetUpper());
-        var vPack8 = Vector128.Narrow(vPack16.AsUInt16(), vPack16.AsUInt16());
-        *(ulong*)dst = vPack8.AsUInt64().GetElement(0);
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static unsafe void StoreFloat128As4Bytes(Vector128<float> acc, byte* dst)
-    {
-        var vClamped = Vector128.Clamp(acc + Vector128.Create(0.5f), Vector128<float>.Zero, Vector128.Create(255.0f));
-        var vI32 = Vector128.ConvertToInt32(vClamped);
-        var vPack16 = Vector128.Narrow(vI32, vI32);
-        var vPack8 = Vector128.Narrow(vPack16.AsUInt16(), vPack16.AsUInt16());
-        *(uint*)dst = vPack8.AsUInt32().GetElement(0);
-    }
-
-    private static unsafe void SeparableHorizontalRow(
-        byte* srcRow,
-        byte* dstRow,
-        float* kernel,
-        int radius,
-        int size,
-        int width,
-        bool vectorized)
-    {
-        if (!vectorized)
-        {
-            for (int x = 0; x < width; x++)
-            {
-                float b = 0, g = 0, r = 0, a = 0;
-                for (int k = -radius; k <= radius; k++)
-                {
-                    int sampleX = Math.Clamp(x + k, 0, width - 1);
-                    byte* p = srcRow + sampleX * 4;
-                    float w = kernel[k + radius];
-                    b += p[0] * w;
-                    g += p[1] * w;
-                    r += p[2] * w;
-                    a += p[3] * w;
-                }
-
-                byte* outP = dstRow + x * 4;
-                outP[0] = (byte)Math.Clamp((int)Math.Round(b), 0, 255);
-                outP[1] = (byte)Math.Clamp((int)Math.Round(g), 0, 255);
-                outP[2] = (byte)Math.Clamp((int)Math.Round(r), 0, 255);
-                outP[3] = (byte)Math.Clamp((int)Math.Round(a), 0, 255);
-            }
-            return;
-        }
-
-        int interiorStart = Math.Min(radius, width);
-        int interiorEnd = Math.Max(interiorStart, width - radius);
-
-        // 1. 左邊界 (含 Clamp)
-        for (int x = 0; x < interiorStart; x++)
-        {
-            float b = 0, g = 0, r = 0, a = 0;
-            for (int k = -radius; k <= radius; k++)
-            {
-                int sampleX = Math.Clamp(x + k, 0, width - 1);
-                byte* p = srcRow + sampleX * 4;
-                float w = kernel[k + radius];
-                b += p[0] * w; g += p[1] * w; r += p[2] * w; a += p[3] * w;
-            }
-            byte* outP = dstRow + x * 4;
-            outP[0] = (byte)Math.Clamp((int)(b + 0.5f), 0, 255);
-            outP[1] = (byte)Math.Clamp((int)(g + 0.5f), 0, 255);
-            outP[2] = (byte)Math.Clamp((int)(r + 0.5f), 0, 255);
-            outP[3] = (byte)Math.Clamp((int)(a + 0.5f), 0, 255);
-        }
-
-        // 2. 中央無邊界分支 SIMD 區域
-        int ix = interiorStart;
-        if (Vector256.IsHardwareAccelerated)
-        {
-            for (; ix + 2 <= interiorEnd; ix += 2)
-            {
-                var acc = Vector256<float>.Zero;
-                byte* srcWin = srcRow + (ix - radius) * 4;
-                for (int i = 0; i < size; i++)
-                {
-                    var px = Load8BytesAsFloat256(srcWin + i * 4);
-                    acc += px * Vector256.Create(kernel[i]);
-                }
-                StoreFloat256As8Bytes(acc, dstRow + ix * 4);
-            }
-        }
-
-        if (Vector128.IsHardwareAccelerated)
-        {
-            for (; ix < interiorEnd; ix++)
-            {
-                var acc = Vector128<float>.Zero;
-                byte* srcWin = srcRow + (ix - radius) * 4;
-                for (int i = 0; i < size; i++)
-                {
-                    var px = Load4BytesAsFloat128(srcWin + i * 4);
-                    acc += px * Vector128.Create(kernel[i]);
-                }
-                StoreFloat128As4Bytes(acc, dstRow + ix * 4);
-            }
-        }
-
-        for (; ix < interiorEnd; ix++)
-        {
-            float b = 0, g = 0, r = 0, a = 0;
-            byte* srcWin = srcRow + (ix - radius) * 4;
-            for (int i = 0; i < size; i++)
-            {
-                byte* p = srcWin + i * 4;
-                float w = kernel[i];
-                b += p[0] * w; g += p[1] * w; r += p[2] * w; a += p[3] * w;
-            }
-            byte* outP = dstRow + ix * 4;
-            outP[0] = (byte)Math.Clamp((int)(b + 0.5f), 0, 255);
-            outP[1] = (byte)Math.Clamp((int)(g + 0.5f), 0, 255);
-            outP[2] = (byte)Math.Clamp((int)(r + 0.5f), 0, 255);
-            outP[3] = (byte)Math.Clamp((int)(a + 0.5f), 0, 255);
-        }
-
-        // 3. 右邊界 (含 Clamp)
-        for (int x = interiorEnd; x < width; x++)
-        {
-            float b = 0, g = 0, r = 0, a = 0;
-            for (int k = -radius; k <= radius; k++)
-            {
-                int sampleX = Math.Clamp(x + k, 0, width - 1);
-                byte* p = srcRow + sampleX * 4;
-                float w = kernel[k + radius];
-                b += p[0] * w; g += p[1] * w; r += p[2] * w; a += p[3] * w;
-            }
-            byte* outP = dstRow + x * 4;
-            outP[0] = (byte)Math.Clamp((int)(b + 0.5f), 0, 255);
-            outP[1] = (byte)Math.Clamp((int)(g + 0.5f), 0, 255);
-            outP[2] = (byte)Math.Clamp((int)(r + 0.5f), 0, 255);
-            outP[3] = (byte)Math.Clamp((int)(a + 0.5f), 0, 255);
-        }
-    }
-
-    private static unsafe void SeparableVerticalRow(
-        byte* tempScan0,
-        byte* dstRow,
-        float* kernel,
-        int radius,
-        int size,
-        int y,
-        int width,
-        int height,
-        int rowBytes,
-        bool vectorized)
-    {
-        byte** rowPtrs = stackalloc byte*[size];
-        for (int i = 0; i < size; i++)
-        {
-            int sampleY = Math.Clamp(y + i - radius, 0, height - 1);
-            rowPtrs[i] = tempScan0 + sampleY * rowBytes;
-        }
-
-        if (!vectorized)
-        {
-            for (int x = 0; x < width; x++)
-            {
-                float b = 0, g = 0, r = 0, a = 0;
-                int offset = x * 4;
-                for (int i = 0; i < size; i++)
-                {
-                    byte* p = rowPtrs[i] + offset;
-                    float w = kernel[i];
-                    b += p[0] * w; g += p[1] * w; r += p[2] * w; a += p[3] * w;
-                }
-                byte* outP = dstRow + offset;
-                outP[0] = (byte)Math.Clamp((int)Math.Round(b), 0, 255);
-                outP[1] = (byte)Math.Clamp((int)Math.Round(g), 0, 255);
-                outP[2] = (byte)Math.Clamp((int)Math.Round(r), 0, 255);
-                outP[3] = (byte)Math.Clamp((int)Math.Round(a), 0, 255);
-            }
-            return;
-        }
-
-        int x2 = 0;
-        if (Vector256.IsHardwareAccelerated)
-        {
-            // 2x Vector256 展開：一次處理 4 個 BGRA 像素 (16 bytes)
-            for (; x2 + 4 <= width; x2 += 4)
-            {
-                var accLo = Vector256<float>.Zero;
-                var accHi = Vector256<float>.Zero;
-                int byteOffset = x2 * 4;
-                for (int i = 0; i < size; i++)
-                {
-                    byte* p = rowPtrs[i] + byteOffset;
-                    var vW = Vector256.Create(kernel[i]);
-                    accLo += Load8BytesAsFloat256(p) * vW;
-                    accHi += Load8BytesAsFloat256(p + 8) * vW;
-                }
-                StoreFloat256As8Bytes(accLo, dstRow + byteOffset);
-                StoreFloat256As8Bytes(accHi, dstRow + byteOffset + 8);
-            }
-
-            if (x2 + 2 <= width)
-            {
-                var acc = Vector256<float>.Zero;
-                int byteOffset = x2 * 4;
-                for (int i = 0; i < size; i++)
-                {
-                    acc += Load8BytesAsFloat256(rowPtrs[i] + byteOffset) * Vector256.Create(kernel[i]);
-                }
-                StoreFloat256As8Bytes(acc, dstRow + byteOffset);
-                x2 += 2;
-            }
-        }
-
-        if (Vector128.IsHardwareAccelerated)
-        {
-            for (; x2 < width; x2++)
-            {
-                var acc = Vector128<float>.Zero;
-                int byteOffset = x2 * 4;
-                for (int i = 0; i < size; i++)
-                {
-                    acc += Load4BytesAsFloat128(rowPtrs[i] + byteOffset) * Vector128.Create(kernel[i]);
-                }
-                StoreFloat128As4Bytes(acc, dstRow + byteOffset);
-            }
-            return;
-        }
-
-        for (; x2 < width; x2++)
-        {
-            float b = 0, g = 0, r = 0, a = 0;
-            int offset = x2 * 4;
-            for (int i = 0; i < size; i++)
-            {
-                byte* p = rowPtrs[i] + offset;
-                float w = kernel[i];
-                b += p[0] * w; g += p[1] * w; r += p[2] * w; a += p[3] * w;
-            }
-            byte* outP = dstRow + offset;
-            outP[0] = (byte)Math.Clamp((int)(b + 0.5f), 0, 255);
-            outP[1] = (byte)Math.Clamp((int)(g + 0.5f), 0, 255);
-            outP[2] = (byte)Math.Clamp((int)(r + 0.5f), 0, 255);
-            outP[3] = (byte)Math.Clamp((int)(a + 0.5f), 0, 255);
-        }
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    private static unsafe void ApplySeparableConvolution(
-        WriteableBitmap bitmap,
-        float* kernel,
-        int radius,
-        PixelProcessingMode mode)
-    {
-        using var fb = bitmap.Lock();
-        int width = fb.Size.Width;
-        int height = fb.Size.Height;
-        int rowBytes = fb.RowBytes;
-        int size = radius * 2 + 1;
-
-        long totalBytes = (long)rowBytes * height;
-        byte[]? pooledTemp = totalBytes <= 64L * 1024 * 1024 ? s_frameScratchPool.Rent((int)totalBytes) : null;
-        byte* nativeTemp = pooledTemp == null ? (byte*)System.Runtime.InteropServices.NativeMemory.Alloc((nuint)totalBytes) : null;
-
-        try
-        {
-            fixed (byte* pooledPtr = pooledTemp)
-            {
-                byte* tempScan0 = pooledTemp != null ? pooledPtr : nativeTemp;
-                byte* scan0 = (byte*)fb.Address;
-                bool isParallel = mode is PixelProcessingMode.Parallel or PixelProcessingMode.ParallelVectorized;
-                bool isVectorized = mode is PixelProcessingMode.SequentialVectorized or PixelProcessingMode.ParallelVectorized;
-
-                if (isParallel)
-                {
-                    Parallel.For(0, height, y =>
-                    {
-                        SeparableHorizontalRow(scan0 + y * rowBytes, tempScan0 + y * rowBytes, kernel, radius, size, width, isVectorized);
-                    });
-                    Parallel.For(0, height, y =>
-                    {
-                        SeparableVerticalRow(tempScan0, scan0 + y * rowBytes, kernel, radius, size, y, width, height, rowBytes, isVectorized);
-                    });
-                }
-                else
-                {
-                    for (int y = 0; y < height; y++)
-                    {
-                        SeparableHorizontalRow(scan0 + y * rowBytes, tempScan0 + y * rowBytes, kernel, radius, size, width, isVectorized);
-                    }
-                    for (int y = 0; y < height; y++)
-                    {
-                        SeparableVerticalRow(tempScan0, scan0 + y * rowBytes, kernel, radius, size, y, width, height, rowBytes, isVectorized);
-                    }
-                }
-            }
-        }
-        finally
-        {
-            if (pooledTemp != null) s_frameScratchPool.Return(pooledTemp);
-            if (nativeTemp != null) System.Runtime.InteropServices.NativeMemory.Free(nativeTemp);
-        }
+        var opts = ConvolutionOptions.Default with { ProcessingMode = mode };
+        ImageConvolution.Apply(bitmap, ConvolutionKernel.CreateBox(radius), opts);
     }
 
     /// <summary>
@@ -2114,4 +1494,32 @@ public static class BitmapHelper
         int radius = 2,
         PixelProcessingMode mode = PixelProcessingMode.ParallelVectorized) =>
         bitmap.ApplyBoxBlur(radius, mode);
+
+    public static void ApplyConvolution(
+        WriteableBitmap bitmap,
+        ConvolutionKernel kernel,
+        ConvolutionOptions? options = null) =>
+        ImageConvolution.Apply(bitmap, kernel, options);
+
+    public static void ApplyConvolution<TPost>(
+        WriteableBitmap bitmap,
+        ConvolutionKernel kernel,
+        TPost postProcessor,
+        ConvolutionOptions? options = null)
+        where TPost : struct, IConvolutionPostProcessor =>
+        ImageConvolution.Apply(bitmap, kernel, postProcessor, options);
+
+    public static WriteableBitmap Convolve(
+        Bitmap bitmap,
+        ConvolutionKernel kernel,
+        ConvolutionOptions? options = null) =>
+        ImageConvolution.Convolve(bitmap, kernel, options);
+
+    public static WriteableBitmap Convolve<TPost>(
+        Bitmap bitmap,
+        ConvolutionKernel kernel,
+        TPost postProcessor,
+        ConvolutionOptions? options = null)
+        where TPost : struct, IConvolutionPostProcessor =>
+        ImageConvolution.Convolve(bitmap, kernel, postProcessor, options);
 }

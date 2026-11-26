@@ -332,6 +332,13 @@ public sealed class CSharpMarkupViewGeneratorTests
     }
 
     [Fact]
+    public void ImageConvolutionSource_Code_ShouldHaveNoSyntaxErrors()
+    {
+        var diagnostics = RoslynCompilerService.CheckSyntaxDiagnostics(ImageConvolutionSource.Code);
+        diagnostics.Should().BeEmpty();
+    }
+
+    [Fact]
     public void Generate_WithAllControlsCompiledBindings_ShouldProduceValidLambdaExpressions()
     {
         // Arrange
