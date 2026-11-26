@@ -486,17 +486,36 @@ writeableBitmap.ProcessPixels((int x, int y, ref byte b, ref byte g, ref byte r,
      writeableBitmap.ApplyGrayscale(PixelProcessingMode.ParallelVectorized);
      ```
 3. **邊緣偵測 (`DetectEdges` / `ApplySobel`)**：
-   - 採用 2-Pass 單通道亮度緩衝區搭配 3x3 Sobel `Vector256<float>` / `Vector128<float>` 硬體向量化梯度與 `Sqrt` 運算，預設為 `PixelProcessingMode.ParallelVectorized`，且原地 `ApplySobel` 不需額外分配第二份 `WriteableBitmap`：
+   - 委派至獨立卷積引擎 `ImageConvolution` 執行 `ConvolutionKernel.Sobel`（雙核 Gx/Gy 平行向量化梯度與 `Sqrt` 運算），預設為 `PixelProcessingMode.ParallelVectorized`，且原地 `ApplySobel` 不需額外分配第二份 `WriteableBitmap`：
      ```csharp
      var edgeBmp = bitmap.DetectEdges(threshold: 30.0);
      writeableBitmap.ApplySobel(threshold: 50.0);
      ```
 4. **模糊處理 (`ApplyBlur` / `ApplyGaussianBlur` / `ApplyBoxBlur`)**：
-   - 採用 2-Pass 1D 可分離卷積結合 `NativeMemory` 零 GC 中間緩衝區、`stackalloc` 核心與行指標，以及無邊界分支 `Vector256<float>` / `Vector128<float>` SIMD 卷積運算（預設 `PixelProcessingMode.ParallelVectorized`）：
+   - 委派至獨立卷積引擎 `ImageConvolution` 執行 `ConvolutionKernel.CreateGaussian(radius)` / `CreateBox(radius)` 的 2-Pass 1D 可分離 SIMD 卷積：
      ```csharp
      var blurred = bitmap.ApplyBlur(radius: 5);
      writeableBitmap.ApplyGaussianBlur(radius: 3);
      writeableBitmap.ApplyBoxBlur(radius: 2);
+     ```
+5. **獨立卷積引擎與自訂算子 (`ImageConvolution` / `ConvolutionKernel`)**：
+   - 匯出專案自動包含 `Helpers/ImageConvolution.cs`，提供不可變算子定義 (`ConvolutionKernel.Create2D`、`CreateSeparable`、`CreateGradient`、`WithFactor`、`WithBias`、`Normalized`)、完整邊界/Alpha/梯度選項 (`ConvolutionOptions`)，以及零開銷結構泛型後處理器介面 (`IConvolutionPostProcessor`)：
+     ```csharp
+     // 自訂 3×5 或 5×5 二維卷積矩陣，並搭配擴充方法執行
+     var custom = ConvolutionKernel.Create2D(
+         new float[,]
+         {
+             {  0, -1,  0 },
+             { -1,  5, -1 },
+             {  0, -1,  0 }
+         },
+         name: "CustomSharpen");
+
+     var result = bitmap.Convolve(custom, new ConvolutionOptions(
+         BorderMode: ConvolutionBorderMode.Reflect,
+         AlphaMode: ConvolutionAlphaMode.Preserve));
+
+     writeableBitmap.ApplyConvolution(ConvolutionKernel.Emboss);
      ```
 
 ---
