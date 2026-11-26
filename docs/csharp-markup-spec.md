@@ -391,6 +391,24 @@ else if (SimdHardware.HasVector128) { /* SSE2 / ARM Neon 16-byte batch */ }
 
 ### 7.3 像素遍歷擴充方法 (`ProcessPixels`)
 
+#### 0. 零開銷泛型 Struct Functor (`IVectorTransform` / `IPixelProcessor` / `IPixelLocationProcessor` / `IRowPixelProcessor`)（推薦用於高效自訂運算）
+透過實作 `struct` 介面取代 Delegate 委派傳入，可讓 RyuJIT 完全內聯並消除間接呼叫與閉包配置開銷：
+```csharp
+public readonly struct InvertVectorFunctor : IVectorTransform
+{
+    private static readonly Vector<byte> Mask = new(255);
+    public Vector<byte> Transform(Vector<byte> vector) => Mask - vector;
+    public void TransformRemainder(ref byte b, ref byte g, ref byte r, ref byte a)
+    {
+        b = (byte)(255 - b); g = (byte)(255 - g); r = (byte)(255 - r); a = (byte)(255 - a);
+    }
+}
+
+writeableBitmap.ProcessPixels(new InvertVectorFunctor(), PixelProcessingMode.ParallelVectorized);
+writeableBitmap.ProcessPixelsSimdHardware(new InvertVectorFunctor());
+// 另提供 ProcessPixelsPerPixel<T> / ProcessPixelsLocation<T> / ProcessPixelsRow<T>
+```
+
 #### 1. 泛型硬體 SIMD 向量暫存器運算 (`VectorTransform` / `ProcessPixelsSimdHardware`)
 直接以非託管指標讀寫 `*(Vector<byte>*)(row + x)` 暫存器進行批次運算，由 JIT 自動依 CPU 硬體指令集對齊暫存器寬度（AVX2 32B / SSE2 16B / ARM NEON 16B）：
 ```csharp
@@ -461,22 +479,22 @@ writeableBitmap.ProcessPixels((int x, int y, ref byte b, ref byte g, ref byte r,
      writeableBitmap.ApplyInvert(PixelProcessingMode.ParallelVectorized);
      ```
 2. **灰階化 (`ToGrayscale` / `ApplyGrayscale`)**：
-   - 採用 ITU-R BT.601 亮度加權演算法：`Gray = (299*R + 587*G + 114*B + 500) / 1000`。
-   - 原地修改與新實例建立雙重 API，內部直接以 `Vector128<byte>` / `Vector256<byte>` SIMD 向量指令批次運算：
+   - 採用 ITU-R BT.601 定點數亮度加權演算法 (`(9798*R + 19235*G + 3735*B + 16384) >> 15`)。
+   - 原地修改與新實例建立雙重 API，支援 `Vector512<uint>` / `Vector256<uint>` / `Vector128<uint>` 真正平行批次運算：
      ```csharp
      var grayBmp = bitmap.ToGrayscale(PixelProcessingMode.ParallelVectorized);
      writeableBitmap.ApplyGrayscale(PixelProcessingMode.ParallelVectorized);
      ```
 3. **邊緣偵測 (`DetectEdges` / `ApplySobel`)**：
-   - 採用 3x3 Sobel 梯度卷積核 ($Gx$, $Gy$)，計算梯度幅值 $\sqrt{Gx^2 + Gy^2}$，支援設定過濾門檻值 (`threshold`)。
+   - 採用 2-Pass 單通道亮度緩衝區搭配 3x3 Sobel `Vector256<float>` / `Vector128<float>` 硬體向量化梯度與 `Sqrt` 運算，預設為 `PixelProcessingMode.ParallelVectorized`，且原地 `ApplySobel` 不需額外分配第二份 `WriteableBitmap`：
      ```csharp
-     var edgeBmp = bitmap.DetectEdges(threshold: 30.0, PixelProcessingMode.Parallel);
+     var edgeBmp = bitmap.DetectEdges(threshold: 30.0);
      writeableBitmap.ApplySobel(threshold: 50.0);
      ```
 4. **模糊處理 (`ApplyBlur` / `ApplyGaussianBlur` / `ApplyBoxBlur`)**：
-   - 採用 2-Pass 1D 可分離卷積（Separable Convolution）結合 `NativeMemory` 零 GC 中間緩衝區，將時間複雜度降至 $O(r \cdot W \cdot H)$：
+   - 採用 2-Pass 1D 可分離卷積結合 `NativeMemory` 零 GC 中間緩衝區、`stackalloc` 核心與行指標，以及無邊界分支 `Vector256<float>` / `Vector128<float>` SIMD 卷積運算（預設 `PixelProcessingMode.ParallelVectorized`）：
      ```csharp
-     var blurred = bitmap.ApplyBlur(radius: 5, PixelProcessingMode.Parallel);
+     var blurred = bitmap.ApplyBlur(radius: 5);
      writeableBitmap.ApplyGaussianBlur(radius: 3);
      writeableBitmap.ApplyBoxBlur(radius: 2);
      ```
